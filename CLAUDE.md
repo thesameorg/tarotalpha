@@ -13,7 +13,7 @@ TarotAlpha: сайт с внешностью финтех-терминала, в
 | `.claude/` | скилы, агенты, команды, хуки |
 | `engine/` | движок прогноза: чистые формулы, один, правится на месте |
 | `exchange/` | свечи с биржи: один код для браузера и воркера, без кэша |
-| `web/` | клиент: Vite, vanilla TypeScript, Lightweight Charts; словари десяти языков в `web/i18n/` |
+| `web/` | клиент: Vite, vanilla TypeScript, Lightweight Charts; словари одиннадцати языков в `web/i18n/`; метод по-английски — `web/how.html` |
 | `worker/` | Cloudflare Worker: `/api/*`, мета-теги на `/r/:id`, статика |
 | `migrations/` | SQL для D1 |
 

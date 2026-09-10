@@ -140,32 +140,18 @@ export const en: Dictionary = {
   locale: "en-US",
   title: "TarotAlpha — market forecast by tarot reading",
   tagline: "reading by candles · ",
-  tech: {
-    toggle: "tech",
-    lag: "lag",
-    utc: "UTC",
-    source: "source",
-    engine: "engine",
-    anchor: "anchor",
-    atr: "ATR(14)",
-    reading: "reading",
-    ms: (n: number): string => `${String(n)} ms`,
-  },
   theme: { label: "Theme", light: "Light theme", dark: "Dark theme", system: "System theme" },
   language: { label: "Language" },
   disclaimer: "not financial advice; the cards agree",
-  positions: ["hours 0–8", "hours 8–16", "hours 16–24"],
   reversed: "reversed",
   day: (n: number): string => `day ${String(n)}`,
   now: "now",
   drawStep: (n: number): string => `Open the reading · day ${String(n)}`,
   lockedStep: "two days free, the third behind the paywall",
-  info: "technical details",
   close: "Close",
   picker: { choose: "Choose an instrument", placeholder: "Ticker or name" },
   badAsset: "An instrument is 2–20 characters: Latin letters and digits",
   loading: "Loading candles…",
-  atrLine: (atr: string): string => `ATR(14) = ${atr} of price, horizon 24 candles`,
   per24h: "/ 24h",
   sources: { binance: "Binance", bybit: "Bybit" } as const,
   retry: "Retry",
@@ -246,44 +232,13 @@ export const en: Dictionary = {
         : `day ${String(day)}: ${String(pct)} % (${String(hits)}/${String(compared)})`,
   },
   summaryTitle: "The day in one line.",
+  how: "How it's computed",
   cardName: (card: Card): string =>
     card.arcana === "major" ? (MAJORS[card.index] ?? "") : `${RANKS[card.rank - 1] ?? ""} ${SUITS[card.suit]}`,
   meaning: (cardId: number, reversed: boolean): string => {
     const meaning = MEANINGS_EN[cardId];
     if (meaning === undefined) throw new RangeError(`card id ${String(cardId)} has no meaning`);
     return reversed ? meaning[1] : meaning[0];
-  },
-  effect: (e: CardEffect): string => {
-    switch (e.kind) {
-      case "tower":
-        return e.up
-          ? `The crash is called off: a ${String(e.jump)} ATR jump up in the first candle, then a slow climb`
-          : `A crash of ${String(e.jump)} ATR in the very first candle, then a steady slide`;
-      case "sun":
-        return e.up
-          ? `A ${String(e.jump)} ATR leap in the first candle and a confident march higher`
-          : `The light goes out: a ${String(e.jump)} ATR drop in the first candle, then a slide`;
-      case "wheel":
-        return "The current trend reverses from this hour";
-      case "hanged":
-        return "Flat. The market is thinking.";
-      case "moon":
-        return "Volatility doubled, direction unclear";
-      case "death":
-        return "Regime change: the trend flips sign";
-      case "fool":
-        return "Chaotic movement with no bearings, range one and a half times wider";
-      case "drift":
-        return `Moderate drift ${upDown(e.up)}, average volatility`;
-      case "wands":
-        return `Impulse ${upDown(e.up)} of ~${e.atr.toFixed(1)} ATR over the block`;
-      case "cups":
-        return e.wide ? "Range expansion, long candles" : "Volatility squeeze, narrow candles";
-      case "swords":
-        return "Spikes and false breakouts, long wicks";
-      case "pentacles":
-        return `Pull back to MA(24) at ${String(e.pull)} % strength`;
-    }
   },
   summary: (f: SummaryFacts): string => {
     const rev = f.rulingReversed ? " reversed" : "";

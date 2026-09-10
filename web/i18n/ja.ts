@@ -129,32 +129,18 @@ export const ja: Dictionary = {
   locale: "ja-JP",
   title: "TarotAlpha — タロットで読む相場予測",
   tagline: "ローソク足のリーディング · ",
-  tech: {
-    toggle: "tech",
-    lag: "遅延",
-    utc: "UTC",
-    source: "ソース",
-    engine: "エンジン",
-    anchor: "アンカー",
-    atr: "ATR(14)",
-    reading: "リーディング",
-    ms: (n: number): string => `${String(n)} ms`,
-  },
   theme: { label: "テーマ", light: "ライトテーマ", dark: "ダークテーマ", system: "システムに合わせる" },
   language: { label: "言語" },
   disclaimer: "投資助言ではありません。カードもそう言っています",
-  positions: ["0–8時", "8–16時", "16–24時"],
   reversed: "逆位置",
   day: (n: number): string => `${String(n)}日目`,
   now: "現在",
   drawStep: (n: number): string => `リーディングを開く · ${String(n)}日目`,
   lockedStep: "2日目まで無料、3日目はペイウォールの先",
-  info: "技術的な詳細",
   close: "閉じる",
   picker: { choose: "銘柄を選ぶ", placeholder: "ティッカーまたは名前" },
   badAsset: "銘柄は2〜20文字：ラテン文字と数字",
   loading: "ローソク足を読み込み中…",
-  atrLine: (atr: string): string => `ATR(14) = 価格の ${atr}、予測範囲は24本`,
   per24h: "/ 24時間",
   sources: { binance: "Binance", bybit: "Bybit" } as const,
   retry: "再試行",
@@ -229,44 +215,13 @@ export const ja: Dictionary = {
         : `${String(day)}日目：${String(pct)} %（${String(hits)}/${String(compared)}）`,
   },
   summaryTitle: "今日を一行で。",
+  how: "計算方法",
   cardName: (card: Card): string =>
     card.arcana === "major" ? (MAJORS[card.index] ?? "") : `${SUITS[card.suit]}の${RANKS[card.rank - 1] ?? ""}`,
   meaning: (cardId: number, reversed: boolean): string => {
     const meaning = MEANINGS_JA[cardId];
     if (meaning === undefined) throw new RangeError(`card id ${String(cardId)} has no meaning`);
     return reversed ? meaning[1] : meaning[0];
-  },
-  effect: (e: CardEffect): string => {
-    switch (e.kind) {
-      case "tower":
-        return e.up
-          ? `暴落は取り消し：最初のローソク足で ${String(e.jump)} ATR 跳ね上がり、その後ゆっくり上昇`
-          : `最初のローソク足で ${String(e.jump)} ATR の暴落、その後じわじわ下落`;
-      case "sun":
-        return e.up
-          ? `最初のローソク足で ${String(e.jump)} ATR 跳躍し、確信を持って上へ`
-          : `光が消える：最初のローソク足で ${String(e.jump)} ATR 下落、その後ずり下がる`;
-      case "wheel":
-        return "この時間から現在のトレンドが反転";
-      case "hanged":
-        return "横ばい。相場は考え中。";
-      case "moon":
-        return "ボラティリティ2倍、方向は不明";
-      case "death":
-        return "レジーム転換：トレンドの符号が反転";
-      case "fool":
-        return "指針のない混沌とした動き、値幅は1.5倍";
-      case "drift":
-        return `緩やかな${upDown(e.up)}向きのドリフト、ボラティリティは中程度`;
-      case "wands":
-        return `このブロックで約 ${e.atr.toFixed(1)} ATR の${upDown(e.up)}向きの勢い`;
-      case "cups":
-        return e.wide ? "値幅の拡大、長いローソク足" : "ボラティリティの収縮、短いローソク足";
-      case "swords":
-        return "スパイクとダマシのブレイク、長いヒゲ";
-      case "pentacles":
-        return `${String(e.pull)} % の力で MA(24) に回帰`;
-    }
   },
   summary: (f: SummaryFacts): string => {
     const rev = f.rulingReversed ? "（逆位置）" : "";

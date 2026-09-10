@@ -13,6 +13,7 @@ export const icons = {
   ),
   moon: svg('<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>', 15),
   monitor: svg('<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>', 15),
+  external: svg('<path d="M7 17 17 7"/><path d="M8 7h9v9"/>', 12),
 } as const;
 
 /** Turns a plain button into an icon button: the label goes to assistive tech and to the tooltip. */

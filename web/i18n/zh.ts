@@ -109,32 +109,18 @@ export const zh: Dictionary = {
   locale: "zh-CN",
   title: "TarotAlpha — 塔罗牌阵市场预测",
   tagline: "以蜡烛图占卜 · ",
-  tech: {
-    toggle: "tech",
-    lag: "延迟",
-    utc: "UTC",
-    source: "来源",
-    engine: "引擎",
-    anchor: "锚点",
-    atr: "ATR(14)",
-    reading: "牌阵",
-    ms: (n: number): string => `${String(n)} 毫秒`,
-  },
   theme: { label: "主题", light: "浅色主题", dark: "深色主题", system: "跟随系统" },
   language: { label: "语言" },
   disclaimer: "不构成投资建议；牌也这么认为",
-  positions: ["0–8 时", "8–16 时", "16–24 时"],
   reversed: "逆位",
   day: (n: number): string => `第 ${String(n)} 天`,
   now: "现在",
   drawStep: (n: number): string => `开启牌阵 · 第 ${String(n)} 天`,
   lockedStep: "前两天免费，第三天需付费",
-  info: "技术细节",
   close: "关闭",
   picker: { choose: "选择标的", placeholder: "代码或名称" },
   badAsset: "标的为 2–20 个字符：拉丁字母和数字",
   loading: "正在加载蜡烛图…",
-  atrLine: (atr: string): string => `ATR(14) = 价格的 ${atr}，预测 24 根蜡烛`,
   per24h: "/ 24小时",
   sources: { binance: "Binance", bybit: "Bybit" } as const,
   retry: "重试",
@@ -209,44 +195,13 @@ export const zh: Dictionary = {
         : `第 ${String(day)} 天：${String(pct)} %（${String(hits)}/${String(compared)}）`,
   },
   summaryTitle: "一句话看今天。",
+  how: "计算方法",
   cardName: (card: Card): string =>
     card.arcana === "major" ? (MAJORS[card.index] ?? "") : `${SUITS[card.suit]}${RANKS[card.rank - 1] ?? ""}`,
   meaning: (cardId: number, reversed: boolean): string => {
     const meaning = MEANINGS_ZH[cardId];
     if (meaning === undefined) throw new RangeError(`card id ${String(cardId)} has no meaning`);
     return reversed ? meaning[1] : meaning[0];
-  },
-  effect: (e: CardEffect): string => {
-    switch (e.kind) {
-      case "tower":
-        return e.up
-          ? `崩盘取消：第一根蜡烛向上跳 ${String(e.jump)} 个 ATR，然后缓慢攀升`
-          : `第一根蜡烛就崩跌 ${String(e.jump)} 个 ATR，随后持续下滑`;
-      case "sun":
-        return e.up
-          ? `第一根蜡烛跃升 ${String(e.jump)} 个 ATR，随后稳步走高`
-          : `光芒熄灭：第一根蜡烛下跌 ${String(e.jump)} 个 ATR，随后下滑`;
-      case "wheel":
-        return "从这一小时起当前趋势反转";
-      case "hanged":
-        return "横盘。市场在思考。";
-      case "moon":
-        return "波动翻倍，方向不明";
-      case "death":
-        return "体制更替：趋势变号";
-      case "fool":
-        return "漫无方向的混乱走势，振幅放大一倍半";
-      case "drift":
-        return `温和${upDown(e.up)}漂移，波动中等`;
-      case "wands":
-        return `本段${upDown(e.up)}冲击约 ${e.atr.toFixed(1)} 个 ATR`;
-      case "cups":
-        return e.wide ? "振幅扩张，长蜡烛" : "波动收缩，短蜡烛";
-      case "swords":
-        return "尖刺与假突破，长影线";
-      case "pentacles":
-        return `以 ${String(e.pull)} % 的力度回归 MA(24)`;
-    }
   },
   summary: (f: SummaryFacts): string => {
     const rev = f.rulingReversed ? "（逆位）" : "";

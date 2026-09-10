@@ -113,6 +113,10 @@ a:focus-visible {
     height: 100dvh;
     overflow: hidden;
   }
+  .app.page {
+    height: auto;
+    overflow: visible;
+  }
 }
 
 header {
@@ -490,60 +494,20 @@ main {
   color: var(--gold);
   border-color: var(--gold-deep);
 }
-.info {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  color: var(--paper-dim);
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 13px;
-  line-height: 1;
+/* The method page opens in a new tab: one link where the technical popover used to be. */
+.how-link {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-}
-.info:hover,
-.info[aria-expanded="true"] {
-  border-color: var(--gold);
-  color: var(--paper);
-}
-.info-panel {
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  top: 40px;
-  z-index: 11;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px 14px;
-  padding: 10px 14px;
-  font-size: 12px;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 11px;
+  letter-spacing: 0.08em;
   color: var(--paper-dim);
-  background: var(--ink);
-  border: 1px solid var(--gold-deep);
-  border-radius: 6px;
-  box-shadow: 0 10px 28px var(--shadow);
+  border-bottom: 1px dotted var(--line);
 }
-.info-panel p b {
-  display: block;
-  color: var(--paper);
-  font-weight: 500;
-}
-.info-panel .info-atr,
-.info-panel .disclaimer {
-  grid-column: 1 / -1;
-}
-.info-panel .info-atr {
-  color: var(--paper);
-  border-top: 1px dashed var(--line);
-  padding-top: 6px;
-}
-@media (max-width: 640px) {
-  .info-panel {
-    grid-template-columns: 1fr;
-  }
+.how-link:hover {
+  color: var(--gold);
+  border-color: var(--gold);
 }
 
 .spread {
@@ -1299,4 +1263,72 @@ footer {
 }
 .toast.on {
   opacity: 1;
+}
+
+/* The method page: one column of prose and tables in the terminal's own type; the grid may scroll here. */
+.doc {
+  max-width: 780px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 18px 0 40px;
+  line-height: 1.6;
+}
+.doc h1 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 28px;
+  margin-bottom: 6px;
+}
+.doc h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 20px;
+  color: var(--gold);
+  margin: 26px 0 8px;
+}
+.doc p,
+.doc li {
+  margin-bottom: 8px;
+}
+.doc ul {
+  padding-left: 18px;
+}
+.doc code {
+  color: var(--paper);
+  background: var(--ink-3);
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.doc .table {
+  overflow-x: auto;
+}
+.doc table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 14px;
+  font-size: 12px;
+}
+.doc th,
+.doc td {
+  text-align: left;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.doc th {
+  color: var(--paper-dim);
+  font-weight: 500;
+}
+.doc .lead {
+  color: var(--paper-dim);
+}
+.doc .disclaimer {
+  font-size: 12px;
+  margin-top: 24px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+.doc .back {
+  color: var(--gold);
 }

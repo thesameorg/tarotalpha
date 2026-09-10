@@ -117,32 +117,18 @@ export const ko: Dictionary = {
   locale: "ko-KR",
   title: "TarotAlpha — 타로로 읽는 시장 예측",
   tagline: "캔들로 보는 리딩 · ",
-  tech: {
-    toggle: "tech",
-    lag: "지연",
-    utc: "UTC",
-    source: "출처",
-    engine: "엔진",
-    anchor: "앵커",
-    atr: "ATR(14)",
-    reading: "리딩",
-    ms: (n: number): string => `${String(n)} ms`,
-  },
   theme: { label: "테마", light: "라이트 테마", dark: "다크 테마", system: "시스템 테마" },
   language: { label: "언어" },
   disclaimer: "투자 조언이 아닙니다. 카드도 그렇게 생각합니다",
-  positions: ["0–8시", "8–16시", "16–24시"],
   reversed: "역방향",
   day: (n: number): string => `${String(n)}일차`,
   now: "지금",
   drawStep: (n: number): string => `리딩 열기 · ${String(n)}일차`,
   lockedStep: "이틀은 무료, 셋째 날은 페이월 너머",
-  info: "기술 세부 정보",
   close: "닫기",
   picker: { choose: "종목 선택", placeholder: "티커 또는 이름" },
   badAsset: "종목은 2–20자: 라틴 문자와 숫자",
   loading: "캔들을 불러오는 중…",
-  atrLine: (atr: string): string => `ATR(14) = 가격의 ${atr}, 예측 범위 24개 캔들`,
   per24h: "/ 24시간",
   sources: { binance: "Binance", bybit: "Bybit" } as const,
   retry: "다시 시도",
@@ -217,44 +203,13 @@ export const ko: Dictionary = {
         : `${String(day)}일차: ${String(pct)} % (${String(hits)}/${String(compared)})`,
   },
   summaryTitle: "한 줄로 보는 오늘.",
+  how: "계산 방식",
   cardName: (card: Card): string =>
     card.arcana === "major" ? (MAJORS[card.index] ?? "") : `${SUITS[card.suit]} ${RANKS[card.rank - 1] ?? ""}`,
   meaning: (cardId: number, reversed: boolean): string => {
     const meaning = MEANINGS_KO[cardId];
     if (meaning === undefined) throw new RangeError(`card id ${String(cardId)} has no meaning`);
     return reversed ? meaning[1] : meaning[0];
-  },
-  effect: (e: CardEffect): string => {
-    switch (e.kind) {
-      case "tower":
-        return e.up
-          ? `붕괴 취소: 첫 캔들에서 ${String(e.jump)} ATR 위로 튀어오른 뒤 천천히 상승`
-          : `첫 캔들에서 ${String(e.jump)} ATR 붕괴, 이후 꾸준한 하락`;
-      case "sun":
-        return e.up
-          ? `첫 캔들에서 ${String(e.jump)} ATR 도약, 이후 확신에 찬 상승`
-          : `빛이 꺼진다: 첫 캔들에서 ${String(e.jump)} ATR 하락, 이후 미끄러짐`;
-      case "wheel":
-        return "이 시간부터 현재 추세가 반전";
-      case "hanged":
-        return "횡보. 시장은 생각 중.";
-      case "moon":
-        return "변동성 두 배, 방향 불명";
-      case "death":
-        return "체제 전환: 추세의 부호가 바뀜";
-      case "fool":
-        return "기준 없는 혼돈의 움직임, 진폭 1.5배";
-      case "drift":
-        return `완만한 ${upDown(e.up)} 드리프트, 변동성 보통`;
-      case "wands":
-        return `이 구간에서 약 ${e.atr.toFixed(1)} ATR의 ${upDown(e.up)} 임펄스`;
-      case "cups":
-        return e.wide ? "진폭 확대, 긴 캔들" : "변동성 축소, 짧은 캔들";
-      case "swords":
-        return "스파이크와 가짜 돌파, 긴 꼬리";
-      case "pentacles":
-        return `${String(e.pull)} %의 힘으로 MA(24)로 회귀`;
-    }
   },
   summary: (f: SummaryFacts): string => {
     const rev = f.rulingReversed ? " (역방향)" : "";

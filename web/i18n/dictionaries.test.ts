@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cardEffect, type CardEffect } from "../../engine/card-effect";
+import type { CardEffect } from "../../engine/card-effect";
 import { DECK } from "../../engine/deck";
 import type { Direction } from "../../engine/step-digest";
 import { DICTIONARIES, LANGS } from "./index";
@@ -41,10 +41,8 @@ describe.each(LANGS.map((entry) => entry.code))("dictionary %s", (code) => {
     }
   });
 
-  it("says something about every effect", () => {
-    for (const card of DECK) {
-      for (const reversed of [false, true]) expect(d.effect(cardEffect(card, reversed)).trim()).not.toBe("");
-    }
+  it("labels the link to the method page", () => {
+    expect(d.how.trim()).not.toBe("");
   });
 
   it("writes a summary that carries the number in every direction", () => {

@@ -1,7 +1,7 @@
 /**
  * The terminal facts behind the "tech" button: exchange lag, UTC clock, candle source, engine version, anchor, ATR,
  * reading id. Hidden by default, the choice survives in localStorage; markup lives in index.html. The only place
- * on the page that still speaks UTC. Values are kept so a language switch repaints them.
+ * on the page that still speaks UTC, and it speaks English whatever the interface language: terms are not translated.
  */
 import type { Source } from "../exchange/provider";
 import { onLangChange, t } from "./i18n/index";
@@ -28,7 +28,7 @@ function setText(id: string, text: string): void {
 const dash = (text: string | null): string => text ?? "—";
 
 function paint(): void {
-  setText("tech-lag", facts.lag === null ? "—" : t().tech.ms(facts.lag));
+  setText("tech-lag", facts.lag === null ? "—" : `${String(facts.lag)} ms`);
   setText("tech-source", facts.source === null ? "—" : t().sources[facts.source]);
   setText("tech-engine", dash(facts.engine));
   setText("tech-anchor", facts.anchorTs === null ? "—" : `${utcDateTime(facts.anchorTs)} · ${String(facts.anchorTs)}`);

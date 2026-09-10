@@ -140,32 +140,18 @@ export const de: Dictionary = {
   locale: "de-DE",
   title: "TarotAlpha — Marktprognose aus dem Tarot",
   tagline: "Legung nach Kerzen · ",
-  tech: {
-    toggle: "tech",
-    lag: "Latenz",
-    utc: "UTC",
-    source: "Quelle",
-    engine: "Engine",
-    anchor: "Anker",
-    atr: "ATR(14)",
-    reading: "Legung",
-    ms: (n: number): string => `${String(n)} ms`,
-  },
   theme: { label: "Design", light: "Helles Design", dark: "Dunkles Design", system: "Systemdesign" },
   language: { label: "Sprache" },
   disclaimer: "keine Finanzberatung; die Karten sehen das genauso",
-  positions: ["Stunden 0–8", "Stunden 8–16", "Stunden 16–24"],
   reversed: "umgekehrt",
   day: (n: number): string => `Tag ${String(n)}`,
   now: "jetzt",
   drawStep: (n: number): string => `Legung öffnen · Tag ${String(n)}`,
   lockedStep: "zwei Tage gratis, der dritte hinter der Paywall",
-  info: "technische Details",
   close: "Schließen",
   picker: { choose: "Instrument wählen", placeholder: "Ticker oder Name" },
   badAsset: "Ein Instrument hat 2–20 Zeichen: lateinische Buchstaben und Ziffern",
   loading: "Kerzen werden geladen…",
-  atrLine: (atr: string): string => `ATR(14) = ${atr} des Preises, Horizont 24 Kerzen`,
   per24h: "/ 24h",
   sources: { binance: "Binance", bybit: "Bybit" } as const,
   retry: "Erneut versuchen",
@@ -246,44 +232,13 @@ export const de: Dictionary = {
         : `Tag ${String(day)}: ${String(pct)} % (${String(hits)}/${String(compared)})`,
   },
   summaryTitle: "Der Tag in einer Zeile.",
+  how: "Wie es berechnet wird",
   cardName: (card: Card): string =>
     card.arcana === "major" ? (MAJORS[card.index] ?? "") : `${RANKS[card.rank - 1] ?? ""} ${SUITS[card.suit]}`,
   meaning: (cardId: number, reversed: boolean): string => {
     const meaning = MEANINGS_DE[cardId];
     if (meaning === undefined) throw new RangeError(`card id ${String(cardId)} has no meaning`);
     return reversed ? meaning[1] : meaning[0];
-  },
-  effect: (e: CardEffect): string => {
-    switch (e.kind) {
-      case "tower":
-        return e.up
-          ? `Der Absturz ist abgesagt: ein Sprung um ${String(e.jump)} ATR nach oben in der ersten Kerze, dann ein langsamer Anstieg`
-          : `Absturz um ${String(e.jump)} ATR schon in der ersten Kerze, dann ein stetiges Abrutschen`;
-      case "sun":
-        return e.up
-          ? `Ein Sprung um ${String(e.jump)} ATR in der ersten Kerze und ein sicherer Marsch nach oben`
-          : `Das Licht geht aus: ein Fall um ${String(e.jump)} ATR in der ersten Kerze, dann ein Abrutschen`;
-      case "wheel":
-        return "Der aktuelle Trend dreht ab dieser Stunde";
-      case "hanged":
-        return "Seitwärts. Der Markt denkt nach.";
-      case "moon":
-        return "Volatilität verdoppelt, Richtung unklar";
-      case "death":
-        return "Regimewechsel: der Trend wechselt das Vorzeichen";
-      case "fool":
-        return "Chaotische Bewegung ohne Orientierung, Spanne anderthalbmal so breit";
-      case "drift":
-        return `Moderate Drift ${upDown(e.up)}, mittlere Volatilität`;
-      case "wands":
-        return `Impuls ${upDown(e.up)} von ~${e.atr.toFixed(1)} ATR im Block`;
-      case "cups":
-        return e.wide ? "Ausweitung der Spanne, lange Kerzen" : "Volatilitätsstauchung, schmale Kerzen";
-      case "swords":
-        return "Spitzen und Fehlausbrüche, lange Dochte";
-      case "pentacles":
-        return `Rückkehr zum MA(24) mit ${String(e.pull)} % Kraft`;
-    }
   },
   summary: (f: SummaryFacts): string => {
     const rev = f.rulingReversed ? " in umgekehrter Lage" : "";
