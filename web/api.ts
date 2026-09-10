@@ -67,12 +67,6 @@ function postJson(path: string, body: unknown): Promise<unknown> {
   });
 }
 
-export async function fetchTodayCount(): Promise<number> {
-  const body = (await requestJson("/api/stats/today")) as { steps_today?: unknown };
-  if (typeof body.steps_today !== "number") throw new ApiError(200, "stats: no numeric steps_today");
-  return body.steps_today;
-}
-
 export async function createReading(body: CreateReadingBody): Promise<CreatedReading> {
   const created = (await postJson("/api/readings", body)) as Partial<CreatedReading>;
   if (typeof created.id !== "string" || typeof created.url !== "string") {

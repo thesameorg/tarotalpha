@@ -58,6 +58,7 @@
 
     <div class="modal" id="paywall">
       <div class="box">
+        <button class="icon-btn modal-close" id="closePayCorner" type="button"></button>
         <h2>Карты дальше молчат</h2>
         <p class="lead">
           Бесплатный доступ покрывает два дня вперёд. Третий день и более дальний горизонт открывает статус
@@ -102,15 +103,14 @@
 
     <div class="modal" id="sharemodal">
       <div class="box sharebox">
+        <button class="icon-btn modal-close" id="closeShare" type="button"></button>
         <h2>Ссылка на расклад</h2>
         <p class="lead">
           Откроется с теми же свечами и картами. Когда будущее наступит, ссылка покажет проверку пророчества.
         </p>
-        <input id="sharelink" readonly spellcheck="false" />
-        <div class="row">
-          <button id="copy">Скопировать</button>
-          <a class="btn" id="telegram" target="_blank" rel="noopener">Открыть в Telegram</a>
-          <button id="closeShare" class="push">Закрыть</button>
+        <div class="share-field">
+          <input id="sharelink" readonly spellcheck="false" />
+          <button class="icon-btn" id="copy" type="button"></button>
         </div>
       </div>
     </div>

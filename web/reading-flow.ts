@@ -1,20 +1,21 @@
 /**
- * The landing: pick an instrument, load its chart, open two free steps with the fullscreen reveal, hit the paywall
- * on the third, share the reading. Candles come straight from the exchange and steps from the engine in this
- * browser; the API only stores a reading, counts today's visitors and takes funnel events, and every one of those
- * calls degrades quietly.
+ * The landing: the chart of the instrument picked in its header loads by itself (the URL's `asset`, the last one
+ * used, or BTCUSDT), two free steps open with the fullscreen reveal, the third hits the paywall, the reading is
+ * shared. Candles come straight from the exchange and steps from the engine in this browser; the API only stores
+ * a reading and takes funnel events, and both calls degrade quietly.
  */
 import { engineFor, type Engine } from "../engine/index";
 import type { Candle } from "../engine/v1/atr";
 import { ENGINE_VERSION, type StepResult } from "../engine/v1/index";
 import { ASSET_PATTERN, fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
 import { ExchangeError, type Source } from "../exchange/provider";
-import { ApiError, createReading, fetchTodayCount, postEvent } from "./api";
+import { ApiError, createReading, postEvent } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
 import { createCoinPicker, type CoinPicker } from "./coin-picker";
 import { copy } from "./copy";
 import { required } from "./dom-lookup";
 import { showExchangeLogo } from "./exchange-logo";
+import { icons } from "./icons";
 import { openPaywall } from "./paywall-modal";
 import { formatChange, formatPrice } from "./price-format";
 import { playReveal } from "./reveal-overlay";
@@ -28,6 +29,8 @@ import { toast } from "./toast";
 const FREE_STEPS = 2;
 const FLOW_MS_PER_CANDLE = 45;
 const CHANGE_LOOKBACK = 24;
+const DEFAULT_ASSET = "BTCUSDT";
+const ASSET_KEY = "ta.asset";
 
 interface Loaded {
   asset: string;
@@ -39,10 +42,7 @@ interface Loaded {
 
 interface Elements {
   picker: HTMLElement;
-  load: HTMLButtonElement;
-  asked: HTMLElement;
   stage: HTMLElement;
-  sym: HTMLElement;
   srcLogo: HTMLImageElement;
   last: HTMLElement;
   chg: HTMLElement;
@@ -57,31 +57,43 @@ interface Elements {
   note: HTMLElement;
 }
 
+function storedAsset(): string | null {
+  try {
+    return localStorage.getItem(ASSET_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function storeAsset(asset: string): void {
+  try {
+    localStorage.setItem(ASSET_KEY, asset);
+  } catch {
+    // Private mode or a full quota: the next visit just starts from the default again.
+  }
+}
+
 function landingMarkup(): string {
   return `
-<div class="ask">
-  <label for="asset">Инструмент</label>
-  <div id="picker"></div>
-  <button class="go" id="load">Загрузить график</button>
-  <p class="asked" id="asked" hidden></p>
-</div>
 <div class="stage" id="stage">
   <div class="stage-top">
-    <div class="px"><span id="sym">—</span><img class="src-logo" id="src-logo" alt="" hidden><span id="last">—</span><span class="chg" id="chg"></span></div>
+    <div class="px"><div id="picker"></div><img class="src-logo" id="src-logo" alt="" hidden><span id="last">—</span><span class="chg" id="chg"></span></div>
     <div class="steps" id="steps" title="${copy.lockedStep}"><span></span><span></span><span class="locked"></span></div>
   </div>
   <div class="chart-box">
     <div class="chart" id="chart"></div>
     <div class="chart-state" id="chart-state">
-      <p id="chart-message">${copy.enterAsset}</p>
+      <p id="chart-message">${copy.loading}</p>
       <button class="go" id="retry" hidden>${copy.retry}</button>
     </div>
   </div>
   <div id="panel"></div>
   <div class="actions">
-    <button class="draw" id="draw" disabled>${copy.drawStep(1)}</button>
-    <button class="share" id="share" disabled>Поделиться</button>
-    <span class="note" id="note">${copy.enterAsset}</span>
+    <div class="group">
+      <button class="draw" id="draw" disabled>${copy.drawStep(1)}</button>
+      <button class="icon-btn" id="share" type="button" disabled aria-label="${copy.share.button}" title="${copy.share.button}">${icons.share}</button>
+    </div>
+    <span class="note" id="note"></span>
   </div>
 </div>`;
 }
@@ -89,10 +101,7 @@ function landingMarkup(): string {
 function lookup(root: HTMLElement): Elements {
   return {
     picker: required(root, "#picker", HTMLElement),
-    load: required(root, "#load", HTMLButtonElement),
-    asked: required(root, "#asked", HTMLElement),
     stage: required(root, "#stage", HTMLElement),
-    sym: required(root, "#sym", HTMLElement),
     srcLogo: required(root, "#src-logo", HTMLImageElement),
     last: required(root, "#last", HTMLElement),
     chg: required(root, "#chg", HTMLElement),
@@ -125,6 +134,7 @@ class LandingPage {
   private readonly panel: SpreadPanel;
   private alive = true;
   private busy = false;
+  private loadSeq = 0;
   private loaded: Loaded | null = null;
 
   constructor(root: HTMLElement, params: URLSearchParams) {
@@ -134,22 +144,21 @@ class LandingPage {
     this.chart = createCandleChart(this.el.chart);
     setTechFacts({ lag: null, source: null, engine: ENGINE_VERSION, anchorTs: null, atr: null, readingId: null });
 
-    const load = (): void => {
-      void this.load();
-    };
     const preset = (params.get("asset") ?? "").trim().toUpperCase();
-    this.picker = createCoinPicker(this.el.picker, preset === "" ? "BTCUSDT" : preset, load);
-    this.el.load.addEventListener("click", load);
-    this.el.retry.addEventListener("click", load);
+    const initial = preset === "" ? (storedAsset() ?? DEFAULT_ASSET) : preset;
+    this.picker = createCoinPicker(this.el.picker, initial, (symbol) => {
+      void this.load(symbol);
+    });
+    this.el.retry.addEventListener("click", () => {
+      void this.load(this.picker.value());
+    });
     this.el.draw.addEventListener("click", () => {
       void this.openStep();
     });
     this.el.share.addEventListener("click", () => {
       void this.share();
     });
-
-    if (preset !== "") load();
-    this.showTodayCount();
+    void this.load(initial);
   }
 
   dispose(): void {
@@ -161,20 +170,6 @@ class LandingPage {
   // Read through a method: an `if (!this.alive)` guard would narrow the field to `true` for the rest of the flow.
   private gone(): boolean {
     return !this.alive;
-  }
-
-  private currentAsset(): string | null {
-    return this.loaded?.asset ?? null;
-  }
-
-  private showTodayCount(): void {
-    fetchTodayCount()
-      .then((count) => {
-        if (this.gone()) return;
-        this.el.asked.textContent = copy.asked(count);
-        this.el.asked.hidden = false;
-      })
-      .catch(() => undefined);
   }
 
   private note(text: string): void {
@@ -193,21 +188,23 @@ class LandingPage {
     });
   }
 
-  private async load(): Promise<void> {
-    if (this.busy) return;
-    const asset = this.picker.value();
+  // A newer pick wins: every await checks that this load is still the latest and the page is still mounted.
+  private async load(asset: string): Promise<void> {
+    const seq = ++this.loadSeq;
+    const stale = (): boolean => this.gone() || seq !== this.loadSeq;
     this.picker.setValue(asset);
     if (!ASSET_PATTERN.test(asset)) {
       this.note(copy.badAsset);
       this.chartState(copy.badAsset, false);
       return;
     }
-    this.busy = true;
     this.loaded = null;
     this.el.draw.disabled = true;
     this.el.share.disabled = true;
     this.el.draw.textContent = copy.drawStep(1);
     showExchangeLogo(this.el.srcLogo, null);
+    this.el.last.textContent = "—";
+    this.el.chg.textContent = "";
     this.note(copy.loading);
     this.chartState(copy.loading, false);
     this.panel.clear();
@@ -221,16 +218,14 @@ class LandingPage {
     try {
       snapshot = await fetchSnapshot(asset, anchorTs);
     } catch (error: unknown) {
-      this.busy = false;
-      if (this.gone()) return;
+      if (stale()) return;
       const kind = error instanceof ExchangeError ? error.kind : "unavailable";
       this.chartState(copy.exchange[kind], kind !== "unknown_asset");
       this.note(copy.exchange[kind]);
       return;
     }
-    this.busy = false;
     const lag = Math.round(performance.now() - started);
-    if (this.gone()) return;
+    if (stale()) return;
 
     const candles = snapshot.candles;
     const last = candles[candles.length - 1];
@@ -241,10 +236,10 @@ class LandingPage {
       return;
     }
     this.loaded = { asset, anchorTs, snapshot: candles, source: snapshot.source, steps: [] };
+    storeAsset(asset);
     const atr = formatPrice(this.engine.atr(candles));
     setTechFacts({ lag, source: snapshot.source, anchorTs, atr });
     showExchangeLogo(this.el.srcLogo, snapshot.source);
-    this.el.sym.textContent = asset;
     this.el.last.textContent = formatPrice(last.c);
     const change = (last.c / prev.c - 1) * 100;
     this.el.chg.textContent = formatChange(change);
@@ -254,7 +249,7 @@ class LandingPage {
     this.chartState(null, false);
 
     await this.chart.showSnapshot(candles, true);
-    if (this.gone() || this.currentAsset() !== asset) return;
+    if (stale()) return;
     this.el.draw.disabled = false;
     postEvent({ type: "chart_loaded", asset });
   }
@@ -287,12 +282,17 @@ class LandingPage {
     this.panel.setSteps(loaded.steps, step - 1);
     this.chart.setSteps(step);
     this.setStepsBar(step);
+    // Another instrument picked while the candles flow in: that load owns the chart now, this step stops.
     for (const candle of result.candles) {
-      if (this.gone()) return;
+      if (this.gone() || this.loaded !== loaded) {
+        this.busy = false;
+        return;
+      }
       this.chart.appendForecast(candle);
       await sleep(FLOW_MS_PER_CANDLE);
     }
     this.busy = false;
+    if (this.loaded !== loaded) return;
     this.el.share.disabled = false;
     this.el.draw.textContent = copy.drawStep(step + 1);
     this.el.draw.disabled = false;
@@ -312,7 +312,7 @@ class LandingPage {
         engine_version: ENGINE_VERSION,
       });
       if (this.gone()) return;
-      openShareModal(new URL(created.url, window.location.origin).href, loaded.asset, loaded.steps.length);
+      openShareModal(new URL(created.url, window.location.origin).href);
     } catch (error: unknown) {
       if (!this.gone()) toast(shareErrorMessage(error));
     } finally {

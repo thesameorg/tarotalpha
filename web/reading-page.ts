@@ -1,8 +1,9 @@
 /**
  * A saved reading at /r/:id: the stored snapshot and cards, the forecast recomputed by the engine version the
  * reading names (law 1), and the prophecy check against candles this browser fetches from the same exchange.
- * Days are tabs under the chart; replay runs the fullscreen reveal for each day in turn. The API answers only
- * the reading itself; 404 and network failures render as text, never as an empty chart.
+ * The first paint is static: every candle, real and forecast, is on the chart at once. Days are tabs under the
+ * chart; replay alone animates, running the fullscreen reveal for each day and flowing its candles in. The API
+ * answers only the reading itself; 404 and network failures render as text, never as an empty chart.
  */
 import { engineFor, type Engine } from "../engine/index";
 import type { Accuracy } from "../engine/v1/accuracy";
@@ -11,9 +12,11 @@ import type { StepResult } from "../engine/v1/index";
 import { fetchAfter, HOUR_MS } from "../exchange/closed-candles";
 import { ApiError, fetchReading, postEvent, type ReadingRecord } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
+import { createCoinPicker } from "./coin-picker";
 import { copy } from "./copy";
 import { required } from "./dom-lookup";
 import { showExchangeLogo } from "./exchange-logo";
+import { icons } from "./icons";
 import { localDateTime, localTime } from "./local-time-format";
 import { formatChange, formatPrice } from "./price-format";
 import { playReveal } from "./reveal-overlay";
@@ -29,7 +32,7 @@ const CHANGE_LOOKBACK = 24;
 
 interface Elements {
   stage: HTMLElement;
-  sym: HTMLElement;
+  picker: HTMLElement;
   srcLogo: HTMLImageElement;
   last: HTMLElement;
   chg: HTMLElement;
@@ -59,7 +62,7 @@ function readingMarkup(meta: string): string {
   return `
 <div class="stage" id="stage">
   <div class="stage-top">
-    <div class="px"><span id="sym"></span><img class="src-logo" id="src-logo" alt="" hidden><span id="last"></span><span class="chg" id="chg"></span></div>
+    <div class="px"><div id="picker"></div><img class="src-logo" id="src-logo" alt="" hidden><span id="last"></span><span class="chg" id="chg"></span></div>
     <span class="meta" id="meta">${meta}</span>
     <div class="steps" id="steps"><span></span><span></span><span class="locked"></span></div>
   </div>
@@ -67,9 +70,11 @@ function readingMarkup(meta: string): string {
   <div class="prophecy" id="prophecy"></div>
   <div id="panel"></div>
   <div class="actions">
-    <button class="draw" id="replay">Воспроизвести расклад</button>
-    <button class="share" id="own">Свой расклад по этому инструменту</button>
-    <button class="share" id="share">Поделиться</button>
+    <div class="group">
+      <button class="draw" id="replay">Воспроизвести расклад</button>
+      <button class="go" id="own">Свой расклад по этому инструменту</button>
+      <button class="icon-btn" id="share" type="button" aria-label="${copy.share.button}" title="${copy.share.button}">${icons.share}</button>
+    </div>
     <span class="note" id="note"></span>
   </div>
 </div>`;
@@ -78,7 +83,7 @@ function readingMarkup(meta: string): string {
 function lookup(root: HTMLElement): Elements {
   return {
     stage: required(root, "#stage", HTMLElement),
-    sym: required(root, "#sym", HTMLElement),
+    picker: required(root, "#picker", HTMLElement),
     srcLogo: required(root, "#src-logo", HTMLImageElement),
     last: required(root, "#last", HTMLElement),
     chg: required(root, "#chg", HTMLElement),
@@ -203,7 +208,10 @@ class ReadingPage {
     });
 
     showExchangeLogo(el.srcLogo, record.source);
-    el.sym.textContent = record.asset;
+    createCoinPicker(el.picker, record.asset, (symbol) => {
+      postEvent({ type: "own_reading_clicked", asset: symbol, reading_id: record.id });
+      this.navigate(`/?asset=${encodeURIComponent(symbol)}`);
+    });
     el.last.textContent = formatPrice(last.c);
     const change = (last.c / prev.c - 1) * 100;
     el.chg.textContent = formatChange(change);
@@ -226,7 +234,7 @@ class ReadingPage {
       this.navigate(`/?asset=${encodeURIComponent(record.asset)}`);
     });
     el.share.addEventListener("click", () => {
-      openShareModal(window.location.href, record.asset, results.length);
+      openShareModal(window.location.href);
     });
 
     void this.reveal(el, chart, snapshot, results, engine, record);
@@ -246,7 +254,7 @@ class ReadingPage {
     engine: Engine,
     record: ReadingRecord,
   ): Promise<void> {
-    await chart.showSnapshot(snapshot, true);
+    await chart.showSnapshot(snapshot, false);
     if (this.gone()) return;
     chart.setSteps(results.length);
     chart.setForecast(results.flatMap((step) => step.candles));
@@ -310,8 +318,12 @@ class ReadingPage {
     this.setStepsBar(el, 0);
     for (const [index, step] of results.entries()) {
       if (this.gone()) return;
-      await playReveal(cardsOf(step, engine.cardById), { auto: true });
+      const pulled = await playReveal(cardsOf(step, engine.cardById));
       if (this.gone()) return;
+      if (!pulled) {
+        this.restoreAfterReplay(el, chart, panel, results);
+        return;
+      }
       panel.setSteps(results.slice(0, index + 1), index);
       chart.setSteps(index + 1);
       this.setStepsBar(el, index + 1);
@@ -326,6 +338,18 @@ class ReadingPage {
     el.replay.disabled = false;
     this.busy = false;
     postEvent({ type: "replayed", asset: record.asset, reading_id: record.id });
+  }
+
+  // The viewer closed the fan mid-replay: put the stored reading back exactly as it was before the replay.
+  private restoreAfterReplay(el: Elements, chart: CandleChart, panel: SpreadPanel, results: StepResult[]): void {
+    panel.setSteps(results, results.length - 1);
+    chart.setForecast(results.flatMap((step) => step.candles));
+    chart.setSteps(results.length);
+    this.setStepsBar(el, results.length);
+    if (this.actual !== null) chart.setActual(this.actual);
+    el.note.textContent = "";
+    el.replay.disabled = false;
+    this.busy = false;
   }
 }
 

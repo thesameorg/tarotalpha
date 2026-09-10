@@ -3,7 +3,7 @@
  * the user pulls three backs out of it (card-fan.ts), each flies to its slot and flips with a spark, a reversed
  * major flips red and shakes the stage. The i-th pull reveals card i: the fan is theatre, the cards are fixed by
  * the seed. Markup is in index.html, the ring and flash live inside the overlay so they stay above the page.
- * Reveals queue: two never overlap. `auto` pulls by itself for a replay; "close" resolves false and nothing applies.
+ * Reveals queue: two never overlap. A replay uses the same fan — the viewer pulls too; "close" resolves false.
  * With reduced motion there are no particles and no flight: backs vanish from the fan, cards fade in face up.
  */
 import type { Card } from "../engine/v1/deck";
@@ -19,10 +19,6 @@ export interface RevealCard {
   reversed: boolean;
 }
 
-export interface RevealOptions {
-  auto?: boolean;
-}
-
 const FADE_IN_MS = 200;
 const SHUFFLE_MS = 420;
 const FLY_MS = 560;
@@ -31,7 +27,6 @@ const HOLD_MS = 500;
 const FADE_OUT_MS = 400;
 const REDUCED_FADE_MS = 150;
 const REDUCED_HOLD_MS = 900;
-const AUTO_PULL_GAP_MS = 700;
 const BURST_COUNT = 460;
 const FLIP_BURST = 140;
 const LEGENDARY_BURST = 260;
@@ -41,8 +36,8 @@ let sparkles: Sparkles | null = null;
 let queue: Promise<boolean> = Promise.resolve(true);
 
 /** Resolves true once every card is pulled, false when the viewer closed the overlay before that. */
-export function playReveal(cards: readonly RevealCard[], options: RevealOptions = {}): Promise<boolean> {
-  queue = queue.then(() => run(cards, options.auto === true));
+export function playReveal(cards: readonly RevealCard[]): Promise<boolean> {
+  queue = queue.then(() => run(cards));
   return queue;
 }
 
@@ -58,7 +53,7 @@ async function fade(overlay: HTMLElement, on: boolean, ms: number): Promise<void
   await sleep(ms);
 }
 
-async function run(cards: readonly RevealCard[], auto: boolean): Promise<boolean> {
+async function run(cards: readonly RevealCard[]): Promise<boolean> {
   const overlay = required(document, "#reveal", HTMLElement);
   const stage = required(overlay, ".reveal-stage", HTMLElement);
   const deck = required(overlay, ".reveal-deck", HTMLElement);
@@ -152,17 +147,10 @@ async function run(cards: readonly RevealCard[], auto: boolean): Promise<boolean
   slots.style.visibility = "";
   fanEl.hidden = false;
   hint.hidden = false;
-  close.hidden = auto;
+  close.hidden = false;
   await fan.spread();
-  if (!auto) fanEl.focus({ preventScroll: true });
+  fanEl.focus({ preventScroll: true });
 
-  const autoPulls = async (): Promise<void> => {
-    for (let i = 0; i < cards.length && live; i++) {
-      await sleep(AUTO_PULL_GAP_MS);
-      await fan.autoPull();
-    }
-  };
-  if (auto) void autoPulls();
   const ok = await outcome;
   live = false;
   close.removeEventListener("click", cancel);

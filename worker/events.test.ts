@@ -1,24 +1,31 @@
+import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { callApi, post } from "./call-api";
 
-async function stepsToday(): Promise<number> {
-  const body = await (await callApi("/api/stats/today")).json<{ steps_today: number }>();
-  return body.steps_today;
+async function rows(type: string): Promise<number> {
+  const row = await env.DB.prepare("SELECT COUNT(*) AS n FROM events WHERE type = ?1")
+    .bind(type)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
 }
 
-describe("POST /api/events and GET /api/stats/today", () => {
-  it("counts step_opened since 00:00 UTC", async () => {
-    const before = await stepsToday();
+describe("POST /api/events", () => {
+  it("writes one row per client event", async () => {
+    const before = await rows("step_opened");
     const posted = await callApi("/api/events", post({ type: "step_opened", asset: "BTCUSDT", step: 1 }));
     expect(posted.status).toBe(204);
-    expect(await stepsToday()).toBe(before + 1);
+    expect(await rows("step_opened")).toBe(before + 1);
   });
 
   it("rejects event types only the server may write", async () => {
-    const before = await stepsToday();
+    const before = await rows("shared");
     const response = await callApi("/api/events", post({ type: "shared" }));
     expect(response.status).toBe(400);
     expect(await response.json()).toMatchObject({ error: "bad_request" });
-    expect(await stepsToday()).toBe(before);
+    expect(await rows("shared")).toBe(before);
+  });
+
+  it("has no stats route any more", async () => {
+    expect((await callApi("/api/stats/today")).status).toBe(404);
   });
 });
