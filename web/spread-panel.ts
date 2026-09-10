@@ -1,7 +1,8 @@
 /**
- * The cards block under the chart, one for both pages: day tabs with a link to the method page, the three cards of
- * the chosen day with one esoteric line under each, and the day's summary with its disclaimer. The numbers behind
- * a card are not shown here: how they are computed is the English page /how.html, opened in a new tab.
+ * The cards block under the chart, one for both pages: day tabs, the three cards of the chosen day with their
+ * names and one esoteric line under each, and the day's summary with its disclaimer. A name printed over the
+ * picture would sit on the one the card itself carries, so in this row the caption is hidden and the name stands
+ * under the card; the fullscreen reveal keeps its caption. The link to the method page is the footer's one.
  * Everything here is text, so the block re-renders itself when the language switches.
  */
 import { cardById } from "../engine/deck";
@@ -9,11 +10,8 @@ import type { StepResult } from "../engine/index";
 import { frontMarkup, slotMarkup } from "./card-face";
 import { required } from "./dom-lookup";
 import { onLangChange, t } from "./i18n/index";
-import { icons } from "./icons";
 import type { RevealCard } from "./reveal-overlay";
 import { daySummary } from "./spread-summary";
-
-export const HOW_URL = "/how.html";
 
 export interface SpreadPanel {
   setSteps(steps: readonly StepResult[], active: number): void;
@@ -26,7 +24,7 @@ export function cardsOf(step: StepResult): RevealCard[] {
 }
 
 function markup(): string {
-  return `<div class="tabs"><div class="tablist" role="tablist"></div><a class="how-link" href="${HOW_URL}" target="_blank" rel="noopener" hidden></a></div>
+  return `<div class="tabs"><div class="tablist" role="tablist"></div></div>
 <div class="spread"></div>
 <div class="meanings"></div>
 <div class="summary" hidden></div>`;
@@ -40,7 +38,6 @@ export function createSpreadPanel(root: HTMLElement, eager: boolean): SpreadPane
   root.classList.add("panel");
   root.innerHTML = markup();
   const tablist = required(root, ".tablist", HTMLElement);
-  const how = required(root, ".how-link", HTMLAnchorElement);
   const spread = required(root, ".spread", HTMLElement);
   const meanings = required(root, ".meanings", HTMLElement);
   const summary = required(root, ".summary", HTMLElement);
@@ -52,8 +49,6 @@ export function createSpreadPanel(root: HTMLElement, eager: boolean): SpreadPane
   const render = (fresh: boolean): void => {
     const step = steps[active];
     tablist.innerHTML = steps.map((_, index) => tabMarkup(index, index === active)).join("");
-    how.innerHTML = `${t().how}${icons.external}`;
-    how.hidden = step === undefined;
     summary.hidden = step === undefined;
     if (step === undefined) {
       // No card slots before a step: how many cards a reader draws is its own business, and one may throw bones.
@@ -72,7 +67,8 @@ export function createSpreadPanel(root: HTMLElement, eager: boolean): SpreadPane
     meanings.innerHTML = cards
       .map((c) => {
         const line = t().meaning(c.card.id, c.reversed);
-        return `<p title="${line}">${line}</p>`;
+        const reversedTag = c.reversed ? `<span class="rev">${t().reversed}</span>` : "";
+        return `<div class="meaning"><div class="card-name">${t().cardName(c.card)}${reversedTag}</div><p>${line}</p></div>`;
       })
       .join("");
     summary.innerHTML = `<p><b>${t().summaryTitle}</b> ${daySummary(step)}</p><p class="disclaimer">${t().disclaimer}</p>`;
