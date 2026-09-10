@@ -1,0 +1,53 @@
+default_install_hook_types: [pre-commit, pre-push]
+# Иначе коммитные хуки прогоняются ещё раз на пуше, уже отработав при коммите.
+default_stages: [pre-commit]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-executables-have-shebangs
+
+  # Всё, кроме питона: его prettier не умеет и не должен (.prettierignore).
+  # Версию менять только вместе с ручным прогоном, иначе вечный дифф:
+  #   git ls-files -z | xargs -0 npx prettier@3.9.6 --ignore-unknown --write
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.9.6
+    hooks:
+      - id: prettier
+        types_or: [ts, tsx, javascript, jsx, json, yaml, markdown, css]
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+
+  # Ругается только на строки, которые ты сейчас застейджил — легаси в том же
+  # файле молчит. Политика: .claude/skills/documenting/SKILL.md
+  - repo: local
+    hooks:
+      - id: docs-lint
+        name: политика документирования
+        entry: python3 scripts/docs_lint.py
+        language: system
+        pass_filenames: true
+        types_or: [python, ts, tsx, javascript, shell, yaml, markdown]
+
+  # Стадия push, а не commit: проверка смотрит на ветку целиком против origin/main,
+  # и на каждом коммите это лишний шум. Ровно то, чем краснеет CI.
+  - repo: local
+    hooks:
+      - id: docs-ratchet
+        name: долг документации не вырос
+        entry: python3 scripts/docs_lint.py --ratchet-vs origin/main
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

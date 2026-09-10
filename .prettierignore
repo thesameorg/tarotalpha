@@ -1,0 +1,10 @@
+# prettier не умеет питон, а оснастка написана на нём
+*.py
+
+# генерируемое и вендоренное
+**/node_modules/
+**/dist/
+**/build/
+**/.wrangler/
+package-lock.json
+pnpm-lock.yaml

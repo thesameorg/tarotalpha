@@ -1,0 +1,12 @@
+{
+  "name": "tarotalpha",
+  "private": true,
+  "scripts": {
+    "wt": "./scripts/worktree.sh create",
+    "wt:rm": "./scripts/worktree.sh rm",
+    "check": "python3 scripts/docs_lint.py --base origin/main",
+    "check:all": "python3 scripts/docs_lint.py",
+    "related": "python3 scripts/docs_lint.py --base origin/main --related",
+    "test:lint": "python3 scripts/test_docs_lint.py"
+  }
+}

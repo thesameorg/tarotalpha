@@ -1,0 +1,14 @@
+printWidth: 120
+proseWrap: never # абзац markdown — одна строка: перенос внутри абзаца переклеивает дифф при правке одного слова
+
+overrides:
+  - files: ["*.yml", "*.yaml"]
+    options:
+      singleQuote: false
+
+  - files: "*.md"
+    options:
+      # Ширина в md влияет только на таблицы: прозу не переносит proseWrap, код в ``` не форматируем.
+      # Единица = компактные таблицы, и правка ячейки даёт дифф в одну строку.
+      printWidth: 1
+      embeddedLanguageFormatting: "off"
