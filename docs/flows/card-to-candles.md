@@ -82,11 +82,13 @@
 
 Порядок чисел генератора на одну свечу: мечи берут одно число на знак дрейфа, потом шум close, потом `h`, потом `l`. Шкала откалибрована так, что средний истинный диапазон свечи прогноза — около одного ATR, ни одна свеча не уже 0.3 ATR и ни одна не открывается в стороне от предыдущего закрытия; держит `engine/calibration.test.ts`, золотой выход — `engine/golden/btcusdt.ts`, его перегенерируют при каждой правке формул.
 
-## Точность
+## Точность и разбег
 
 - Свеча прогноза сравнивается с реальной свечой того же `t`. Попадание — совпал знак: `(fc.c ≥ fc.o) === (real.c ≥ real.o)`.
 - `accuracy = hits / compared`, где `compared` — сколько свечей прогноза уже получили реальную пару. Считается по шагам и суммарно.
 - `compared = 0` — будущее не наступило, бейджа нет. `accuracy ≥ 0.5` — «Пророчество сбылось на N %», иначе «Рынок отверг пророчество». Итог окончателен, когда `compared = 24 · число шагов`.
+- `deviation` — разбег: среднее `|close прогноза − close реальной|` по тем же парам, делённое на ATR(14) снапшота в цене. Знака не смотрит: знак — это точность.
+- **Единица разбега — ATR рынка, а не шкала гадалки.** У каждой гадалки своя `ReaderScale` (NATR(14), BAND(20), MOVE(12), SIGMA(24), RANGE(48)), и в собственной единице гадалка с широкой шкалой выглядела бы точнее остальных даром; в ATR сравнимы и пять гадалок между собой, и любые два инструмента. На графике тот же разбег — лента между рядом закрытий прогноза и рядом реальных; дыра в свечах биржи ленту разрывает, а не затягивается прямой.
 - Рядом с бейджем и с любой цифрой толкования стоит дисклеймер — закон в `CLAUDE.md`.
 
 ## Эффект карты, дайджест шага, толкование и итог дня
@@ -100,4 +102,4 @@
 
 ## Файлы
 
-`engine/deck.ts` — колода и адресация карт · `engine/seed.ts` — хэш и генератор · `engine/draw-cards.ts` — тасовка · `engine/atr.ts` — ATR и NATR · `engine/readers.ts` — реестр гадалок и их единицы · `engine/card-to-candles.ts` — свечи гадалки `atr` · `engine/mean-reversion.ts` — свечи гадалки `reversion` · `engine/history-analogy.ts` — свечи гадалки `analogy` · `engine/volatility-clustering.ts` — свечи гадалки `garch` · `engine/fractal-drift.ts` — свечи гадалки `fractal` · `engine/card-effect.ts` — эффект карты · `engine/step-digest.ts` — дайджест шага · `engine/accuracy.ts` — точность · `engine/index.ts` — вход и метка движка · `web/spread-summary.ts` — итог дня · `web/reader-choice.ts` — выбор гадалки и её портрет · `web/reader-picker.ts` — ряд портретов под графиком · `web/i18n/` — слова на одиннадцати языках, `web/i18n/langs.ts` — их список · `web/how.html` — метод по-английски для зрителя.
+`engine/deck.ts` — колода и адресация карт · `engine/seed.ts` — хэш и генератор · `engine/draw-cards.ts` — тасовка · `engine/atr.ts` — ATR и NATR · `engine/readers.ts` — реестр гадалок и их единицы · `engine/card-to-candles.ts` — свечи гадалки `atr` · `engine/mean-reversion.ts` — свечи гадалки `reversion` · `engine/history-analogy.ts` — свечи гадалки `analogy` · `engine/volatility-clustering.ts` — свечи гадалки `garch` · `engine/fractal-drift.ts` — свечи гадалки `fractal` · `engine/card-effect.ts` — эффект карты · `engine/step-digest.ts` — дайджест шага · `engine/accuracy.ts` — точность · `engine/deviation.ts` — разбег · `engine/index.ts` — вход и метка движка · `web/spread-summary.ts` — итог дня · `web/reader-choice.ts` — выбор гадалки и её портрет · `web/reader-picker.ts` — ряд портретов под графиком · `web/deviation-ribbon.ts` — лента разбега на графике · `web/i18n/` — слова на одиннадцати языках, `web/i18n/langs.ts` — их список · `web/how.html` — метод по-английски для зрителя.

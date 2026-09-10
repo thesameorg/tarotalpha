@@ -216,6 +216,7 @@ export const ru = {
     compared: (n: number, total: number): string => `по ${String(n)} из ${String(total)} свечей`,
     final: "итог",
     interim: "промежуточно",
+    deviation: (value: string): string => `разбег ${value} ATR`,
     stepLine: (day: number, pct: number | null, hits: number, compared: number): string =>
       pct === null
         ? `день ${String(day)}: ещё не наступил`

@@ -197,6 +197,7 @@ export const ko: Dictionary = {
     compared: (n: number, total: number): string => `${String(total)}개 캔들 중 ${String(n)}개 기준`,
     final: "최종",
     interim: "중간",
+    deviation: (value: string): string => `오차 ${value} ATR`,
     stepLine: (day: number, pct: number | null, hits: number, compared: number): string =>
       pct === null
         ? `${String(day)}일차: 아직`

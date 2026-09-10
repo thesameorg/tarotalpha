@@ -213,6 +213,7 @@ export const tr: Dictionary = {
     compared: (n: number, total: number): string => `${String(total)} mumdan ${String(n)} tanesinde`,
     final: "nihai",
     interim: "geçici",
+    deviation: (value: string): string => `sapma ${value} ATR`,
     stepLine: (day: number, pct: number | null, hits: number, compared: number): string =>
       pct === null
         ? `${String(day)}. gün: henüz değil`

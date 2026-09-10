@@ -6,7 +6,16 @@
  * network failures render as text, never as an empty chart. Labels are functions of the dictionary, so a language
  * switch relabels the page in place.
  */
-import { accuracy, forecastFromCards, readerScale, type Accuracy, type Candle, type StepResult } from "../engine/index";
+import {
+  accuracy,
+  atr,
+  deviation,
+  forecastFromCards,
+  readerScale,
+  type Accuracy,
+  type Candle,
+  type StepResult,
+} from "../engine/index";
 import { fetchAfter, HOUR_MS } from "../exchange/closed-candles";
 import { ApiError, fetchReading, postEvent, type ReadingRecord } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
@@ -51,6 +60,7 @@ interface Verdict {
   overall: Accuracy;
   perStep: readonly Accuracy[];
   total: number;
+  deviation: number | null;
 }
 
 type Prophecy = { kind: "verdict"; verdict: Verdict } | { kind: "pending"; text: Text; retry: boolean } | null;
@@ -112,17 +122,18 @@ function percent(value: number | null): number | null {
   return value === null ? null : Math.round(value * 100);
 }
 
-function verdictMarkup({ overall, perStep, total }: Verdict): string {
+function verdictMarkup({ overall, perStep, total, deviation }: Verdict): string {
   const pct = percent(overall.accuracy) ?? 0;
   const hit = (overall.accuracy ?? 0) >= 0.5;
   const title = hit ? t().prophecy.hit(pct) : t().prophecy.miss(pct);
   const status = overall.compared === total ? t().prophecy.final : t().prophecy.interim;
+  const gap = deviation === null ? "" : ` · ${t().prophecy.deviation(deviation.toFixed(1))}`;
   const lines = perStep
     .map((step, index) => t().prophecy.stepLine(index + 1, percent(step.accuracy), step.hits, step.compared))
     .join(" · ");
   return `<div class="verdict ${hit ? "hit" : "miss"}">
   <div class="verdict-title">${title}</div>
-  <div class="verdict-sub">${t().prophecy.compared(overall.compared, total)} · ${status}</div>
+  <div class="verdict-sub">${t().prophecy.compared(overall.compared, total)} · ${status}${gap}</div>
   <div class="verdict-steps">${lines}</div>
   <p class="disclaimer">${t().disclaimer}</p>
 </div>`;
@@ -317,7 +328,7 @@ class ReadingPage {
     if (this.gone()) return;
     chart.setSteps(results.length);
     chart.setForecast(results.flatMap((step) => step.candles));
-    await this.checkProphecy(el, chart, results, record);
+    await this.checkProphecy(el, chart, results, record, atr(snapshot));
   }
 
   private async recheck(): Promise<void> {
@@ -331,7 +342,7 @@ class ReadingPage {
       reader: record.reader,
       cards: record.steps,
     });
-    await this.checkProphecy(el, chart, results, record);
+    await this.checkProphecy(el, chart, results, record, atr(snapshot));
   }
 
   private async checkProphecy(
@@ -339,6 +350,7 @@ class ReadingPage {
     chart: CandleChart,
     results: StepResult[],
     record: ReadingRecord,
+    unit: number,
   ): Promise<void> {
     this.setProphecy(el, { kind: "pending", text: () => t().prophecy.checking, retry: false });
     const total = results.length * CANDLES_PER_DAY;
@@ -366,7 +378,12 @@ class ReadingPage {
       real,
     );
     const perStep = results.map((step) => accuracy(step.candles, real));
-    this.setProphecy(el, { kind: "verdict", verdict: { overall, perStep, total } });
+    const gap = deviation(
+      results.flatMap((step) => step.candles),
+      real,
+      unit,
+    );
+    this.setProphecy(el, { kind: "verdict", verdict: { overall, perStep, total, deviation: gap.deviation } });
   }
 
   private async replay(

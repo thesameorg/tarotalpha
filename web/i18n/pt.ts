@@ -226,6 +226,7 @@ export const pt: Dictionary = {
     compared: (n: number, total: number): string => `em ${String(n)} de ${String(total)} candles`,
     final: "final",
     interim: "parcial",
+    deviation: (value: string): string => `desvio de ${value} ATR`,
     stepLine: (day: number, pct: number | null, hits: number, compared: number): string =>
       pct === null
         ? `dia ${String(day)}: ainda não`

@@ -23,6 +23,7 @@
   --crosshair: #5a5f78;
   --zone-tint: rgba(214, 178, 90, 0.05);
   --zone-line: #5a4a20;
+  --deviation-band: rgba(139, 120, 216, 0.22);
   --violet: #8b78d8;
   --shadow: rgba(0, 0, 0, 0.45);
   --backdrop: rgba(10, 11, 18, 0.82);
@@ -54,6 +55,7 @@
   --crosshair: #9a957f;
   --zone-tint: rgba(154, 116, 24, 0.06);
   --zone-line: #c9b26a;
+  --deviation-band: rgba(106, 85, 196, 0.16);
   --violet: #6a55c4;
   --shadow: rgba(40, 36, 28, 0.18);
   --backdrop: rgba(60, 56, 46, 0.55);

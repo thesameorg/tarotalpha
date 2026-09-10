@@ -189,6 +189,7 @@ export const zh: Dictionary = {
     compared: (n: number, total: number): string => `基于 ${String(total)} 根蜡烛中的 ${String(n)} 根`,
     final: "最终",
     interim: "暂时",
+    deviation: (value: string): string => `偏差 ${value} ATR`,
     stepLine: (day: number, pct: number | null, hits: number, compared: number): string =>
       pct === null
         ? `第 ${String(day)} 天：尚未到来`

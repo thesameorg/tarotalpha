@@ -16,6 +16,7 @@ export interface Palette {
   crosshair: string;
   zoneTint: string;
   zoneLine: string;
+  deviationBand: string;
   gold: string;
   goldRgb: string;
 }
@@ -41,6 +42,7 @@ export function palette(): Palette {
     crosshair: v("--crosshair"),
     zoneTint: v("--zone-tint"),
     zoneLine: v("--zone-line"),
+    deviationBand: v("--deviation-band"),
     gold: v("--gold"),
     goldRgb: v("--gold-rgb"),
   };

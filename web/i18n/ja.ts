@@ -209,6 +209,7 @@ export const ja: Dictionary = {
     compared: (n: number, total: number): string => `${String(total)}本中${String(n)}本で`,
     final: "確定",
     interim: "暫定",
+    deviation: (value: string): string => `ずれ ${value} ATR`,
     stepLine: (day: number, pct: number | null, hits: number, compared: number): string =>
       pct === null
         ? `${String(day)}日目：まだ`
