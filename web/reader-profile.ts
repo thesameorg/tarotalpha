@@ -31,7 +31,7 @@ function starsMarkup(rating: number): string {
 function othersMarkup(current: ReaderFace): string {
   const options = READER_FACES.map(
     (face) =>
-      `<button class="other${face.id === current.id ? " shown" : ""}" type="button" data-reader-show="${face.id}"><img src="${readerAvatarUrl(face.id)}" alt=""><span><b>${face.name}</b><i>${face.method}</i></span></button>`,
+      `<button class="other${face.id === current.id ? " shown" : ""}" type="button" data-reader-show="${face.id}"><img src="${readerAvatarUrl(face.id)}" alt=""><span>${face.name}</span></button>`,
   ).join("");
   return `<div class="others"><div class="others-title">Everyone at the table</div><div class="others-row">${options}</div></div>`;
 }
@@ -45,7 +45,7 @@ function paint(): void {
   const face = readerFace(shown);
   byId("reader-card").innerHTML =
     `<button class="icon-btn modal-close" id="closeReader" type="button" title="Close" aria-label="Close">${icons.close}</button>` +
-    `<div class="profile-top"><img class="profile-face" src="${readerAvatarUrl(face.id)}" alt=""><div><h2>${face.name}</h2><p class="profile-method">${face.method}</p>${starsMarkup(face.rating)}</div></div>` +
+    `<div class="profile-top"><img class="profile-face" src="${readerAvatarUrl(face.id)}" alt=""><div><h2>${face.name}</h2>${starsMarkup(face.rating)}</div></div>` +
     `<p class="profile-blurb">${face.blurb}</p>` +
     chooseMarkup(face) +
     othersMarkup(face);

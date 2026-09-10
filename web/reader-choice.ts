@@ -1,8 +1,8 @@
 /**
  * Which reader computes the forecast: chosen under the chart, kept in localStorage, sent with a shared reading and
  * replayed from it. Portraits are static files under web/public/readers, one per reader id, served from /readers;
- * where they come from is docs/reference/reader-portraits.md. Names and methods stay English in every interface
- * language, like the tech panel, because they name a formula and not a feeling.
+ * where they come from is docs/reference/reader-portraits.md. Names stay English in every interface language;
+ * which formula a reader runs is a technical fact and lives in the tech panel and web/how.html, not next to her.
  * What each mechanic does: docs/reference/forecast-mechanics.md.
  */
 import { DEFAULT_READER, isReaderId, type ReaderId } from "../engine/readers";
@@ -10,7 +10,6 @@ import { DEFAULT_READER, isReaderId, type ReaderId } from "../engine/readers";
 export interface ReaderFace {
   id: ReaderId;
   name: string;
-  method: string;
   /** A paragraph for the profile card. Placeholder copy: nobody has written these yet. */
   blurb: string;
   /** Stars in the profile, hard-coded until readings are scored for real. */
@@ -21,7 +20,6 @@ export const READER_FACES: readonly ReaderFace[] = [
   {
     id: "atr",
     name: "Madame Vera",
-    method: "ATR noise",
     blurb:
       "Reads the market the plain way: whatever the day's usual swing is, the cards push the price around inside it. No theories, no promises, the oldest hand at the table.",
     rating: 4,
@@ -29,7 +27,6 @@ export const READER_FACES: readonly ReaderFace[] = [
   {
     id: "reversion",
     name: "Sister Anemone",
-    method: "Mean reversion",
     blurb:
       "Believes everything comes back. Her price is pulled to where it has been sitting lately, and a card only decides how hard the rope pulls and how far it is allowed to stray.",
     rating: 3,
@@ -37,7 +34,6 @@ export const READER_FACES: readonly ReaderFace[] = [
   {
     id: "analogy",
     name: "Elder Kofi",
-    method: "History echo",
     blurb:
       "Has seen this week before. He finds the stretch of the past week that looks most like the last few hours and lets it play out again, turned whichever way the cards say.",
     rating: 5,
@@ -45,7 +41,6 @@ export const READER_FACES: readonly ReaderFace[] = [
   {
     id: "garch",
     name: "Mama Ife",
-    method: "Volatility bursts",
     blurb:
       "Says trouble travels in company. One violent hour under her hands makes the next hours violent too, and a quiet stretch stays quiet until something breaks it.",
     rating: 4,
@@ -53,7 +48,6 @@ export const READER_FACES: readonly ReaderFace[] = [
   {
     id: "fractal",
     name: "The Weaver",
-    method: "Fractal drift",
     blurb:
       "Works with one thread and one number. Above the middle the moves agree with each other and the price travels far; below it they argue and the day comes out as a fine saw.",
     rating: 2,

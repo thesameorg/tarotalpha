@@ -1505,11 +1505,6 @@ footer {
   border: 1px solid var(--gold-deep);
   flex: none;
 }
-.profile-method {
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: 2px;
-}
 .stars {
   display: flex;
   gap: 2px;
@@ -1588,16 +1583,6 @@ footer {
   border: 1px solid var(--line);
 }
 .other span {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.25;
-}
-.other b {
   font-size: 12px;
   font-weight: 600;
-}
-.other i {
-  font-size: 11px;
-  font-style: normal;
-  opacity: 0.75;
 }
