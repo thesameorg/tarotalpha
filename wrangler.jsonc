@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tarotalpha",
+  // Two accounts are logged in; pin the one the owner named so a deploy can never land in the other.
+  "account_id": "e023ec3576222c6a7b6cdf933de3d915",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-09-08",
+  // No `directory`: the Vite plugin fills it in at build time. SPA fallback keeps `/r/<id>` links on index.html.
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Without this the asset layer answers `/r/<id>` with index.html itself and the Worker never writes the meta tags.
+    "run_worker_first": ["/api/*", "/r/*"],
+  },
+  "vars": {
+    "SEED_ENTROPY": "off",
+    "ENGINE_VERSION": "v1",
+  },
+  // Workers Rate Limiting binding: 60 calls a minute per key (the client address), counted per Cloudflare location.
+  // `namespace_id` is any integer unique inside the account; nothing has to be created remotely.
+  "ratelimits": [{ "name": "RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tarotalpha",
+      "database_id": "3f11b5d1-4b11-4d59-9538-47525d47e26e",
+      "migrations_dir": "migrations",
+    },
+  ],
+}

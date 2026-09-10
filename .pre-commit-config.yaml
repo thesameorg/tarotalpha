@@ -38,3 +38,19 @@ repos:
         language: system
         pass_filenames: true
         types_or: [python, ts, tsx, javascript, shell, yaml, markdown]
+
+  # Тот же ESLint и tsc, что в CI: нарушение стиля и мёртвый импорт ловятся на коммите.
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: npx eslint --max-warnings=0 --no-warn-ignored
+        language: system
+        types_or: [ts, tsx, javascript]
+      - id: typecheck
+        name: typecheck
+        entry: npm run typecheck
+        language: system
+        pass_filenames: false
+        always_run: false
+        types_or: [ts, tsx]

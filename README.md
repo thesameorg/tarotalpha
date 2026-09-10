@@ -27,6 +27,8 @@
 ## Команды
 
 ```bash
+npm run dev              # клиент и воркер локально, docs/runbooks/run-locally.md
+npm run test             # движок, биржевые адаптеры, воркер
 npm run wt -- feat/foo   # дерево под задачу
 npm run check            # политика документирования на изменённом
 npm run check:all        # аудит всего репозитория

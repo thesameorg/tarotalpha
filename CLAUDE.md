@@ -12,8 +12,13 @@ TarotAlpha: сайт с внешностью финтех-терминала, в
 | `tasks/` | трекер: задача — файл, статус — папка |
 | `scripts/` | оснастка: линтер политики документирования, деревья |
 | `.claude/` | скилы, агенты, команды, хуки |
+| `engine/` | движок прогноза: чистые формулы, версия — папка `engine/v1/`, старые не удаляются |
+| `exchange/` | свечи с биржи: один код для браузера и воркера, без кэша |
+| `web/` | клиент: Vite, vanilla TypeScript, Lightweight Charts |
+| `worker/` | Cloudflare Worker: `/api/*`, мета-теги на `/r/:id`, статика |
+| `migrations/` | SQL для D1 |
 
-Кода приложения нет. Структуру не изобретай: раскладка файлов идёт вместе со схемой деплоя, обе в `tasks/backlog/`.
+Один Worker со статикой, расклады в D1, свечи никто не хранит — почему так: `docs/adr/0001-cloudflare-worker-d1.md`.
 
 ## Где что искать
 
@@ -22,6 +27,7 @@ TarotAlpha: сайт с внешностью финтех-терминала, в
 | что строим и зачем | `docs/idea.md` |
 | как это называется | `docs/glossary.md` |
 | что чем триггерится, куда течёт | `docs/flows/` |
+| как карта становится свечами, что хранится в раскладе | `docs/flows/card-to-candles.md`, `docs/flows/reading-lifecycle.md` |
 | почему решили именно так | `docs/adr/` |
 | как сделать руками | `docs/runbooks/` |
 | сверить факт, версию, лимит провайдера | `docs/reference/` |
@@ -117,6 +123,10 @@ TarotAlpha: сайт с внешностью финтех-терминала, в
 ```bash
 npm run wt -- feat/candle-parser    # дерево под задачу: ветка от origin/main + зависимости
 npm run wt:rm -- feat-candle-parser # снять своё дерево
+
+npm run dev            # клиент и воркер с локальной D1, docs/runbooks/run-locally.md
+npm run test           # движок, биржевые адаптеры, воркер
+npm run deploy         # сборка и выкатка на workers.dev, docs/runbooks/deploy-workers-dev.md
 
 npm run check          # политика документирования на изменённом
 npm run check:all      # аудит всего репозитория
