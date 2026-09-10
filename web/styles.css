@@ -427,7 +427,8 @@ main {
   position: absolute;
   inset: 0;
 }
-/* The open-reading button over the free days of the forecast zone; the page sets the left edge and the width. */
+/* The button row over the free days of the forecast zone: the page sets the left edge and the width, `compact`
+   when only the day fits, `edge` when the row spans the pane instead and keeps to its right end. */
 .zone-cta {
   position: absolute;
   top: 0;
@@ -437,23 +438,36 @@ main {
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  container-type: inline-size;
+}
+.zone-cta .row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
 }
 .zone-cta .draw {
-  pointer-events: auto;
   white-space: nowrap;
   box-shadow: 0 8px 24px var(--shadow);
 }
-.zone-cta .short {
+.zone-cta .icon-btn {
+  background: var(--ink-2);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+.zone-cta .short,
+.zone-cta.compact .full {
   display: none;
 }
-/* Narrower than the longest full label (Italian, about 240px): the day alone. */
-@container (max-width: 250px) {
-  .zone-cta .full {
-    display: none;
-  }
-  .zone-cta .short {
-    display: inline;
+.zone-cta.compact .short {
+  display: inline;
+}
+.zone-cta.edge {
+  justify-content: flex-end;
+  padding-right: 8px;
+}
+@media (max-width: 640px) {
+  .zone-cta .draw {
+    white-space: normal;
+    max-width: 180px;
   }
 }
 .chart-state {

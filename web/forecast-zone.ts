@@ -2,7 +2,7 @@
  * Series primitive that tints the chart from the anchor to the right edge, draws a dashed line per forecast day
  * with its label and marks the anchor with the "now" word. Coordinates are recomputed by the chart on every viewport
  * change, so the zone follows scroll, zoom and resize with no DOM overlay to keep in sync. The one DOM element
- * that rides with it, the open-reading button over the free days, takes its place from the layout reported here.
+ * that rides with it, the button row over the free days, takes its place from the layout reported here.
  */
 import type {
   IChartApiBase,
@@ -22,7 +22,6 @@ const CANDLES_PER_DAY = 24;
 
 export interface ZoneLayout {
   start: number;
-  dayWidth: number;
   width: number;
   separators: number[];
   dayLabels: { x: number; text: string }[];
@@ -95,7 +94,7 @@ export class ForecastZone implements ISeriesPrimitive {
       separators.push(x);
       if (day < this.steps) dayLabels.push({ x: x + 6, text: t().day(day + 1) });
     }
-    return { start, dayWidth, width: scale.width(), separators, dayLabels };
+    return { start, width: scale.width(), separators, dayLabels };
   }
 }
 
