@@ -1544,8 +1544,9 @@ footer {
   border: 1px dashed var(--line);
   border-radius: 4px;
 }
-.other.mine {
+.other.shown {
   border-color: var(--gold-deep);
+  background: var(--ink-2);
   color: var(--fg);
 }
 .others {

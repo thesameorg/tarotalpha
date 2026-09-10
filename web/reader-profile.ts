@@ -27,14 +27,13 @@ function starsMarkup(rating: number): string {
   return `<div class="stars" role="img" aria-label="rated ${String(rating)} of ${String(STARS)}">${stars}</div>`;
 }
 
+/** Everyone, always in the same order and the same place: a row that reshuffles under the cursor is a trap. */
 function othersMarkup(current: ReaderFace): string {
-  const options = READER_FACES.filter((face) => face.id !== current.id)
-    .map(
-      (face) =>
-        `<button class="other${face.id === reader() ? " mine" : ""}" type="button" data-reader-show="${face.id}"><img src="${readerAvatarUrl(face.id)}" alt=""><span><b>${face.name}</b><i>${face.method}</i></span></button>`,
-    )
-    .join("");
-  return `<div class="others"><div class="others-title">Ask someone else</div><div class="others-row">${options}</div></div>`;
+  const options = READER_FACES.map(
+    (face) =>
+      `<button class="other${face.id === current.id ? " shown" : ""}" type="button" data-reader-show="${face.id}"><img src="${readerAvatarUrl(face.id)}" alt=""><span><b>${face.name}</b><i>${face.method}</i></span></button>`,
+  ).join("");
+  return `<div class="others"><div class="others-title">Everyone at the table</div><div class="others-row">${options}</div></div>`;
 }
 
 function chooseMarkup(face: ReaderFace): string {
