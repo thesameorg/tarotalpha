@@ -1,5 +1,5 @@
 /**
- * Funnel journal: one row per event, read only by the landing counter and by the owner's own SQL.
+ * Funnel journal: one row per event, read only by the owner's own SQL.
  * Client and server event types are kept apart so a browser cannot forge `shared`.
  * `ip_hash` is a daily-rotating pseudonym (SHA-256 of address and date), not an identity.
  */
@@ -9,7 +9,6 @@ import { clientIp } from "./rate-limit";
 import { ID_PATTERN } from "./short-id";
 
 const CLIENT_TYPES = ["chart_loaded", "step_opened", "paywall_hit", "own_reading_clicked", "replayed"] as const;
-const DAY_MS = 86_400_000;
 
 type ClientEventType = (typeof CLIENT_TYPES)[number];
 export type EventType = ClientEventType | "shared" | "share_failed";
@@ -38,15 +37,6 @@ export async function postEvent(request: Request, env: Env): Promise<Response> {
   const event = await parseEventBody(request);
   await recordEvent(env.DB, request, event);
   return new Response(null, { status: 204 });
-}
-
-/** "Asked the market N times today": `step_opened` rows since 00:00 UTC. */
-export async function statsToday(env: Env, now = Date.now()): Promise<Response> {
-  const dayStart = now - (now % DAY_MS);
-  const row = await env.DB.prepare("SELECT COUNT(*) AS n FROM events WHERE type = 'step_opened' AND ts >= ?1")
-    .bind(dayStart)
-    .first<{ n: number }>();
-  return Response.json({ steps_today: row?.n ?? 0 });
 }
 
 async function ipHash(ip: string, now: number): Promise<string> {

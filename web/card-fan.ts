@@ -1,9 +1,9 @@
 /**
  * A hand of card backs fanned along the bottom of the reveal. Each back sits on an arc around a pivot below the
  * screen, so neighbours overlap like cards held in a hand, and the fan closes the gap when one leaves. Pointer
- * Events give mouse and touch one path: pressing lifts a back, dragging it up past the threshold (or a plain tap)
- * pulls it, a release short of that snaps it back; arrows move a highlight, Enter or Space pull it. `autoPull`
- * pulls without a viewer for a replay. Which back is taken never matters: the caller maps the i-th pull to card i.
+ * Events give mouse and touch one path: pressing lifts a back, dragging it up past the threshold pulls it, a release
+ * short of that — and a plain tap — snaps it back, so nothing is pulled by accident; arrows move a highlight, Enter
+ * or Space pull it. Which back is taken never matters: the caller maps the i-th pull to card i.
  */
 import { reducedMotion, sleep } from "./stage-effects";
 
@@ -17,7 +17,6 @@ export interface PullPoint {
 
 export interface CardFan {
   spread(): Promise<void>;
-  autoPull(): Promise<void>;
   /** Stops listening; the backs stay in place until the caller clears the root, so nothing pops before a fade. */
   dispose(): void;
 }
@@ -45,9 +44,6 @@ const PULL_THRESHOLD_PX = 80;
 const TAP_SLOP_PX = 6;
 const PRESS_LIFT_PX = 12;
 const SPREAD_MS = 500;
-const AUTO_LIFT_PX = 110;
-const AUTO_LIFT_MS = 260;
-const AUTO_OFFSETS = [0, -5, 5] as const;
 const BACK_MARKUP = '<div class="fan-card"><div class="fan-lift"><div class="face back"></div></div></div>';
 
 function clamp(value: number, min: number, max: number): number {
@@ -156,7 +152,7 @@ export function createCardFan(root: HTMLElement, limit: number, onPull: (from: P
     if (index < 0) return;
     const lift = startY - event.clientY;
     const aboveFan = event.clientY < root.getBoundingClientRect().top;
-    const pulled = event.type === "pointerup" && (!moved || lift >= PULL_THRESHOLD_PX || aboveFan);
+    const pulled = event.type === "pointerup" && moved && (lift >= PULL_THRESHOLD_PX || aboveFan);
     if (pulled && !locked()) pull(index);
     else settle(index);
   };
@@ -199,18 +195,6 @@ export function createCardFan(root: HTMLElement, limit: number, onPull: (from: P
       relayout();
       await sleep(SPREAD_MS);
       root.classList.remove("spreading");
-    },
-    async autoPull() {
-      if (locked()) return;
-      const index = clamp(middle() + (AUTO_OFFSETS[pulls % AUTO_OFFSETS.length] ?? 0), 0, backs.length - 1);
-      const el = backs[index];
-      const rest = rests[index];
-      if (el === undefined || rest === undefined) return;
-      if (!reducedMotion()) {
-        place(el, rest, 0, -AUTO_LIFT_PX, 0);
-        await sleep(AUTO_LIFT_MS);
-      }
-      pull(backs.indexOf(el));
     },
     dispose() {
       abort.abort();
