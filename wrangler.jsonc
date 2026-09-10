@@ -7,6 +7,9 @@
   "compatibility_date": "2026-09-08",
   // Reads of a link are analytics, not data: they live in Workers Logs, so the Worker writes nothing on a read.
   "observability": { "enabled": true },
+  // The only writer no request asks for: it scores readings whose horizon has closed. Every ten minutes because a
+  // run must stay inside 10 ms of CPU and therefore takes few readings at a time; the stars still follow the day.
+  "triggers": { "crons": ["*/10 * * * *"] },
   // No `directory`: the Vite plugin fills it in at build time. SPA fallback keeps `/r/<id>` links on index.html.
   "assets": {
     "binding": "ASSETS",

@@ -1,11 +1,13 @@
 /**
  * The profile card of a reader: portrait, name, stars, a paragraph about her and the row of the other readers.
- * Clicking another one only previews her card; nothing changes until the choose button is pressed. The stars and
- * the paragraphs are placeholders — no reading has been scored yet. How the formulas work is one link on the page
- * itself, not here. Markup is built here because it follows whoever is being shown.
+ * Clicking another one only previews her card; nothing changes until the choose button is pressed. The stars come
+ * from the Worker and arrive after the card is already open, so opening repaints it. The paragraphs are still
+ * placeholders. How the formulas work is one link on the page itself, not here.
  */
 import { isReaderId, type ReaderId } from "../engine/readers";
 import { icons } from "./icons";
+import { t } from "./i18n/index";
+import { loadReaderTable, readerStanding } from "./reader-rating";
 import { READER_FACES, reader, readerAvatarUrl, readerFace, setReader, type ReaderFace } from "./reader-choice";
 
 const STARS = 5;
@@ -18,13 +20,23 @@ function byId(id: string): HTMLElement {
   return el;
 }
 
-function starsMarkup(rating: number): string {
-  const stars = Array.from(
-    { length: STARS },
-    (_, i) => `<span class="star${i < rating ? " on" : ""}">${icons.star}</span>`,
-  ).join("");
-  // No number next to the stars: it would read as a measured score, and nothing has been measured yet.
-  return `<div class="stars" role="img" aria-label="rated ${String(rating)} of ${String(STARS)}">${stars}</div>`;
+// Halves are drawn, not rounded away: a gold copy of the star sits over the dim one, clipped to its left half.
+function starMarkup(filled: number): string {
+  if (filled >= 1) return `<span class="star on">${icons.star}</span>`;
+  if (filled < 0.5) return `<span class="star">${icons.star}</span>`;
+  return `<span class="star half">${icons.star}<span class="star-lit">${icons.star}</span></span>`;
+}
+
+function starsMarkup(id: ReaderId): string {
+  const standing = readerStanding(id);
+  if (standing === null) return `<div class="profile-unscored">Not scored yet</div>`;
+  const stars = Array.from({ length: STARS }, (_, i) => starMarkup(standing.stars - i)).join("");
+  const wins = Math.round(standing.wins * 100);
+  return (
+    `<div class="stars" role="img" aria-label="rated ${String(standing.stars)} of ${String(STARS)}">${stars}</div>` +
+    `<div class="profile-score">Closest of the five in ${String(wins)}% of readings</div>` +
+    `<p class="disclaimer">${t().disclaimer}</p>`
+  );
 }
 
 /** Everyone, always in the same order and the same place: a row that reshuffles under the cursor is a trap. */
@@ -45,7 +57,7 @@ function paint(): void {
   const face = readerFace(shown);
   byId("reader-card").innerHTML =
     `<button class="icon-btn modal-close" id="closeReader" type="button" title="Close" aria-label="Close">${icons.close}</button>` +
-    `<div class="profile-top"><img class="profile-face" src="${readerAvatarUrl(face.id)}" alt=""><div><h2>${face.name}</h2>${starsMarkup(face.rating)}</div></div>` +
+    `<div class="profile-top"><img class="profile-face" src="${readerAvatarUrl(face.id)}" alt=""><div><h2>${face.name}</h2>${starsMarkup(face.id)}</div></div>` +
     `<p class="profile-blurb">${face.blurb}</p>` +
     chooseMarkup(face) +
     othersMarkup(face);
@@ -55,6 +67,7 @@ export function openReaderProfile(): void {
   shown = reader();
   paint();
   byId("reader-profile").classList.add("on");
+  void loadReaderTable().then(paint);
 }
 
 export function initReaderProfile(): void {

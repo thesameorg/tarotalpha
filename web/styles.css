@@ -1455,7 +1455,7 @@ footer {
   }
 }
 
-/* The reader's profile: portrait, stars and the other readers. Placeholders until readings are scored for real. */
+/* The reader's profile: portrait, stars and the other readers. The blurbs are still placeholder copy. */
 .profile {
   max-width: 460px;
 }
@@ -1485,6 +1485,25 @@ footer {
 }
 .star.on {
   color: var(--gold);
+}
+.star.half {
+  position: relative;
+}
+.star-lit {
+  position: absolute;
+  inset: 0;
+  width: 50%;
+  overflow: hidden;
+  color: var(--gold);
+}
+.profile-score,
+.profile-unscored {
+  color: var(--paper-dim);
+  font-size: 12px;
+  margin-top: 6px;
+}
+.profile-top .disclaimer {
+  margin-top: 2px;
 }
 .profile-blurb {
   color: var(--paper-dim);

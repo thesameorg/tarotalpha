@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { drawCards } from "./draw-cards";
 import { GOLDEN as F } from "./golden/btcusdt";
-import { computeSteps, DEFAULT_READER, ENGINE_VERSION, forecastFromCards } from "./index";
+import { computeSteps, DEFAULT_READER, ENGINE_VERSION, forecastFromCards, READER_IDS } from "./index";
 import { seedString } from "./seed";
 
 const input = { asset: F.asset, anchorTs: F.anchorTs, snapshot: F.snapshot, reader: DEFAULT_READER };
@@ -21,6 +21,24 @@ describe("determinism", () => {
     const drawn = computeSteps({ ...input, steps: 3 });
     const replayed = forecastFromCards({ ...input, cards: drawn.map((s) => s.cards) });
     expect(replayed).toEqual(drawn);
+  });
+
+  // The score rebuilds all five readers from one stored reading; a salt per reader, or one not stored, would end that.
+  it("keeps the cards common to every reader and lets the nonce move only the candles", () => {
+    const cards = computeSteps({ ...input, nonce: "k7", steps: 2 }).map((step) => step.cards);
+    const salted = READER_IDS.map((reader) =>
+      forecastFromCards({ ...input, reader, nonce: "k7", cards }).flatMap((step) => step.candles),
+    );
+    const other = READER_IDS.map((reader) =>
+      forecastFromCards({ ...input, reader, nonce: "k9", cards }).flatMap((step) => step.candles),
+    );
+    expect(computeSteps({ ...input, nonce: "k7", steps: 2 }).map((step) => step.cards)).toEqual(cards);
+    for (const [i, candles] of salted.entries()) {
+      expect(candles).not.toEqual(other[i]);
+      expect(salted.filter((series) => series !== candles).every((series) => series[0]?.c !== candles[0]?.c)).toBe(
+        true,
+      );
+    }
   });
 
   it("chains candles: every step starts one hour after the previous close", () => {
