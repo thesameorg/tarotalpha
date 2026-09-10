@@ -8,14 +8,7 @@
  * share. On a wide screen the row rides with the chart and shortens to the day alone when the free part is narrow;
  * on a phone it stands at the right of the chart with the full label wrapped.
  */
-import {
-  computeSteps,
-  ENGINE_VERSION,
-  forecastFromCards,
-  readerScale,
-  type Candle,
-  type StepResult,
-} from "../engine/index";
+import { computeSteps, ENGINE_VERSION, forecastFromCards, type Candle, type StepResult } from "../engine/index";
 import { ASSET_PATTERN, fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
 import { ExchangeError, type Source } from "../exchange/provider";
 import { ApiError, createReading, postEvent } from "./api";
@@ -35,7 +28,6 @@ import type { View } from "./router";
 import { openShareModal } from "./share-modal";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
-import { setTechFacts } from "./tech-panel";
 import { toast } from "./toast";
 
 const FREE_STEPS = 2;
@@ -182,7 +174,6 @@ class LandingPage {
       this.zone = layout;
       this.placeCta();
     });
-    setTechFacts({ lag: null, source: null, engine: ENGINE_VERSION, anchorTs: null, scale: null, readingId: null });
     initReaderPicker(this.el.readers);
     const relabel = onLangChange(() => {
       this.relabel();
@@ -232,7 +223,6 @@ class LandingPage {
       return;
     }
     this.readerPending = false;
-    setTechFacts({ scale: readerScale(reader(), loaded.snapshot) });
     if (loaded.steps.length === 0) return;
     loaded.steps = forecastFromCards({
       asset: loaded.asset,
@@ -347,10 +337,8 @@ class LandingPage {
     this.relabel();
     this.panel.clear();
     this.setStepsBar(0);
-    setTechFacts({ lag: null, source: null, anchorTs: null, scale: null });
 
     const anchorTs = lastClosedAnchor(Date.now());
-    const started = performance.now();
     let snapshot;
     try {
       snapshot = await fetchSnapshot(asset, anchorTs);
@@ -360,7 +348,6 @@ class LandingPage {
       this.chartState(() => t().exchange[kind], kind !== "unknown_asset");
       return;
     }
-    const lag = Math.round(performance.now() - started);
     if (stale()) return;
 
     const candles = snapshot.candles;
@@ -370,7 +357,6 @@ class LandingPage {
     }
     this.loaded = { asset, anchorTs, snapshot: candles, source: snapshot.source, steps: [] };
     storeAsset(asset);
-    setTechFacts({ lag, source: snapshot.source, anchorTs, scale: readerScale(reader(), candles) });
     showExchangeLogo(this.el.srcLogo, snapshot.source);
     this.showPrice();
     this.chartState(null, false);

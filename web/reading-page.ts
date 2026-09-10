@@ -12,7 +12,6 @@ import {
   deviation,
   forecastFromCards,
   praise,
-  readerScale,
   type Accuracy,
   type Candle,
   type StepResult,
@@ -33,7 +32,6 @@ import type { Navigate, View } from "./router";
 import { openShareModal } from "./share-modal";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
-import { setTechFacts } from "./tech-panel";
 
 const CANDLES_PER_DAY = 24;
 const FLOW_MS_PER_CANDLE = 45;
@@ -222,15 +220,6 @@ class ReadingPage {
     this.root.innerHTML = readingMarkup();
     const el = lookup(this.root);
     this.el = el;
-    setTechFacts({
-      lag: null,
-      source: record.source,
-      engine: record.engine_version,
-      anchorTs: record.anchor_ts,
-      scale: readerScale(record.reader, snapshot),
-      readingId: record.id,
-    });
-
     showExchangeLogo(el.srcLogo, record.source);
     createCoinPicker(el.picker, record.asset, (symbol) => {
       postEvent({ type: "own_reading_clicked", asset: symbol, reading_id: record.id });
@@ -355,17 +344,14 @@ class ReadingPage {
   ): Promise<void> {
     this.setProphecy(el, { kind: "pending", text: () => t().prophecy.checking, retry: false });
     const total = results.length * CANDLES_PER_DAY;
-    const started = performance.now();
     let real: Candle[];
     try {
       real = await fetchAfter(record.asset, record.anchor_ts, total, record.source, Date.now());
     } catch {
       if (this.gone()) return;
-      setTechFacts({ lag: null });
       this.setProphecy(el, { kind: "pending", text: () => t().prophecy.checkFailed, retry: true });
       return;
     }
-    setTechFacts({ lag: Math.round(performance.now() - started) });
     if (this.gone()) return;
     if (real.length === 0) {
       // Nothing after an anchor whose horizon has passed is a hole in exchange data, not a future that has not come.

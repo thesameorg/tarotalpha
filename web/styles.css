@@ -231,40 +231,6 @@ h2,
 .tier .t {
   unicode-bidi: plaintext;
 }
-.tech-toggle {
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  color: var(--paper-dim);
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  padding: 2px 9px;
-}
-.tech-toggle:hover,
-.tech-toggle[aria-expanded="true"] {
-  color: var(--paper);
-  border-color: var(--gold-deep);
-}
-.tech {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  z-index: 15;
-  max-width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  padding: 8px 12px;
-  font-size: 11px;
-  color: var(--paper-dim);
-  background: var(--ink-2);
-  border: 1px solid var(--line);
-  border-top: 0;
-  border-radius: 0 0 6px 6px;
-}
-.tech b {
-  color: var(--paper);
-  font-weight: 500;
-}
 
 main {
   display: flex;

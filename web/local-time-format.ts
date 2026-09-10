@@ -1,6 +1,6 @@
 /**
  * Time labels in the viewer's own timezone, in the terminal's fixed-width shape (`2026-09-10 14:05`, `14:05`).
- * Everything the page shows is local; UTC survives only inside the tech panel (`utc-format.ts`).
+ * Everything the page shows is local: UTC left the interface with the tech panel.
  */
 const pad = (n: number): string => String(n).padStart(2, "0");
 

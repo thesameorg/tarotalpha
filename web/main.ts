@@ -1,4 +1,4 @@
-/** Boot: styles, language, theme and reader, the header switches, the tech panel, the two modals, the router. */
+/** Boot: styles, language, theme and reader, the header switches, the two modals, the router. */
 import "./styles.css";
 import { initHeaderControls } from "./header-controls";
 import { initLang } from "./i18n/index";
@@ -10,7 +10,6 @@ import { landingView } from "./reading-flow";
 import { readingView } from "./reading-page";
 import { startRouter } from "./router";
 import { initShareModal } from "./share-modal";
-import { initTechPanel } from "./tech-panel";
 import { initTheme } from "./theme";
 
 const READING_PATH = /^\/r\/([A-Za-z0-9_-]+)\/?$/;
@@ -25,7 +24,6 @@ initLang(new URL(window.location.href).searchParams);
 initTheme();
 initReader();
 initHeaderControls();
-initTechPanel();
 initReaderProfile();
 initPaywallModal();
 initShareModal();
