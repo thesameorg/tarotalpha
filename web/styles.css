@@ -1385,6 +1385,17 @@ footer {
 :root[data-reader="analogy"] {
   --back-pattern: repeating-radial-gradient(circle at 50% 50%, transparent 0 7px, rgba(var(--gold-rgb), 0.09) 7px 8px);
 }
+:root[data-reader="garch"] {
+  --back-pattern:
+    repeating-linear-gradient(60deg, transparent 0 4px, rgba(var(--gold-rgb), 0.12) 4px 5px),
+    repeating-linear-gradient(-60deg, transparent 0 14px, rgba(var(--gold-rgb), 0.05) 14px 16px);
+}
+:root[data-reader="fractal"] {
+  --back-pattern:
+    repeating-linear-gradient(30deg, transparent 0 9px, rgba(var(--gold-rgb), 0.07) 9px 10px),
+    repeating-linear-gradient(150deg, transparent 0 9px, rgba(var(--gold-rgb), 0.07) 9px 10px),
+    repeating-linear-gradient(90deg, transparent 0 18px, rgba(var(--gold-rgb), 0.05) 18px 19px);
+}
 .readers {
   display: flex;
   gap: 6px;

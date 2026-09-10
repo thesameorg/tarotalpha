@@ -13,6 +13,7 @@ import type { ReaderInput } from "./readers";
 import { makeRng } from "./seed";
 
 const WINDOW = 12;
+const TREND_OVER = 24;
 const CANDIDATES = 8;
 const HOUR_MS = 3_600_000;
 // An hourly move of a forecast candle, in ATR: the copied stretch is scaled to this so every reader moves alike.
@@ -36,6 +37,10 @@ export function historyAnalogy(input: ReaderInput): Candle[] {
   const past = returns(input.snapshot);
   const query = returns(all).slice(-WINDOW);
   const matches = closest(past, query, unit);
+  // The regime, as in the ATR reader: it starts as the snapshot's own trend and only the Wheel and Death flip it.
+  // Pointing them straight down instead would make this reader fall on average, whatever the market did.
+  const back = all.at(-TREND_OVER);
+  let flow = Math.sign(last.c - (back?.c ?? last.c)) || 1;
   const out: Candle[] = [];
   for (const [id, reversed] of input.cards) {
     const effect = cardEffect(cardById(id), reversed === 1);
@@ -55,7 +60,8 @@ export function historyAnalogy(input: ReaderInput): Candle[] {
         gain = 1.1;
         break;
       case "wheel":
-        sign = -1;
+        flow = -flow;
+        sign = flow;
         break;
       case "hanged":
         gain = 0.4;
@@ -64,7 +70,8 @@ export function historyAnalogy(input: ReaderInput): Candle[] {
         gain = 1.8;
         break;
       case "death":
-        sign = -1;
+        flow = -flow;
+        sign = flow;
         gain = 1.2;
         break;
       case "fool":
@@ -96,7 +103,9 @@ export function historyAnalogy(input: ReaderInput): Candle[] {
     for (const [j, move] of shape.entries()) {
       const unitPrice = unit * last.c;
       const o = last.c;
-      const close = o + sign * gain * move.ret * o + (j === 0 ? jump * unitPrice : 0);
+      // Sign and gain scale the log, not the return: eight returns that sum to zero would still multiply to less
+      // than one, and the reader would drift down on every reading.
+      const close = o * Math.exp(sign * gain * move.log) + (j === 0 ? jump * unitPrice : 0);
       let h = Math.max(o, close) + move.upWick * o * gain;
       let l = Math.min(o, close) - move.downWick * o * gain;
       const missing = MIN_RANGE * unitPrice - (h - l);
@@ -142,7 +151,8 @@ function closest(past: readonly number[], query: readonly number[], unit: number
 }
 
 interface Move {
-  ret: number;
+  /** The move as a log return, centred over the copied stretch: the card's sign and gain scale it in place. */
+  log: number;
   upWick: number;
   downWick: number;
 }
@@ -152,17 +162,21 @@ function copied(snapshot: readonly Candle[], past: readonly number[], start: num
   const from = start + WINDOW;
   const raw: number[] = [];
   for (let j = 0; j < CANDLES_PER_CARD; j++) raw.push(past[from + j] ?? 0);
-  const mean = raw.reduce((sum, x) => sum + x, 0) / raw.length;
-  const centred = raw.map((ret) => ret - mean);
-  const size = centred.reduce((sum, ret) => sum + Math.abs(ret), 0) / centred.length;
+  // Both the centring and the stretch happen in logs. Candles chain multiplicatively, so returns that merely sum
+  // to zero still multiply to less than one and would tilt every copied stretch downwards.
+  const logs = raw.map((ret) => Math.log(1 + Math.max(ret, -0.9)));
+  const mean = logs.reduce((sum, x) => sum + x, 0) / logs.length;
+  const centred = logs.map((log) => log - mean);
+  const size = centred.reduce((sum, log) => sum + Math.abs(log), 0) / centred.length;
   const stretch = size > 0 ? clamp((unit * TARGET_MOVE) / size, 0.5, 4) : 1;
-  return centred.map((ret, j) => {
+  return centred.map((log, j) => {
+    const scaled = log * stretch;
     const candle = snapshot[from + j + 1];
-    if (candle === undefined || !(candle.c > 0)) return { ret: ret * stretch, upWick: 0, downWick: 0 };
+    if (candle === undefined || !(candle.c > 0)) return { log: scaled, upWick: 0, downWick: 0 };
     const body = Math.max(candle.o, candle.c);
     const floor = Math.min(candle.o, candle.c);
     return {
-      ret: ret * stretch,
+      log: scaled,
       upWick: ((candle.h - body) / candle.c) * stretch,
       downWick: ((floor - candle.l) / candle.c) * stretch,
     };

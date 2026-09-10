@@ -19,6 +19,8 @@ export const READER_FACES: readonly ReaderFace[] = [
   { id: "atr", name: "The Magician", method: "ATR noise", card: 1 },
   { id: "reversion", name: "Temperance", method: "Mean reversion", card: 14 },
   { id: "analogy", name: "The Wheel", method: "History echo", card: 10 },
+  { id: "garch", name: "The Moon", method: "Volatility bursts", card: 18 },
+  { id: "fractal", name: "The Hermit", method: "Fractal drift", card: 9 },
 ];
 
 const STORAGE_KEY = "ta.reader";

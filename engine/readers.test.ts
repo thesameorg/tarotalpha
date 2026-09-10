@@ -65,8 +65,11 @@ describe.each(READER_IDS)("reader %s", (reader: ReaderId) => {
     let up = 0;
     let total = 0;
     for (let i = 0; i < 40; i++) {
+      // The instrument has to change too: cards come from asset, anchor and step, so one asset would draw one
+      // hand forty times over and the count would say nothing about the reader.
       const snapshot = walk(`walk-${String(i)}`, 168, ANCHOR);
-      for (const step of computeSteps({ asset: "BTCUSDT", anchorTs: ANCHOR, snapshot, reader, steps: 3 })) {
+      const asset = `WALK${String(i)}USDT`;
+      for (const step of computeSteps({ asset, anchorTs: ANCHOR, snapshot, reader, steps: 3 })) {
         const first = step.candles[0];
         const last = step.candles.at(-1);
         if (first === undefined || last === undefined) continue;

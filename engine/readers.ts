@@ -7,10 +7,12 @@
 import { natr, type Candle } from "./atr";
 import { cardsToCandles } from "./card-to-candles";
 import type { StepCards } from "./draw-cards";
+import { fractalDrift } from "./fractal-drift";
 import { historyAnalogy } from "./history-analogy";
 import { meanReversion } from "./mean-reversion";
+import { volatilityClustering } from "./volatility-clustering";
 
-export const READER_IDS = ["atr", "reversion", "analogy"] as const;
+export const READER_IDS = ["atr", "reversion", "analogy", "garch", "fractal"] as const;
 export type ReaderId = (typeof READER_IDS)[number];
 export const DEFAULT_READER: ReaderId = "atr";
 
@@ -34,6 +36,8 @@ export interface Reader {
 
 const MOVE_OVER = 12;
 const BAND_OVER = 20;
+const SIGMA_OVER = 24;
+const RANGE_OVER = 48;
 
 export const READERS: Record<ReaderId, Reader> = {
   atr: {
@@ -47,6 +51,14 @@ export const READERS: Record<ReaderId, Reader> = {
   analogy: {
     forecast: historyAnalogy,
     scale: (snapshot) => ({ label: "MOVE(12)", value: meanMove(snapshot) }),
+  },
+  garch: {
+    forecast: volatilityClustering,
+    scale: (snapshot) => ({ label: "SIGMA(24)", value: sigma(snapshot) }),
+  },
+  fractal: {
+    forecast: fractalDrift,
+    scale: (snapshot) => ({ label: "RANGE(48)", value: swing(snapshot) }),
   },
 };
 
@@ -68,18 +80,36 @@ function bandWidth(snapshot: readonly Candle[]): number {
   return (2 * Math.sqrt(variance)) / last;
 }
 
+/** Standard deviation of the last hourly returns, as a fraction of price: the level the variance comes back to. */
+function sigma(snapshot: readonly Candle[]): number {
+  const moves = hourlyMoves(snapshot, SIGMA_OVER);
+  const mean = moves.reduce((sum, x) => sum + x, 0) / moves.length;
+  return Math.sqrt(moves.reduce((sum, x) => sum + (x - mean) ** 2, 0) / moves.length);
+}
+
+/** High to low over the last candles against the last close: how far the walk has travelled lately. */
+function swing(snapshot: readonly Candle[]): number {
+  const tail = snapshot.slice(-RANGE_OVER);
+  const last = tail.at(-1);
+  if (last === undefined || !(last.c > 0)) throw new RangeError("swing needs a last close above zero");
+  return (Math.max(...tail.map((c) => c.h)) - Math.min(...tail.map((c) => c.l))) / last.c;
+}
+
 /** The mean absolute hourly move over the last candles, as a fraction of price. */
 function meanMove(snapshot: readonly Candle[]): number {
-  const tail = snapshot.slice(-(MOVE_OVER + 1));
-  let sum = 0;
-  let count = 0;
+  const moves = hourlyMoves(snapshot, MOVE_OVER);
+  return moves.reduce((sum, x) => sum + Math.abs(x), 0) / moves.length;
+}
+
+function hourlyMoves(snapshot: readonly Candle[], count: number): number[] {
+  const tail = snapshot.slice(-(count + 1));
+  const out: number[] = [];
   for (let i = 1; i < tail.length; i++) {
     const prev = tail[i - 1];
     const cur = tail[i];
     if (prev === undefined || cur === undefined || !(prev.c > 0)) continue;
-    sum += Math.abs(cur.c / prev.c - 1);
-    count++;
+    out.push(cur.c / prev.c - 1);
   }
-  if (count === 0) throw new RangeError("meanMove needs at least two candles");
-  return sum / count;
+  if (out.length === 0) throw new RangeError("hourly moves need at least two candles");
+  return out;
 }
