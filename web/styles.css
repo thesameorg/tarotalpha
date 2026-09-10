@@ -189,7 +189,8 @@ header {
 .lang-trigger svg {
   color: var(--paper-dim);
 }
-.lang-list {
+/* `.lang .lang-list` outranks the coin list's own max-height, so all ten fit without a scrollbar. */
+.lang .lang-list {
   position: absolute;
   right: 0;
   top: calc(100% + 6px);
