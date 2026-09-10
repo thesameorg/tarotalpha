@@ -1437,8 +1437,17 @@ footer {
   .readers {
     justify-content: center;
     width: 100%;
+    gap: 4px;
   }
-  .reader-text i {
+  /* Three names do not fit a phone, and the point of a reader is that you pick the face. */
+  .reader {
+    padding: 4px;
+  }
+  .reader img {
+    width: 34px;
+    height: 52px;
+  }
+  .reader-text {
     display: none;
   }
 }

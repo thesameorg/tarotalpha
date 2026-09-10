@@ -50,7 +50,8 @@
           </li>
           <li>
             Hash: xmur3 of the seed string feeds a mulberry32 generator. The candle noise uses a second generator seeded
-            with <code>noise|</code> plus the same string.
+            with <code>noise|reader|</code> plus the same string, so the chosen reader changes the candles and never the
+            cards.
           </li>
           <li>
             The engine label (<code>v2</code>) is part of the seed, so a formula change draws new cards for new
