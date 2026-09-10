@@ -8,3 +8,9 @@
 **/.wrangler/
 package-lock.json
 pnpm-lock.yaml
+
+# генерирует `npm run types`, формат задаёт wrangler
+worker-configuration.d.ts
+
+# прототип, свёрстан руками; хук pre-commit html и так не форматирует
+tarot-alpha.html

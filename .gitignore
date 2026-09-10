@@ -146,3 +146,6 @@ vite.config.ts.timestamp-*
 .claude/worktrees/
 .claude/settings.local.json
 __pycache__/
+
+# Cloudflare: локальное состояние D1/KV и деплой-редирект после `vite build`
+.wrangler/
