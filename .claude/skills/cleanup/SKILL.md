@@ -18,11 +18,16 @@ git for-each-ref --sort=committerdate --format='%(refname:short) %(committerdate
 
 Старше двух недель без PR — вопрос владельцу.
 
-## 2. Задачи
+## 2. Issues
 
-- В `tasks/active/` без ветки или закрытым PR: в `done/` или обратно в `backlog/`.
-- В `backlog/` дольше месяца: кандидат в `dropped/` со строкой почему.
-- В `active/` без DoD: не задача, не начинать.
+```bash
+gh issue list --state open
+gh pr list --state open
+```
+
+- Открытая issue, чей PR смержен, но не закрыл её строкой `Closes #N`: закрыть со ссылкой на PR.
+- Открытая дольше месяца без ветки: кандидат на закрытие, вопрос владельцу.
+- Без DoD: не задача, на гейт-4 не носить.
 
 ## 3. Долг документации
 

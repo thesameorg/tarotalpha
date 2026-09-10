@@ -149,3 +149,6 @@ __pycache__/
 
 # Cloudflare: локальное состояние D1/KV и деплой-редирект после `vite build`
 .wrangler/
+
+# конфиг запуска для панели браузера Claude Code
+.claude/launch.json

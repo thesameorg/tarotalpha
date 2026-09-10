@@ -55,7 +55,6 @@ SKIP = (
 # .md разрешён только здесь. Всё остальное — свалка.
 MD_ALLOWED = (
     re.compile(r"^docs/"),
-    re.compile(r"^tasks/"),
     re.compile(r"^\.claude/"),
     re.compile(r"^(CLAUDE|README|CONTRIBUTING|SECURITY|LICENSE)\.md$"),
     re.compile(r"^[^/]+/(CLAUDE|README)\.md$"),
