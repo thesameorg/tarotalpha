@@ -13,8 +13,8 @@
 | Где | Что гоняется |
 | --- | --- |
 | `pre-commit` на коммит | формат, eslint и `tsc` на застейдженном, политика документирования на изменённых строках |
-| Actions, job `check`, на PR и на пуш в `main` | `npm ci`, `typecheck`, `lint`, `test`, `build`, `prettier --check`, полный аудит `scripts/docs_lint.py` и его тесты |
-| Actions, job `deploy`, только пуш в `main` после зелёного `check` | `wrangler d1 migrations apply --remote`, `npm run deploy`, `curl /api/health` снаружи |
+| Actions, job `check`, на PR и на пуш в `main` | `pnpm install --frozen-lockfile`, `typecheck`, `lint`, `test`, `build`, `prettier --check`, полный аудит `scripts/docs_lint.py` и его тесты |
+| Actions, job `deploy`, только пуш в `main` после зелёного `check` | `wrangler d1 migrations apply --remote`, `pnpm run deploy`, `curl /api/health` снаружи |
 | нигде | e2e в браузере, нагрузочные |
 
 - **Секрет один:** `CLOUDFLARE_API_TOKEN` в секретах репозитория GitHub; `account_id` не секрет и лежит в `wrangler.jsonc`. Как завести токен и секрет — `docs/runbooks/deploy-workers-dev.md`.
@@ -25,7 +25,7 @@
 ## Альтернативы
 
 - **Деплой руками с машины (ADR-0002).** Не требует токена в GitHub, но связывает прод с одной машиной и одним человеком. Отвергнуто владельцем 2026-09-10.
-- **`wrangler-action` вместо `npm run deploy`.** Тот же wrangler в обёртке; своя команда деплоя уже собирает клиент и подставляет конфиг из `web/dist`, обёртка ничего не добавляет.
+- **`wrangler-action` вместо `pnpm run deploy`.** Тот же wrangler в обёртке; своя команда деплоя уже собирает клиент и подставляет конфиг из `web/dist`, обёртка ничего не добавляет.
 
 ## Последствия
 

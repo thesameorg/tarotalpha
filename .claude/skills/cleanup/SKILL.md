@@ -27,7 +27,7 @@ git for-each-ref --sort=committerdate --format='%(refname:short) %(committerdate
 ## 3. Долг документации
 
 ```bash
-npm run check:all
+pnpm run check:all
 ```
 
 Ноль — норма. Не ноль — обход хуков.

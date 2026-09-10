@@ -1,4 +1,4 @@
-/** The paywall after step three. Tiers are markup in index.html; every buy button only toasts, there is no billing. */
+/** The paywall on the third step. Tiers are markup in index.html; every buy button only toasts, there is no billing. */
 import { copy } from "./copy";
 import { toast } from "./toast";
 

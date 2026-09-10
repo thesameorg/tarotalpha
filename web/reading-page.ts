@@ -1,7 +1,8 @@
 /**
  * A saved reading at /r/:id: the stored snapshot and cards, the forecast recomputed by the engine version the
  * reading names (law 1), and the prophecy check against candles this browser fetches from the same exchange.
- * The API answers only the reading itself; 404 and network failures render as text, never as an empty chart.
+ * Days are tabs under the chart; replay runs the fullscreen reveal for each day in turn. The API answers only
+ * the reading itself; 404 and network failures render as text, never as an empty chart.
  */
 import { engineFor, type Engine } from "../engine/index";
 import type { Accuracy } from "../engine/v1/accuracy";
@@ -12,13 +13,15 @@ import { ApiError, fetchReading, postEvent, type ReadingRecord } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
 import { copy } from "./copy";
 import { required } from "./dom-lookup";
-import { setEngineVersion, setLag, setSource } from "./footer";
+import { showExchangeLogo } from "./exchange-logo";
+import { localDateTime, localTime } from "./local-time-format";
 import { formatChange, formatPrice } from "./price-format";
+import { playReveal } from "./reveal-overlay";
 import type { Navigate, View } from "./router";
 import { openShareModal } from "./share-modal";
-import { resetBlock, revealStep, showStep, type SpreadBlock } from "./spread";
+import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
-import { utcDateTime, utcTime } from "./utc-format";
+import { setTechFacts } from "./tech-panel";
 
 const CANDLES_PER_DAY = 24;
 const FLOW_MS_PER_CANDLE = 45;
@@ -27,15 +30,13 @@ const CHANGE_LOOKBACK = 24;
 interface Elements {
   stage: HTMLElement;
   sym: HTMLElement;
+  srcLogo: HTMLImageElement;
   last: HTMLElement;
   chg: HTMLElement;
   steps: HTMLElement;
   chart: HTMLElement;
   prophecy: HTMLElement;
-  live: HTMLElement;
-  liveSpread: HTMLElement;
-  liveReading: HTMLElement;
-  blocks: HTMLElement;
+  panel: HTMLElement;
   replay: HTMLButtonElement;
   own: HTMLButtonElement;
   share: HTMLButtonElement;
@@ -54,32 +55,17 @@ function messageMarkup(message: string, buttonId: string, buttonText: string): s
 </div>`;
 }
 
-function stepBlockMarkup(day: number): string {
+function readingMarkup(meta: string): string {
   return `
-<div class="step-block" data-step="${String(day)}">
-  <div class="step-title">${copy.day(day)}</div>
-  <div class="spread"></div>
-  <div class="reading"></div>
-</div>`;
-}
-
-function readingMarkup(record: ReadingRecord, meta: string, days: number): string {
-  const blocks = Array.from({ length: days }, (_, index) => stepBlockMarkup(index + 1)).join("");
-  return `
-<div class="ask"><span class="src" id="meta">${meta}</span></div>
 <div class="stage" id="stage">
   <div class="stage-top">
-    <div class="px"><span id="sym"></span> <span id="last"></span><span class="chg" id="chg"></span></div>
-    <div class="steps" id="steps"><span></span><span></span><span></span></div>
+    <div class="px"><span id="sym"></span><img class="src-logo" id="src-logo" alt="" hidden><span id="last"></span><span class="chg" id="chg"></span></div>
+    <span class="meta" id="meta">${meta}</span>
+    <div class="steps" id="steps"><span></span><span></span><span class="locked"></span></div>
   </div>
   <div class="chart-box"><div class="chart" id="chart"></div></div>
   <div class="prophecy" id="prophecy"></div>
-  <div class="live" id="live" hidden>
-    <div class="spread" id="live-spread"></div>
-    <div class="reading" id="live-reading"></div>
-  </div>
-  <div class="blocks" id="blocks">${blocks}</div>
-  <p class="disclaimer">${copy.disclaimer}</p>
+  <div id="panel"></div>
   <div class="actions">
     <button class="draw" id="replay">Воспроизвести расклад</button>
     <button class="share" id="own">Свой расклад по этому инструменту</button>
@@ -93,15 +79,13 @@ function lookup(root: HTMLElement): Elements {
   return {
     stage: required(root, "#stage", HTMLElement),
     sym: required(root, "#sym", HTMLElement),
+    srcLogo: required(root, "#src-logo", HTMLImageElement),
     last: required(root, "#last", HTMLElement),
     chg: required(root, "#chg", HTMLElement),
     steps: required(root, "#steps", HTMLElement),
     chart: required(root, "#chart", HTMLElement),
     prophecy: required(root, "#prophecy", HTMLElement),
-    live: required(root, "#live", HTMLElement),
-    liveSpread: required(root, "#live-spread", HTMLElement),
-    liveReading: required(root, "#live-reading", HTMLElement),
-    blocks: required(root, "#blocks", HTMLElement),
+    panel: required(root, "#panel", HTMLElement),
     replay: required(root, "#replay", HTMLButtonElement),
     own: required(root, "#own", HTMLButtonElement),
     share: required(root, "#share", HTMLButtonElement),
@@ -138,6 +122,7 @@ class ReadingPage {
   private alive = true;
   private busy = false;
   private chart: CandleChart | null = null;
+  private panel: SpreadPanel | null = null;
   private actual: Candle[] | null = null;
 
   constructor(
@@ -151,6 +136,8 @@ class ReadingPage {
 
   dispose(): void {
     this.alive = false;
+    this.panel?.dispose();
+    this.panel = null;
     this.chart?.remove();
     this.chart = null;
   }
@@ -202,42 +189,37 @@ class ReadingPage {
       snapshot,
       cards: record.steps,
     });
-    const meta = copy.reading.meta(
-      record.id,
-      utcDateTime(new Date(record.created_at).getTime()),
-      record.views,
-      record.engine_version,
-    );
-    this.root.innerHTML = readingMarkup(record, meta, results.length);
+    const meta = copy.reading.meta(localDateTime(new Date(record.created_at).getTime()));
+    this.root.innerHTML = readingMarkup(meta);
     const el = lookup(this.root);
-    setEngineVersion(record.engine_version);
-    setSource(record.source);
-    setLag(null);
+    const atr = formatPrice(engine.atr(snapshot));
+    setTechFacts({
+      lag: null,
+      source: record.source,
+      engine: record.engine_version,
+      anchorTs: record.anchor_ts,
+      atr,
+      readingId: record.id,
+    });
 
+    showExchangeLogo(el.srcLogo, record.source);
     el.sym.textContent = record.asset;
     el.last.textContent = formatPrice(last.c);
     const change = (last.c / prev.c - 1) * 100;
     el.chg.textContent = formatChange(change);
     el.chg.style.color = change >= 0 ? "var(--up)" : "var(--down)";
-    const atrNote = copy.atrNote(formatPrice(engine.atr(snapshot)));
-    el.note.textContent = atrNote;
     this.setStepsBar(el, results.length);
 
-    const blocks: SpreadBlock[] = [...el.blocks.querySelectorAll<HTMLElement>(".step-block")].map((block) => ({
-      spread: required(block, ".spread", HTMLElement),
-      reading: required(block, ".reading", HTMLElement),
-    }));
-    results.forEach((step, index) => {
-      const block = blocks[index];
-      if (block !== undefined) showStep(block, step, engine.cardById);
-    });
+    const panel = createSpreadPanel(el.panel, engine.cardById, false);
+    this.panel = panel;
+    panel.setAtr(copy.atrLine(atr));
+    panel.setSteps(results, 0);
 
     const chart = createCandleChart(el.chart);
     this.chart = chart;
-    const liveBlock: SpreadBlock = { spread: el.liveSpread, reading: el.liveReading };
 
     el.replay.addEventListener("click", () => {
-      void this.replay(el, chart, liveBlock, blocks, results, engine, record, atrNote);
+      void this.replay(el, chart, panel, results, engine, record);
     });
     el.own.addEventListener("click", () => {
       postEvent({ type: "own_reading_clicked", asset: record.asset, reading_id: record.id });
@@ -286,17 +268,17 @@ class ReadingPage {
       real = await fetchAfter(record.asset, record.anchor_ts, total, record.source, Date.now());
     } catch {
       if (this.gone()) return;
-      setLag(null);
+      setTechFacts({ lag: null });
       el.prophecy.innerHTML = pendingMarkup(copy.prophecy.checkFailed, "recheck");
       required(el.prophecy, "#recheck", HTMLButtonElement).addEventListener("click", () => {
         void this.checkProphecy(el, chart, results, engine, record);
       });
       return;
     }
-    setLag(Math.round(performance.now() - started));
+    setTechFacts({ lag: Math.round(performance.now() - started) });
     if (this.gone()) return;
     if (real.length === 0) {
-      el.prophecy.innerHTML = pendingMarkup(copy.prophecy.notYet(utcTime(record.anchor_ts + 2 * HOUR_MS)), null);
+      el.prophecy.innerHTML = pendingMarkup(copy.prophecy.notYet(localTime(record.anchor_ts + 2 * HOUR_MS)), null);
       return;
     }
     this.actual = real;
@@ -312,28 +294,25 @@ class ReadingPage {
   private async replay(
     el: Elements,
     chart: CandleChart,
-    live: SpreadBlock,
-    blocks: SpreadBlock[],
+    panel: SpreadPanel,
     results: StepResult[],
     engine: Engine,
     record: ReadingRecord,
-    atrNote: string,
   ): Promise<void> {
     if (this.busy) return;
     this.busy = true;
     el.replay.disabled = true;
     el.note.textContent = copy.reading.replaying;
-    el.blocks.hidden = true;
-    el.live.hidden = false;
-    resetBlock(live);
+    panel.clear();
     chart.setActual([]);
     chart.setForecast([]);
     chart.setSteps(0);
     this.setStepsBar(el, 0);
     for (const [index, step] of results.entries()) {
       if (this.gone()) return;
-      await revealStep(live, el.stage, step, engine.cardById);
+      await playReveal(cardsOf(step, engine.cardById));
       if (this.gone()) return;
+      panel.setSteps(results.slice(0, index + 1), index);
       chart.setSteps(index + 1);
       this.setStepsBar(el, index + 1);
       for (const candle of step.candles) {
@@ -343,13 +322,7 @@ class ReadingPage {
       }
     }
     if (this.actual !== null) chart.setActual(this.actual);
-    results.forEach((step, index) => {
-      const block = blocks[index];
-      if (block !== undefined) showStep(block, step, engine.cardById);
-    });
-    el.live.hidden = true;
-    el.blocks.hidden = false;
-    el.note.textContent = atrNote;
+    el.note.textContent = "";
     el.replay.disabled = false;
     this.busy = false;
     postEvent({ type: "replayed", asset: record.asset, reading_id: record.id });

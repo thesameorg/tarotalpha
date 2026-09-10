@@ -11,7 +11,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler deploy --config web/dist/tarotalpha/wrangler.json",
+    "deploy": "pnpm run build && wrangler deploy --config web/dist/tarotalpha/wrangler.json",
     "typecheck": "tsc -b",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
@@ -41,5 +41,6 @@
   },
   "dependencies": {
     "lightweight-charts": "^5.2.1"
-  }
+  },
+  "packageManager": "pnpm@12.3.4"
 }

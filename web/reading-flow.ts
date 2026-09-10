@@ -1,7 +1,8 @@
 /**
- * The landing: load a chart for an asset, open up to three steps with the loot-box theatre, share the reading.
- * Candles come straight from the exchange and steps from the engine in this browser; the API is only asked to
- * store a reading, count today's visitors and take funnel events, and every one of those calls degrades quietly.
+ * The landing: pick an instrument, load its chart, open two free steps with the fullscreen reveal, hit the paywall
+ * on the third, share the reading. Candles come straight from the exchange and steps from the engine in this
+ * browser; the API only stores a reading, counts today's visitors and takes funnel events, and every one of those
+ * calls degrades quietly.
  */
 import { engineFor, type Engine } from "../engine/index";
 import type { Candle } from "../engine/v1/atr";
@@ -10,18 +11,21 @@ import { ASSET_PATTERN, fetchSnapshot, lastClosedAnchor } from "../exchange/clos
 import { ExchangeError, type Source } from "../exchange/provider";
 import { ApiError, createReading, fetchTodayCount, postEvent } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
+import { createCoinPicker, type CoinPicker } from "./coin-picker";
 import { copy } from "./copy";
 import { required } from "./dom-lookup";
-import { setEngineVersion, setLag, setSource } from "./footer";
+import { showExchangeLogo } from "./exchange-logo";
 import { openPaywall } from "./paywall-modal";
 import { formatChange, formatPrice } from "./price-format";
+import { playReveal } from "./reveal-overlay";
 import type { View } from "./router";
 import { openShareModal } from "./share-modal";
-import { resetBlock, revealStep, type SpreadBlock } from "./spread";
+import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
+import { setTechFacts } from "./tech-panel";
 import { toast } from "./toast";
 
-const FREE_STEPS = 3;
+const FREE_STEPS = 2;
 const FLOW_MS_PER_CANDLE = 45;
 const CHANGE_LOOKBACK = 24;
 
@@ -34,12 +38,12 @@ interface Loaded {
 }
 
 interface Elements {
-  asset: HTMLInputElement;
+  picker: HTMLElement;
   load: HTMLButtonElement;
-  src: HTMLElement;
   asked: HTMLElement;
   stage: HTMLElement;
   sym: HTMLElement;
+  srcLogo: HTMLImageElement;
   last: HTMLElement;
   chg: HTMLElement;
   steps: HTMLElement;
@@ -47,9 +51,7 @@ interface Elements {
   chartState: HTMLElement;
   chartMessage: HTMLElement;
   retry: HTMLButtonElement;
-  spread: HTMLElement;
-  reading: HTMLElement;
-  disclaimer: HTMLElement;
+  panel: HTMLElement;
   draw: HTMLButtonElement;
   share: HTMLButtonElement;
   note: HTMLElement;
@@ -59,15 +61,14 @@ function landingMarkup(): string {
   return `
 <div class="ask">
   <label for="asset">Инструмент</label>
-  <input id="asset" value="BTCUSDT" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20">
+  <div id="picker"></div>
   <button class="go" id="load">Загрузить график</button>
-  <span class="src" id="src"></span>
+  <p class="asked" id="asked" hidden></p>
 </div>
-<p class="asked" id="asked" hidden></p>
 <div class="stage" id="stage">
   <div class="stage-top">
-    <div class="px"><span id="sym">—</span> <span id="last">—</span><span class="chg" id="chg"></span></div>
-    <div class="steps" id="steps"><span></span><span></span><span></span></div>
+    <div class="px"><span id="sym">—</span><img class="src-logo" id="src-logo" alt="" hidden><span id="last">—</span><span class="chg" id="chg"></span></div>
+    <div class="steps" id="steps" title="${copy.lockedStep}"><span></span><span></span><span class="locked"></span></div>
   </div>
   <div class="chart-box">
     <div class="chart" id="chart"></div>
@@ -76,9 +77,7 @@ function landingMarkup(): string {
       <button class="go" id="retry" hidden>${copy.retry}</button>
     </div>
   </div>
-  <div class="spread" id="spread"></div>
-  <div class="reading" id="reading"></div>
-  <p class="disclaimer" id="disclaimer" hidden>${copy.disclaimer}</p>
+  <div id="panel"></div>
   <div class="actions">
     <button class="draw" id="draw" disabled>${copy.drawStep(1)}</button>
     <button class="share" id="share" disabled>Поделиться</button>
@@ -89,12 +88,12 @@ function landingMarkup(): string {
 
 function lookup(root: HTMLElement): Elements {
   return {
-    asset: required(root, "#asset", HTMLInputElement),
+    picker: required(root, "#picker", HTMLElement),
     load: required(root, "#load", HTMLButtonElement),
-    src: required(root, "#src", HTMLElement),
     asked: required(root, "#asked", HTMLElement),
     stage: required(root, "#stage", HTMLElement),
     sym: required(root, "#sym", HTMLElement),
+    srcLogo: required(root, "#src-logo", HTMLImageElement),
     last: required(root, "#last", HTMLElement),
     chg: required(root, "#chg", HTMLElement),
     steps: required(root, "#steps", HTMLElement),
@@ -102,9 +101,7 @@ function lookup(root: HTMLElement): Elements {
     chartState: required(root, "#chart-state", HTMLElement),
     chartMessage: required(root, "#chart-message", HTMLElement),
     retry: required(root, "#retry", HTMLButtonElement),
-    spread: required(root, "#spread", HTMLElement),
-    reading: required(root, "#reading", HTMLElement),
-    disclaimer: required(root, "#disclaimer", HTMLElement),
+    panel: required(root, "#panel", HTMLElement),
     draw: required(root, "#draw", HTMLButtonElement),
     share: required(root, "#share", HTMLButtonElement),
     note: required(root, "#note", HTMLElement),
@@ -124,7 +121,8 @@ class LandingPage {
   private readonly el: Elements;
   private readonly chart: CandleChart;
   private readonly engine: Engine = engineFor(ENGINE_VERSION);
-  private readonly block: SpreadBlock;
+  private readonly picker: CoinPicker;
+  private readonly panel: SpreadPanel;
   private alive = true;
   private busy = false;
   private loaded: Loaded | null = null;
@@ -132,20 +130,17 @@ class LandingPage {
   constructor(root: HTMLElement, params: URLSearchParams) {
     root.innerHTML = landingMarkup();
     this.el = lookup(root);
-    this.block = { spread: this.el.spread, reading: this.el.reading };
-    resetBlock(this.block);
+    this.panel = createSpreadPanel(this.el.panel, this.engine.cardById, true);
     this.chart = createCandleChart(this.el.chart);
-    setEngineVersion(ENGINE_VERSION);
-    setSource(null);
+    setTechFacts({ lag: null, source: null, engine: ENGINE_VERSION, anchorTs: null, atr: null, readingId: null });
 
     const load = (): void => {
       void this.load();
     };
+    const preset = (params.get("asset") ?? "").trim().toUpperCase();
+    this.picker = createCoinPicker(this.el.picker, preset === "" ? "BTCUSDT" : preset, load);
     this.el.load.addEventListener("click", load);
     this.el.retry.addEventListener("click", load);
-    this.el.asset.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") load();
-    });
     this.el.draw.addEventListener("click", () => {
       void this.openStep();
     });
@@ -153,16 +148,13 @@ class LandingPage {
       void this.share();
     });
 
-    const preset = (params.get("asset") ?? "").trim().toUpperCase();
-    if (preset !== "") {
-      this.el.asset.value = preset;
-      load();
-    }
+    if (preset !== "") load();
     this.showTodayCount();
   }
 
   dispose(): void {
     this.alive = false;
+    this.panel.dispose();
     this.chart.remove();
   }
 
@@ -203,8 +195,8 @@ class LandingPage {
 
   private async load(): Promise<void> {
     if (this.busy) return;
-    const asset = this.el.asset.value.trim().toUpperCase();
-    this.el.asset.value = asset;
+    const asset = this.picker.value();
+    this.picker.setValue(asset);
     if (!ASSET_PATTERN.test(asset)) {
       this.note(copy.badAsset);
       this.chartState(copy.badAsset, false);
@@ -215,12 +207,13 @@ class LandingPage {
     this.el.draw.disabled = true;
     this.el.share.disabled = true;
     this.el.draw.textContent = copy.drawStep(1);
-    this.el.src.textContent = "";
-    this.el.disclaimer.hidden = true;
+    showExchangeLogo(this.el.srcLogo, null);
     this.note(copy.loading);
     this.chartState(copy.loading, false);
-    resetBlock(this.block);
+    this.panel.clear();
+    this.panel.setAtr(null);
     this.setStepsBar(0);
+    setTechFacts({ lag: null, source: null, anchorTs: null, atr: null });
 
     const anchorTs = lastClosedAnchor(Date.now());
     const started = performance.now();
@@ -229,7 +222,6 @@ class LandingPage {
       snapshot = await fetchSnapshot(asset, anchorTs);
     } catch (error: unknown) {
       this.busy = false;
-      setLag(null);
       if (this.gone()) return;
       const kind = error instanceof ExchangeError ? error.kind : "unavailable";
       this.chartState(copy.exchange[kind], kind !== "unknown_asset");
@@ -237,7 +229,7 @@ class LandingPage {
       return;
     }
     this.busy = false;
-    setLag(Math.round(performance.now() - started));
+    const lag = Math.round(performance.now() - started);
     if (this.gone()) return;
 
     const candles = snapshot.candles;
@@ -249,14 +241,16 @@ class LandingPage {
       return;
     }
     this.loaded = { asset, anchorTs, snapshot: candles, source: snapshot.source, steps: [] };
-    this.el.src.textContent = copy.source(copy.sources[snapshot.source]);
-    setSource(snapshot.source);
+    const atr = formatPrice(this.engine.atr(candles));
+    setTechFacts({ lag, source: snapshot.source, anchorTs, atr });
+    showExchangeLogo(this.el.srcLogo, snapshot.source);
     this.el.sym.textContent = asset;
     this.el.last.textContent = formatPrice(last.c);
     const change = (last.c / prev.c - 1) * 100;
     this.el.chg.textContent = formatChange(change);
     this.el.chg.style.color = change >= 0 ? "var(--up)" : "var(--down)";
-    this.note(copy.atrNote(formatPrice(this.engine.atr(candles))));
+    this.panel.setAtr(copy.atrLine(atr));
+    this.note("");
     this.chartState(null, false);
 
     await this.chart.showSnapshot(candles, true);
@@ -281,12 +275,12 @@ class LandingPage {
     this.busy = true;
     this.el.draw.disabled = true;
     this.el.share.disabled = true;
-    await revealStep(this.block, this.el.stage, result, this.engine.cardById);
+    await playReveal(cardsOf(result, this.engine.cardById));
     if (this.gone()) return;
     loaded.steps.push(result);
+    this.panel.setSteps(loaded.steps, step - 1);
     this.chart.setSteps(step);
     this.setStepsBar(step);
-    this.el.disclaimer.hidden = false;
     for (const candle of result.candles) {
       if (this.gone()) return;
       this.chart.appendForecast(candle);

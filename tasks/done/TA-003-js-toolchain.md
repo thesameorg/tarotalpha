@@ -1,6 +1,6 @@
 # TA-003 · Оснастка JS
 
-> ветка: feat/prototype · PR: нет
+> ветка: feat/prototype · PR: https://github.com/thesameorg/tarotalpha/pull/1
 
 **Зачем.** Линтер политики документирования уже стоит, а формата, типов и тестов ещё нет. Нужен TypeScript в strict, ESLint flat с type-aware правилами, Prettier, vitest — и всё это заведённое в `pre-commit`, чтобы CI не узнавал первым.
 

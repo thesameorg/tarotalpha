@@ -1,0 +1,8 @@
+# pnpm blocks install scripts by default; these two ship their own binaries and the dev server and tests need them.
+allowBuilds:
+  esbuild: true
+  workerd: true
+# The 24h release-age guard stays on; Cloudflare types are published daily and DefinitelyTyped hourly, so they are exempt.
+minimumReleaseAgeExclude:
+  - "@cloudflare/*"
+  - "@types/*"
