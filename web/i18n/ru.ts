@@ -237,7 +237,7 @@ export const ru = {
       ? `Днём правит ${f.rulingName}${rev}, ${when}: ${ruling(f.rulingEffect)}.`
       : `Старших арканов нет, день за младшими; тон задаёт ${f.rulingName}${rev}, ${when}: ${ruling(f.rulingEffect)}.`;
     const path = `Утром — ${short(f.effects[0])}, днём — ${short(f.effects[1])}, вечером — ${short(f.effects[2])}.`;
-    const number = `К закрытию суток карты видят ${f.netPct} % (${f.netAtr} ATR), по дороге ${f.highPct} % сверху и ${f.lowPct} % снизу.`;
+    const number = `К закрытию суток карты видят ${f.netPct} %, по дороге ${f.highPct} % сверху и ${f.lowPct} % снизу.`;
     const closing = pick(CLOSING[f.reversal ? "reversal" : f.direction], f.variant);
     return `${opening} ${path} ${number} ${closing}`;
   },

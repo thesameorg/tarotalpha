@@ -1,9 +1,10 @@
-/** Boot: styles, language and theme, the header switches, the tech panel, the two modals, and the router. */
+/** Boot: styles, language, theme and reader, the header switches, the tech panel, the two modals, the router. */
 import "./styles.css";
 import { initHeaderControls } from "./header-controls";
 import { initLang } from "./i18n/index";
 import { zoneLabel } from "./local-time-format";
 import { initPaywallModal } from "./paywall-modal";
+import { initReader } from "./reader-choice";
 import { landingView } from "./reading-flow";
 import { readingView } from "./reading-page";
 import { startRouter } from "./router";
@@ -21,6 +22,7 @@ if (zone !== null) zone.textContent = zoneLabel(Date.now());
 
 initLang(new URL(window.location.href).searchParams);
 initTheme();
+initReader();
 initHeaderControls();
 initTechPanel();
 initPaywallModal();

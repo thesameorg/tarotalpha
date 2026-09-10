@@ -1,6 +1,9 @@
 /* The approved visual from tarot-alpha.html on a one-screen grid: header, chart that takes the rest, cards, actions. */
 /* Two palettes on the same names: --ink is the ground and --paper the text whatever the theme; --gold the accent. */
 :root {
+  --back-pattern:
+    repeating-linear-gradient(45deg, transparent 0 6px, rgba(var(--gold-rgb), 0.08) 6px 7px),
+    repeating-linear-gradient(-45deg, transparent 0 6px, rgba(var(--gold-rgb), 0.08) 6px 7px);
   --ink: #161824;
   --ink-2: #1e2130;
   --ink-3: #262a3c;
@@ -594,9 +597,7 @@ main {
   overflow: hidden;
 }
 .back {
-  background:
-    repeating-linear-gradient(45deg, transparent 0 6px, rgba(var(--gold-rgb), 0.08) 6px 7px),
-    repeating-linear-gradient(-45deg, transparent 0 6px, rgba(var(--gold-rgb), 0.08) 6px 7px), var(--ink-3);
+  background: var(--back-pattern), var(--ink-3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -896,9 +897,7 @@ main {
   inset: 0;
   border-radius: 8px;
   border: 1px solid var(--line);
-  background:
-    repeating-linear-gradient(45deg, transparent 0 6px, rgba(var(--gold-rgb), 0.08) 6px 7px),
-    repeating-linear-gradient(-45deg, transparent 0 6px, rgba(var(--gold-rgb), 0.08) 6px 7px), var(--ink-3);
+  background: var(--back-pattern), var(--ink-3);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
 .deck-card:nth-child(1) {
@@ -1375,4 +1374,71 @@ footer {
 }
 .doc .back {
   color: var(--gold);
+}
+
+/* One back per reader: the pattern is a token, so the fan, the deck and the reveal all follow the choice. */
+:root[data-reader="reversion"] {
+  --back-pattern:
+    repeating-linear-gradient(0deg, transparent 0 7px, rgba(var(--gold-rgb), 0.1) 7px 8px),
+    repeating-linear-gradient(90deg, transparent 0 22px, rgba(var(--gold-rgb), 0.06) 22px 23px);
+}
+:root[data-reader="analogy"] {
+  --back-pattern: repeating-radial-gradient(circle at 50% 50%, transparent 0 7px, rgba(var(--gold-rgb), 0.09) 7px 8px);
+}
+.readers {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 10px 14px 0;
+}
+.reader {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 8px 4px 4px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--ink-2);
+  color: var(--muted);
+  cursor: pointer;
+}
+.reader img {
+  width: 26px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+}
+.reader-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  text-align: left;
+}
+.reader-text b {
+  font-size: 12px;
+  font-weight: 600;
+}
+.reader-text i {
+  font-size: 11px;
+  font-style: normal;
+  opacity: 0.75;
+}
+.reader[aria-pressed="true"] {
+  border-color: var(--gold-deep);
+  color: var(--fg);
+  background: var(--ink-3);
+}
+.reader:hover {
+  border-color: var(--gold-deep);
+}
+@media (max-width: 720px) {
+  .readers {
+    justify-content: center;
+    width: 100%;
+  }
+  .reader-text i {
+    display: none;
+  }
 }

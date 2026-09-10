@@ -22,16 +22,10 @@ export function daySummary(step: StepResult): string {
     rulingPosition: position,
     effects,
     netPct: signed(digest.netPct),
-    netAtr: signed(digest.netAtr),
     highPct: signed(digest.highPct),
     lowPct: signed(digest.lowPct),
     direction: digest.direction,
     reversal: digest.reversal,
     variant: cards.reduce((sum, [cardId, flag]) => sum + cardId + flag, 0),
   });
-}
-
-/** NATR as the interface prints it: a percent of price with two decimals. */
-export function formatAtr(natr: number): string {
-  return `${(natr * 100).toFixed(2)} %`;
 }

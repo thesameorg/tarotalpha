@@ -10,6 +10,7 @@ const CREATE = {
   anchor_ts: ANCHOR,
   steps: 2,
   source: "binance",
+  reader: "atr" as string,
   engine_version: ENGINE_VERSION as string,
 };
 
@@ -98,11 +99,13 @@ describe("POST /api/readings then GET /api/readings/:id", () => {
     expect(read.status).toBe(200);
     const body = await read.json<ReadingBody>();
     expect(body).toMatchObject({ id, asset: "BTCUSDT", timeframe: "1H", anchor_ts: ANCHOR, source: "binance" });
-    expect(body).toMatchObject({ engine_version: ENGINE_VERSION });
+    expect(body).toMatchObject({ engine_version: ENGINE_VERSION, reader: "atr" });
     expect(body.candles_snapshot).toHaveLength(SNAPSHOT_LENGTH);
     expect(body.candles_snapshot[SNAPSHOT_LENGTH - 1]?.[0]).toBe(ANCHOR);
     const snapshot = body.candles_snapshot.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
-    const expected = computeSteps({ asset: "BTCUSDT", anchorTs: ANCHOR, snapshot, steps: 2 }).map((step) => step.cards);
+    const expected = computeSteps({ asset: "BTCUSDT", anchorTs: ANCHOR, snapshot, reader: "atr", steps: 2 }).map(
+      (step) => step.cards,
+    );
     expect(body.steps).toEqual(expected);
     expect(await eventTypesAfter(mark)).toEqual(["shared"]);
   });

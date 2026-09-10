@@ -8,7 +8,14 @@
  * share. On a wide screen the row rides with the chart and shortens to the day alone when the free part is narrow;
  * on a phone it stands at the right of the chart with the full label wrapped.
  */
-import { computeSteps, ENGINE_VERSION, natr, type Candle, type StepResult } from "../engine/index";
+import {
+  computeSteps,
+  ENGINE_VERSION,
+  forecastFromCards,
+  readerScale,
+  type Candle,
+  type StepResult,
+} from "../engine/index";
 import { ASSET_PATTERN, fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
 import { ExchangeError, type Source } from "../exchange/provider";
 import { ApiError, createReading, postEvent } from "./api";
@@ -21,11 +28,12 @@ import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
 import { openPaywall } from "./paywall-modal";
 import { formatChange, formatPrice } from "./price-format";
+import { onReaderChange, reader } from "./reader-choice";
+import { initReaderPicker } from "./reader-picker";
 import { playReveal } from "./reveal-overlay";
 import type { View } from "./router";
 import { openShareModal } from "./share-modal";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
-import { formatAtr } from "./spread-summary";
 import { sleep } from "./stage-effects";
 import { setTechFacts } from "./tech-panel";
 import { toast } from "./toast";
@@ -51,6 +59,7 @@ interface Loaded {
 
 interface Elements {
   picker: HTMLElement;
+  readers: HTMLElement;
   stage: HTMLElement;
   srcLogo: HTMLImageElement;
   last: HTMLElement;
@@ -105,6 +114,7 @@ function landingMarkup(): string {
       <button class="go" id="retry" hidden></button>
     </div>
   </div>
+  <div class="readers" id="readers"></div>
   <div id="panel"></div>
 </div>`;
 }
@@ -112,6 +122,7 @@ function landingMarkup(): string {
 function lookup(root: HTMLElement): Elements {
   return {
     picker: required(root, "#picker", HTMLElement),
+    readers: required(root, "#readers", HTMLElement),
     stage: required(root, "#stage", HTMLElement),
     srcLogo: required(root, "#src-logo", HTMLImageElement),
     last: required(root, "#last", HTMLElement),
@@ -157,6 +168,7 @@ class LandingPage {
   private loadSeq = 0;
   private loaded: Loaded | null = null;
   private zone: ZoneLayout | null = null;
+  private readerPending = false;
   private stateText: Text | null = null;
   private stateRetry = false;
 
@@ -170,10 +182,18 @@ class LandingPage {
       this.zone = layout;
       this.placeCta();
     });
-    setTechFacts({ lag: null, source: null, engine: ENGINE_VERSION, anchorTs: null, atr: null, readingId: null });
-    this.unsubscribe = onLangChange(() => {
+    setTechFacts({ lag: null, source: null, engine: ENGINE_VERSION, anchorTs: null, scale: null, readingId: null });
+    initReaderPicker(this.el.readers);
+    const relabel = onLangChange(() => {
       this.relabel();
     });
+    const rereads = onReaderChange(() => {
+      this.applyReader();
+    });
+    this.unsubscribe = (): void => {
+      relabel();
+      rereads();
+    };
 
     const preset = (params.get("asset") ?? "").trim().toUpperCase();
     const initial = preset === "" ? (storedAsset() ?? DEFAULT_ASSET) : preset;
@@ -201,6 +221,28 @@ class LandingPage {
     this.unsubscribe();
     this.panel.dispose();
     this.chart.remove();
+  }
+
+  // Same cards, another reader's candles. A switch during the reveal waits for it: the flow is mid-animation.
+  private applyReader(): void {
+    const loaded = this.loaded;
+    if (loaded === null) return;
+    if (this.busy) {
+      this.readerPending = true;
+      return;
+    }
+    this.readerPending = false;
+    setTechFacts({ scale: readerScale(reader(), loaded.snapshot) });
+    if (loaded.steps.length === 0) return;
+    loaded.steps = forecastFromCards({
+      asset: loaded.asset,
+      anchorTs: loaded.anchorTs,
+      snapshot: loaded.snapshot,
+      reader: reader(),
+      cards: loaded.steps.map((s) => s.cards),
+    });
+    this.panel.setSteps(loaded.steps, loaded.steps.length - 1);
+    this.chart.setForecast(loaded.steps.flatMap((s) => s.candles));
   }
 
   // Read through a method: an `if (!this.alive)` guard would narrow the field to `true` for the rest of the flow.
@@ -305,7 +347,7 @@ class LandingPage {
     this.relabel();
     this.panel.clear();
     this.setStepsBar(0);
-    setTechFacts({ lag: null, source: null, anchorTs: null, atr: null });
+    setTechFacts({ lag: null, source: null, anchorTs: null, scale: null });
 
     const anchorTs = lastClosedAnchor(Date.now());
     const started = performance.now();
@@ -328,8 +370,7 @@ class LandingPage {
     }
     this.loaded = { asset, anchorTs, snapshot: candles, source: snapshot.source, steps: [] };
     storeAsset(asset);
-    const atr = formatAtr(natr(candles));
-    setTechFacts({ lag, source: snapshot.source, anchorTs, atr });
+    setTechFacts({ lag, source: snapshot.source, anchorTs, scale: readerScale(reader(), candles) });
     showExchangeLogo(this.el.srcLogo, snapshot.source);
     this.showPrice();
     this.chartState(null, false);
@@ -349,7 +390,13 @@ class LandingPage {
       return;
     }
     const step = loaded.steps.length + 1;
-    const input = { asset: loaded.asset, anchorTs: loaded.anchorTs, snapshot: loaded.snapshot, steps: step };
+    const input = {
+      asset: loaded.asset,
+      anchorTs: loaded.anchorTs,
+      snapshot: loaded.snapshot,
+      reader: reader(),
+      steps: step,
+    };
     const result = computeSteps(input)[step - 1];
     if (result === undefined) return;
 
@@ -381,6 +428,7 @@ class LandingPage {
     }
     this.busy = false;
     if (this.loaded !== loaded) return;
+    if (this.readerPending) this.applyReader();
     this.el.share.disabled = false;
     this.labelDraw();
     this.enableDraw(true);
@@ -397,6 +445,7 @@ class LandingPage {
         anchor_ts: loaded.anchorTs,
         steps: loaded.steps.length,
         source: loaded.source,
+        reader: reader(),
         engine_version: ENGINE_VERSION,
       });
       if (this.gone()) return;

@@ -1,8 +1,9 @@
 /**
- * The terminal facts behind the "tech" button: exchange lag, UTC clock, candle source, engine version, anchor, ATR,
- * reading id. Hidden by default, the choice survives in localStorage; markup lives in index.html. The only place
+ * The terminal facts behind the "tech" button: exchange lag, UTC clock, candle source, engine version, anchor, the
+ * scale of the chosen reader, reading id. Hidden by default, the choice survives in localStorage; markup lives in index.html. The only place
  * on the page that still speaks UTC, and it speaks English whatever the interface language: terms are not translated.
  */
+import type { ReaderScale } from "../engine/readers";
 import type { Source } from "../exchange/provider";
 import { onLangChange, t } from "./i18n/index";
 import { utcClock, utcDateTime } from "./utc-format";
@@ -14,11 +15,11 @@ export interface TechFacts {
   source: Source | null;
   engine: string | null;
   anchorTs: number | null;
-  atr: string | null;
+  scale: ReaderScale | null;
   readingId: string | null;
 }
 
-const facts: TechFacts = { lag: null, source: null, engine: null, anchorTs: null, atr: null, readingId: null };
+const facts: TechFacts = { lag: null, source: null, engine: null, anchorTs: null, scale: null, readingId: null };
 
 function setText(id: string, text: string): void {
   const el = document.getElementById(id);
@@ -32,7 +33,8 @@ function paint(): void {
   setText("tech-source", facts.source === null ? "—" : t().sources[facts.source]);
   setText("tech-engine", dash(facts.engine));
   setText("tech-anchor", facts.anchorTs === null ? "—" : `${utcDateTime(facts.anchorTs)} · ${String(facts.anchorTs)}`);
-  setText("tech-atr", dash(facts.atr));
+  setText("tech-scale-label", facts.scale?.label ?? "scale");
+  setText("tech-scale", facts.scale === null ? "—" : `${(facts.scale.value * 100).toFixed(2)} %`);
   setText("tech-reading", dash(facts.readingId));
 }
 
@@ -41,7 +43,7 @@ export function setTechFacts(next: Partial<TechFacts>): void {
   if (next.source !== undefined) facts.source = next.source;
   if (next.engine !== undefined) facts.engine = next.engine;
   if (next.anchorTs !== undefined) facts.anchorTs = next.anchorTs;
-  if (next.atr !== undefined) facts.atr = next.atr;
+  if (next.scale !== undefined) facts.scale = next.scale;
   if (next.readingId !== undefined) facts.readingId = next.readingId;
   paint();
 }

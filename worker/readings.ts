@@ -3,7 +3,7 @@
  * itself, from the author's provider when the edge can reach it, and draws the cards with its own engine, whose
  * version label it stores next to them. What is stored and why: docs/flows/reading-lifecycle.md
  */
-import { computeSteps, ENGINE_VERSION, type StepCards } from "../engine/index";
+import { computeSteps, ENGINE_VERSION, isReaderId, READER_IDS, type ReaderId, type StepCards } from "../engine/index";
 import {
   ASSET_PATTERN,
   fetchSnapshot,
@@ -26,6 +26,7 @@ interface CreateBody {
   anchorTs: number;
   steps: number;
   source: Source;
+  reader: ReaderId;
 }
 
 interface ReadingRow {
@@ -35,6 +36,7 @@ interface ReadingRow {
   anchor_ts: number;
   source: string;
   engine_version: string;
+  reader: string;
   created_at: number;
   steps: string;
   candles_snapshot: string;
@@ -57,6 +59,7 @@ export async function createReading(request: Request, env: Env): Promise<Respons
     asset: body.asset,
     anchorTs: body.anchorTs,
     snapshot: snapshot.candles,
+    reader: body.reader,
     steps: body.steps,
   }).map((result) => result.cards);
   const id = await insertReading(env.DB, body, steps, snapshot);
@@ -67,7 +70,7 @@ export async function createReading(request: Request, env: Env): Promise<Respons
 export async function readReading(id: string, env: Env): Promise<Response> {
   const row = ID_PATTERN.test(id)
     ? await env.DB.prepare(
-        "SELECT id, asset, timeframe, anchor_ts, source, engine_version, created_at, steps, candles_snapshot" +
+        "SELECT id, asset, timeframe, anchor_ts, source, engine_version, reader, created_at, steps, candles_snapshot" +
           " FROM readings WHERE id = ?1",
       )
         .bind(id)
@@ -94,7 +97,7 @@ export async function readingMeta(db: D1Database, id: string): Promise<ReadingMe
 }
 
 async function parseCreateBody(request: Request): Promise<CreateBody> {
-  const { asset, anchor_ts: anchorTs, steps, source, engine_version: version } = await readJsonBody(request);
+  const { asset, anchor_ts: anchorTs, steps, source, reader, engine_version: version } = await readJsonBody(request);
   if (typeof asset !== "string" || !ASSET_PATTERN.test(asset)) throw bad("asset must match ^[A-Z0-9]{2,20}$");
   if (typeof anchorTs !== "number" || !isHourAligned(anchorTs)) throw bad("anchor_ts must be an hour-aligned ms UTC");
   if (anchorTs > lastClosedAnchor(Date.now())) throw bad("anchor_ts must be an already closed candle");
@@ -103,13 +106,14 @@ async function parseCreateBody(request: Request): Promise<CreateBody> {
     throw new ApiError(402, "paywall", `only ${String(FREE_STEPS)} steps are free`, { free_steps: FREE_STEPS });
   }
   if (!isSource(source)) throw bad(`source must be one of ${SOURCES.join(", ")}`);
+  if (!isReaderId(reader)) throw bad(`reader must be one of ${READER_IDS.join(", ")}`);
   // A stale tab with an older bundle would have shown cards this engine no longer draws; refuse rather than mislabel.
   if (version !== ENGINE_VERSION) {
     throw new ApiError(409, "engine_mismatch", `server engine is ${ENGINE_VERSION}`, {
       engine_version: ENGINE_VERSION,
     });
   }
-  return { asset, anchorTs, steps, source };
+  return { asset, anchorTs, steps, source, reader };
 }
 
 async function snapshotOrFail(body: CreateBody, request: Request, db: D1Database): Promise<Snapshot> {
@@ -134,8 +138,8 @@ async function insertReading(
 ): Promise<string> {
   const candles = JSON.stringify(snapshot.candles.map(({ t, o, h, l, c }) => [t, o, h, l, c]));
   const insert = db.prepare(
-    "INSERT INTO readings (id, asset, anchor_ts, source, engine_version, seed_nonce, steps, candles_snapshot, created_at)" +
-      " VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6, ?7, ?8)",
+    "INSERT INTO readings (id, asset, anchor_ts, source, engine_version, reader, seed_nonce, steps, candles_snapshot, created_at)" +
+      " VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, ?7, ?8, ?9)",
   );
   for (let attempt = 1; ; attempt++) {
     const id = shortId();
@@ -147,6 +151,7 @@ async function insertReading(
           body.anchorTs,
           snapshot.source,
           ENGINE_VERSION,
+          body.reader,
           JSON.stringify(steps),
           candles,
           Date.now(),

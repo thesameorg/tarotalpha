@@ -251,7 +251,7 @@ export const fr: Dictionary = {
       ? `${f.rulingName}${rev} règne sur la journée dès les ${when} : ${ruling(f.rulingEffect)}.`
       : `Pas d'arcane majeur aujourd'hui, la journée est aux mineurs ; ${f.rulingName}${rev} donne le ton dans les ${when} : ${ruling(f.rulingEffect)}.`;
     const path = `Le matin — ${short(f.effects[0])}, à midi — ${short(f.effects[1])}, le soir — ${short(f.effects[2])}.`;
-    const number = `À la clôture de la journée, les cartes voient ${f.netPct} % (${f.netAtr} ATR), avec ${f.highPct} % au-dessus et ${f.lowPct} % en dessous en chemin.`;
+    const number = `À la clôture de la journée, les cartes voient ${f.netPct} %, avec ${f.highPct} % au-dessus et ${f.lowPct} % en dessous en chemin.`;
     const closing = pick(CLOSING[f.reversal ? "reversal" : f.direction], f.variant);
     return `${opening} ${path} ${number} ${closing}`;
   },

@@ -210,7 +210,7 @@ export const zh: Dictionary = {
       ? `${f.rulingName}${rev}从${when}起主宰今天：${ruling(f.rulingEffect)}。`
       : `今天没有大阿卡纳，日子属于小阿卡纳；${f.rulingName}${rev}在${when}定下基调：${ruling(f.rulingEffect)}。`;
     const path = `早上——${short(f.effects[0])}，中午——${short(f.effects[1])}，晚上——${short(f.effects[2])}。`;
-    const number = `到当日收盘，牌看到 ${f.netPct} %（${f.netAtr} 个 ATR），途中上探 ${f.highPct} %、下探 ${f.lowPct} %。`;
+    const number = `到当日收盘，牌看到 ${f.netPct} %，途中上探 ${f.highPct} %、下探 ${f.lowPct} %。`;
     const closing = pick(CLOSING[f.reversal ? "reversal" : f.direction], f.variant);
     return `${opening}${path}${number}${closing}`;
   },

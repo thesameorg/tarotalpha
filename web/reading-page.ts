@@ -6,7 +6,7 @@
  * network failures render as text, never as an empty chart. Labels are functions of the dictionary, so a language
  * switch relabels the page in place.
  */
-import { accuracy, forecastFromCards, natr, type Accuracy, type Candle, type StepResult } from "../engine/index";
+import { accuracy, forecastFromCards, readerScale, type Accuracy, type Candle, type StepResult } from "../engine/index";
 import { fetchAfter, HOUR_MS } from "../exchange/closed-candles";
 import { ApiError, fetchReading, postEvent, type ReadingRecord } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
@@ -21,7 +21,6 @@ import { playReveal } from "./reveal-overlay";
 import type { Navigate, View } from "./router";
 import { openShareModal } from "./share-modal";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
-import { formatAtr } from "./spread-summary";
 import { sleep } from "./stage-effects";
 import { setTechFacts } from "./tech-panel";
 
@@ -204,19 +203,19 @@ class ReadingPage {
       asset: record.asset,
       anchorTs: record.anchor_ts,
       snapshot,
+      reader: record.reader,
       cards: record.steps,
     });
     this.record = record;
     this.root.innerHTML = readingMarkup();
     const el = lookup(this.root);
     this.el = el;
-    const atr = formatAtr(natr(snapshot));
     setTechFacts({
       lag: null,
       source: record.source,
       engine: record.engine_version,
       anchorTs: record.anchor_ts,
-      atr,
+      scale: readerScale(record.reader, snapshot),
       readingId: record.id,
     });
 
@@ -329,6 +328,7 @@ class ReadingPage {
       asset: record.asset,
       anchorTs: record.anchor_ts,
       snapshot,
+      reader: record.reader,
       cards: record.steps,
     });
     await this.checkProphecy(el, chart, results, record);

@@ -247,7 +247,7 @@ export const de: Dictionary = {
       ? `${f.rulingName}${rev} regiert den Tag ab den ${when}: ${ruling(f.rulingEffect)}.`
       : `Keine Große Arkana heute, der Tag gehört den Kleinen; ${f.rulingName}${rev} gibt in den ${when} den Ton an: ${ruling(f.rulingEffect)}.`;
     const path = `Morgens — ${short(f.effects[0])}, mittags — ${short(f.effects[1])}, abends — ${short(f.effects[2])}.`;
-    const number = `Zum Tagesschluss sehen die Karten ${f.netPct} % (${f.netAtr} ATR), unterwegs ${f.highPct} % nach oben und ${f.lowPct} % nach unten.`;
+    const number = `Zum Tagesschluss sehen die Karten ${f.netPct} %, unterwegs ${f.highPct} % nach oben und ${f.lowPct} % nach unten.`;
     const closing = pick(CLOSING[f.reversal ? "reversal" : f.direction], f.variant);
     return `${opening} ${path} ${number} ${closing}`;
   },

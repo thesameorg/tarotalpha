@@ -234,7 +234,7 @@ export const tr: Dictionary = {
       ? `${when} itibarıyla güne ${f.rulingName}${rev} hükmediyor: ${ruling(f.rulingEffect)}.`
       : `Bugün büyük arkana yok, gün küçüklerin; ${when}nde tonu ${f.rulingName}${rev} veriyor: ${ruling(f.rulingEffect)}.`;
     const path = `Sabah — ${short(f.effects[0])}, öğlen — ${short(f.effects[1])}, akşam — ${short(f.effects[2])}.`;
-    const number = `Gün kapanışında kartlar %${f.netPct} (${f.netAtr} ATR) görüyor; yolda yukarıda %${f.highPct}, aşağıda %${f.lowPct}.`;
+    const number = `Gün kapanışında kartlar %${f.netPct} görüyor; yolda yukarıda %${f.highPct}, aşağıda %${f.lowPct}.`;
     const closing = pick(CLOSING[f.reversal ? "reversal" : f.direction], f.variant);
     return `${opening} ${path} ${number} ${closing}`;
   },
