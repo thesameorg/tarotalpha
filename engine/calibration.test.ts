@@ -26,7 +26,7 @@ function drawnSteps(): Candle[][] {
   const out: Candle[][] = [];
   for (const asset of ASSETS) {
     for (const anchorTs of ANCHORS) {
-      const steps = computeSteps({ asset, anchorTs, snapshot: F.snapshot, steps: STEPS });
+      const steps = computeSteps({ asset, anchorTs, snapshot: F.snapshot, reader: "atr", steps: STEPS });
       out.push(steps.flatMap((s) => s.candles));
     }
   }
@@ -102,7 +102,7 @@ describe(`calibration over ${String(ASSETS.length * ANCHORS.length)} seeds x ${S
   it("keeps every price above zero even on a high-volatility snapshot", () => {
     const wild = F.snapshot.map((c) => ({ ...c, h: c.o * 1.08, l: c.o * 0.92 }));
     for (const asset of ASSETS) {
-      const steps = computeSteps({ asset, anchorTs: F.anchorTs, snapshot: wild, steps: STEPS });
+      const steps = computeSteps({ reader: "atr", asset, anchorTs: F.anchorTs, snapshot: wild, steps: STEPS });
       for (const c of steps.flatMap((s) => s.candles)) expect(c.l).toBeGreaterThan(0);
     }
   });

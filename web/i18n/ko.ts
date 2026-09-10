@@ -218,7 +218,7 @@ export const ko: Dictionary = {
       ? `${when}부터 오늘의 주인은 ${f.rulingName}${rev}: ${ruling(f.rulingEffect)}.`
       : `오늘은 메이저 아르카나 없이 마이너의 날. ${when}의 기조는 ${f.rulingName}${rev}: ${ruling(f.rulingEffect)}.`;
     const path = `아침은 ${short(f.effects[0])}, 낮은 ${short(f.effects[1])}, 저녁은 ${short(f.effects[2])}.`;
-    const number = `당일 마감까지 카드가 보는 것은 ${f.netPct} % (${f.netAtr} ATR), 도중에 위로 ${f.highPct} %, 아래로 ${f.lowPct} %.`;
+    const number = `당일 마감까지 카드가 보는 것은 ${f.netPct} %, 도중에 위로 ${f.highPct} %, 아래로 ${f.lowPct} %.`;
     const closing = pick(CLOSING[f.reversal ? "reversal" : f.direction], f.variant);
     return `${opening} ${path} ${number} ${closing}`;
   },

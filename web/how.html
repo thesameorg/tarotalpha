@@ -6,7 +6,7 @@
     <title>TarotAlpha — how the forecast is computed</title>
     <meta
       name="description"
-      content="How a tarot reading becomes 24 hourly candles: the seed, the deck, the card tables, NATR scaling, the day summary and the prophecy check. Not financial advice."
+      content="How a tarot reading becomes 24 hourly candles: the seed, the deck, the three readers and their formulas, the day summary and the prophecy check. Not financial advice."
     />
     <script>
       // The theme lands on <html> before the first paint, so a light-theme viewer never sees a dark flash.
@@ -50,7 +50,8 @@
           </li>
           <li>
             Hash: xmur3 of the seed string feeds a mulberry32 generator. The candle noise uses a second generator seeded
-            with <code>noise|</code> plus the same string.
+            with <code>noise|reader|</code> plus the same string, so the chosen reader changes the candles and never the
+            cards.
           </li>
           <li>
             The engine label (<code>v2</code>) is part of the seed, so a formula change draws new cards for new
@@ -71,7 +72,53 @@
           theatre: whichever back you pull, the i-th pull reveals card i.
         </p>
 
-        <h2>3. From a card to eight candles</h2>
+        <h2 id="readers">3. The readers</h2>
+        <p>
+          A reader is who computes the forecast. All five draw the same three cards — the reader is not part of the
+          shuffle seed — and turns them into different candles. It is part of the noise seed instead, so one reading
+          never gives two readers the same forecast, and it is stored with a shared reading, so a link replays the
+          reader its author saw.
+        </p>
+        <ul>
+          <li id="reader-atr">
+            <code>atr</code> — Madame Vera. Noise in ATR units: drift, width and jumps are multiples of <code>A</code>.
+            Section 4 has the tables.
+          </li>
+          <li id="reader-reversion">
+            <code>reversion</code> — Sister Anemone. The price is pulled back to the mean of the last 20 closes:
+            <code>close = o + pull × (mean + shove × A − o) + (r() − 0.5) × v × A</code>. The card sets
+            <code>pull</code>, from 0.1 for the Fool to 0.7 for the Hanged Man, and where the mean itself goes: the
+            Wheel moves it to the current price, Death reflects it to the far side, the Tower and the Sun shove past it
+            for one candle. Character: swings in a corridor, almost no trend.
+          </li>
+          <li id="reader-analogy">
+            <code>analogy</code> — Elder Kofi. The last 12 returns are compared with every 12-candle stretch of the
+            snapshot by squared distance in NATR units; the card picks one of the 8 closest, and the eight returns that
+            followed it are replayed on the current price. Centring, stretching, the card's gain and its sign all happen
+            on the logs, because candles chain multiplicatively and returns that merely sum to zero still multiply to
+            less than one. Character: a plausible shape, the market repeating itself.
+          </li>
+          <li id="reader-garch">
+            <code>garch</code> — Mama Ife. Volatility remembers itself:
+            <code>variance = omega + alpha·shock² + beta·variance</code>, so one violent hour makes the next hours
+            violent and a quiet stretch stays quiet. The card sets <code>alpha</code>, from 0.05 for the Hanged Man to
+            0.7 for the Fool, and <code>beta</code>, the length of the memory; the Tower and the Sun feed their jump
+            into the variance, so a shock echoes instead of passing. Character: quiet zones and bursts.
+          </li>
+          <li id="reader-fractal">
+            <code>fractal</code> — The Weaver. Each candle is a weighted sum of the last shocks with the weights of
+            fractional Brownian motion, <code>(k+1)^(H−0.5) − k^(H−0.5)</code>. The card sets the Hurst exponent H:
+            above 0.5 the moves agree and the price travels, below 0.5 they argue and it saws. The weights are
+            normalised, so H changes the character of the walk and never its width. Character: long smooth runs or a
+            fine saw.
+          </li>
+        </ul>
+        <p>
+          The invariants hold whatever the reader: eight candles per card, each one opening at the previous close, no
+          candle narrower than 0.3 ATR, no price at or below zero, and the same seed always giving the same candles.
+        </p>
+
+        <h2>4. The ATR reader: from a card to eight candles</h2>
         <p>
           A step is 24 hourly candles; card k rules candles 8k … 8k+7. Inputs: the 168-candle snapshot, the forecast
           candles of earlier steps, the three cards.
@@ -220,15 +267,18 @@
           narrower than 0.3 ATR.
         </p>
 
-        <h2>4. The day summary</h2>
+        <h2>5. The day summary</h2>
         <p>Under the three cards the interface writes one paragraph from the step's numbers:</p>
         <ul>
           <li>
-            <code>netPct</code> and <code>netAtr</code> — the last close against the first open, in percent and in ATR
-            (<code>Δ / (natr × open)</code>); <code>highPct</code>, <code>lowPct</code> — the extremes from the same
-            open.
+            <code>netPct</code> — the last close against the first open, in percent; <code>highPct</code>,
+            <code>lowPct</code> — the extremes from the same open. The paragraph prints percentages only: the unit a
+            reader measures in is a technical fact and lives in the tech panel, not in eleven languages.
           </li>
-          <li>Direction: flat when |netAtr| &lt; 0.5, otherwise up or down.</li>
+          <li>
+            Direction: flat when the net move is under half an ATR, otherwise up or down. ATR is the engine's own
+            yardstick here whatever the reader, so the wording of a quiet day means the same thing everywhere.
+          </li>
           <li>
             The ruling card: the strongest major on the table in the order Tower, Sun, Death, Wheel, Moon, Hanged Man,
             Fool, then any other major, then the highest-ranked minor; a tie goes to the earlier position.
@@ -240,7 +290,7 @@
           </li>
         </ul>
 
-        <h2>5. The prophecy check</h2>
+        <h2>6. The prophecy check</h2>
         <p>
           When a link is opened after its anchor, the browser fetches the real candles that have closed since and
           compares each forecast candle with the real candle of the same hour. A hit is a matching sign:
@@ -249,11 +299,11 @@
           lands, honestly, near one half.
         </p>
 
-        <h2>6. What a link stores</h2>
+        <h2>7. What a link stores</h2>
         <p>
           The cards drawn per step, the 168-candle snapshot the server took at the moment of sharing, the exchange it
-          came from, and the engine label. Everything else — forecast candles, summary, accuracy — is recomputed in your
-          browser with the current formulas.
+          came from, the reader that drew it and the engine label. Everything else — forecast candles, summary, accuracy
+          — is recomputed in your browser with the current formulas.
         </p>
 
         <p class="disclaimer">

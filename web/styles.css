@@ -1,6 +1,9 @@
 /* The approved visual from tarot-alpha.html on a one-screen grid: header, chart that takes the rest, cards, actions. */
 /* Two palettes on the same names: --ink is the ground and --paper the text whatever the theme; --gold the accent. */
 :root {
+  --back-pattern:
+    repeating-linear-gradient(45deg, transparent 0 6px, rgba(var(--gold-rgb), 0.08) 6px 7px),
+    repeating-linear-gradient(-45deg, transparent 0 6px, rgba(var(--gold-rgb), 0.08) 6px 7px);
   --ink: #161824;
   --ink-2: #1e2130;
   --ink-3: #262a3c;
@@ -560,6 +563,35 @@ main {
   gap: 14px;
   padding: 8px 14px 0;
 }
+/* Before a step the panel shows sky, not empty card slots: a reader may draw six cards or throw bones. */
+.cloth {
+  grid-column: 1 / -1;
+  height: 132px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background-image:
+    radial-gradient(1.6px 1.6px at 18px 24px, rgba(var(--gold-rgb), 0.85), transparent 60%),
+    radial-gradient(1.2px 1.2px at 63px 71px, rgba(var(--gold-rgb), 0.55), transparent 60%),
+    radial-gradient(2px 2px at 104px 33px, rgba(var(--gold-rgb), 0.75), transparent 60%),
+    radial-gradient(1.1px 1.1px at 41px 108px, rgba(var(--gold-rgb), 0.45), transparent 60%),
+    radial-gradient(1.4px 1.4px at 122px 96px, rgba(var(--gold-rgb), 0.6), transparent 60%),
+    radial-gradient(1.1px 1.1px at 88px 12px, rgba(var(--gold-rgb), 0.4), transparent 60%),
+    radial-gradient(120% 140% at 50% 130%, rgba(var(--gold-rgb), 0.1), transparent 70%),
+    radial-gradient(100% 120% at 15% -30%, rgba(120, 90, 200, 0.24), transparent 70%),
+    linear-gradient(var(--ink-3), var(--ink-3));
+  background-size:
+    140px 140px,
+    140px 140px,
+    140px 140px,
+    140px 140px,
+    140px 140px,
+    140px 140px,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  background-repeat: repeat, repeat, repeat, repeat, repeat, repeat, no-repeat, no-repeat, no-repeat;
+}
+
 .spread .slot {
   width: min(100%, calc(var(--card-max-h) * 5 / 8));
   justify-self: center;
@@ -594,9 +626,7 @@ main {
   overflow: hidden;
 }
 .back {
-  background:
-    repeating-linear-gradient(45deg, transparent 0 6px, rgba(var(--gold-rgb), 0.08) 6px 7px),
-    repeating-linear-gradient(-45deg, transparent 0 6px, rgba(var(--gold-rgb), 0.08) 6px 7px), var(--ink-3);
+  background: var(--back-pattern), var(--ink-3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -896,9 +926,7 @@ main {
   inset: 0;
   border-radius: 8px;
   border: 1px solid var(--line);
-  background:
-    repeating-linear-gradient(45deg, transparent 0 6px, rgba(var(--gold-rgb), 0.08) 6px 7px),
-    repeating-linear-gradient(-45deg, transparent 0 6px, rgba(var(--gold-rgb), 0.08) 6px 7px), var(--ink-3);
+  background: var(--back-pattern), var(--ink-3);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
 .deck-card:nth-child(1) {
@@ -1375,4 +1403,186 @@ footer {
 }
 .doc .back {
   color: var(--gold);
+}
+
+/* One back per reader: the pattern is a token, so the fan, the deck and the reveal all follow the choice. */
+:root[data-reader="reversion"] {
+  --back-pattern:
+    repeating-linear-gradient(0deg, transparent 0 7px, rgba(var(--gold-rgb), 0.1) 7px 8px),
+    repeating-linear-gradient(90deg, transparent 0 22px, rgba(var(--gold-rgb), 0.06) 22px 23px);
+}
+:root[data-reader="analogy"] {
+  --back-pattern: repeating-radial-gradient(circle at 50% 50%, transparent 0 7px, rgba(var(--gold-rgb), 0.09) 7px 8px);
+}
+:root[data-reader="garch"] {
+  --back-pattern:
+    repeating-linear-gradient(60deg, transparent 0 4px, rgba(var(--gold-rgb), 0.12) 4px 5px),
+    repeating-linear-gradient(-60deg, transparent 0 14px, rgba(var(--gold-rgb), 0.05) 14px 16px);
+}
+:root[data-reader="fractal"] {
+  --back-pattern:
+    repeating-linear-gradient(30deg, transparent 0 9px, rgba(var(--gold-rgb), 0.07) 9px 10px),
+    repeating-linear-gradient(150deg, transparent 0 9px, rgba(var(--gold-rgb), 0.07) 9px 10px),
+    repeating-linear-gradient(90deg, transparent 0 18px, rgba(var(--gold-rgb), 0.05) 18px 19px);
+}
+.readers {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 10px 14px 0;
+}
+.reader {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 8px 4px 4px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--ink-2);
+  color: var(--muted);
+  cursor: pointer;
+}
+.reader img {
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+}
+.reader-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  text-align: left;
+}
+.reader-text b {
+  font-size: 13px;
+  font-weight: 600;
+}
+.reader[aria-pressed="true"] {
+  border-color: var(--gold-deep);
+  color: var(--fg);
+  background: var(--ink-3);
+}
+.reader:hover {
+  border-color: var(--gold-deep);
+}
+@media (max-width: 720px) {
+  .readers {
+    justify-content: center;
+    width: 100%;
+    gap: 4px;
+  }
+  .reader img {
+    width: 44px;
+    height: 44px;
+  }
+  .profile h2 {
+    font-size: 19px;
+  }
+  .profile-face {
+    width: 72px;
+    height: 72px;
+  }
+}
+
+/* The reader's profile: portrait, stars and the other readers. Placeholders until readings are scored for real. */
+.profile {
+  max-width: 460px;
+}
+.profile-top {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.profile-face {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--gold-deep);
+  flex: none;
+}
+.stars {
+  display: flex;
+  gap: 2px;
+  margin-top: 8px;
+  color: var(--line);
+}
+.star svg {
+  fill: currentColor;
+  display: block;
+}
+.star.on {
+  color: var(--gold);
+}
+.profile-blurb {
+  color: var(--paper-dim);
+  margin-bottom: 14px;
+}
+.profile-choose {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 10px 18px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.profile-current {
+  margin-top: 16px;
+  padding: 9px 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  border: 1px dashed var(--line);
+  border-radius: 4px;
+}
+.other.shown {
+  border-color: var(--gold-deep);
+  background: var(--ink-2);
+  color: var(--fg);
+}
+.others {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.others-title {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.others-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.other {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 8px 4px 4px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--ink-3);
+  color: var(--muted);
+  cursor: pointer;
+  text-align: left;
+}
+.other:hover {
+  border-color: var(--gold-deep);
+  color: var(--fg);
+}
+.other img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+.other span {
+  font-size: 12px;
+  font-weight: 600;
 }

@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { Candle } from "./atr";
-import { computeSteps } from "./index";
+import { computeSteps, READER_IDS, type ReaderId } from "./index";
 import { makeRng } from "./seed";
 
 interface CpuUsage {
@@ -31,20 +31,21 @@ function syntheticSnapshot(count: number, anchorTs: number): Candle[] {
 }
 
 // Cloudflare's free plan gives a request 10 ms of CPU; a reading must fit with room for JSON and D1 on top.
-it("computes three steps from a 168-candle snapshot in under 5 ms of CPU (median of 20)", () => {
+// Every reader is measured: a mechanic that searches or transforms the snapshot must stay inside the same budget.
+it.each(READER_IDS)("computes three %s steps from a 168-candle snapshot in under 5 ms of CPU", (reader: ReaderId) => {
   const anchorTs = 1789020000000;
   const snapshot = syntheticSnapshot(168, anchorTs);
   const samples: number[] = [];
   for (let i = 0; i < 20; i++) {
     const before = node.cpuUsage();
     const parsed = JSON.parse(JSON.stringify(snapshot)) as Candle[];
-    const steps = computeSteps({ asset: "BTCUSDT", anchorTs, snapshot: parsed, steps: 3 });
+    const steps = computeSteps({ asset: "BTCUSDT", anchorTs, snapshot: parsed, reader, steps: 3 });
     const used = node.cpuUsage(before);
     samples.push((used.user + used.system) / 1000);
     expect(steps).toHaveLength(3);
   }
   const sorted = samples.toSorted((a, b) => a - b);
   const median = ((sorted[9] ?? NaN) + (sorted[10] ?? NaN)) / 2;
-  console.info(`computeSteps(3 steps, 168 candles) + JSON round trip: median ${median.toFixed(3)} ms CPU over 20 runs`);
+  console.info(`${reader}: 3 steps over 168 candles + JSON round trip, median ${median.toFixed(3)} ms CPU of 20 runs`);
   expect(median).toBeLessThan(5);
 });

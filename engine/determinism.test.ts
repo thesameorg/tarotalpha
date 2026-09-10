@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { drawCards } from "./draw-cards";
 import { GOLDEN as F } from "./golden/btcusdt";
-import { computeSteps, ENGINE_VERSION, forecastFromCards } from "./index";
+import { computeSteps, DEFAULT_READER, ENGINE_VERSION, forecastFromCards } from "./index";
 import { seedString } from "./seed";
 
-const input = { asset: F.asset, anchorTs: F.anchorTs, snapshot: F.snapshot };
+const input = { asset: F.asset, anchorTs: F.anchorTs, snapshot: F.snapshot, reader: DEFAULT_READER };
 const STEPS = [1, 2, 3];
 
 describe("determinism", () => {

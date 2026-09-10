@@ -13,3 +13,4 @@ ADR пишется в момент принятия решения, а не по
 | [`0003-deploy-from-actions-on-main.md`](0003-deploy-from-actions-on-main.md) | деплой из Actions на пуш в `main`, один секрет с токеном Cloudflare, e2e нигде; строка про проверки на `main` отменена ADR-0004 |
 | [`0004-checks-on-pr-only.md`](0004-checks-on-pr-only.md) | проверки только на PR, деплой с `main` без повторного прогона |
 | [`0005-engine-edited-in-place.md`](0005-engine-edited-in-place.md) | движок один и правится на месте, старые ссылки пересчитываются новыми формулами; отменяет ADR-0001 в строке «версионированы папкой» |
+| [`0006-readers-are-parallel-formulas.md`](0006-readers-are-parallel-formulas.md) | почему несколько формул прогноза живут одновременно и это не возвращённое версионирование |

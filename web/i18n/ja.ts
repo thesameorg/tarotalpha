@@ -230,7 +230,7 @@ export const ja: Dictionary = {
       ? `${f.rulingName}${rev}が${when}から今日を支配する：${ruling(f.rulingEffect)}。`
       : `今日は大アルカナがなく、日は小アルカナのもの。${f.rulingName}${rev}が${when}に基調を定める：${ruling(f.rulingEffect)}。`;
     const path = `朝は${short(f.effects[0])}、昼は${short(f.effects[1])}、夜は${short(f.effects[2])}。`;
-    const number = `当日の引けまでにカードが見るのは ${f.netPct} %（${f.netAtr} ATR）、途中で上に ${f.highPct} %、下に ${f.lowPct} %。`;
+    const number = `当日の引けまでにカードが見るのは ${f.netPct} %、途中で上に ${f.highPct} %、下に ${f.lowPct} %。`;
     const closing = pick(CLOSING[f.reversal ? "reversal" : f.direction], f.variant);
     return `${opening}${path}${number}${closing}`;
   },

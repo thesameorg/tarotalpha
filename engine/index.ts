@@ -7,7 +7,7 @@
  */
 import { natr as natrOf, type Candle } from "./atr";
 import { cardEffect, type CardEffect } from "./card-effect";
-import { cardsToCandles } from "./card-to-candles";
+import { READERS, type ReaderId } from "./readers";
 import { cardById } from "./deck";
 import { drawCards, type DrawnCard, type StepCards } from "./draw-cards";
 import { seedString } from "./seed";
@@ -27,6 +27,7 @@ export interface ReadingInput {
   asset: string;
   anchorTs: number;
   snapshot: readonly Candle[];
+  reader: ReaderId;
   nonce?: string | null;
 }
 
@@ -51,8 +52,8 @@ export function forecastFromCards(input: ReadingInput & { cards: readonly StepCa
   for (const [index, cards] of input.cards.entries()) {
     const step = index + 1;
     assertStepCards(cards, step);
-    const noiseSeed = `noise|${stepSeed(input, step)}`;
-    const candles = cardsToCandles({ snapshot: input.snapshot, previousForecast, cards, natr, noiseSeed });
+    const noiseSeed = `noise|${input.reader}|${stepSeed(input, step)}`;
+    const candles = READERS[input.reader].forecast({ snapshot: input.snapshot, previousForecast, cards, noiseSeed });
     previousForecast.push(...candles);
     const [first, second, third] = cards;
     results.push({
@@ -97,6 +98,7 @@ export * from "./seed";
 export * from "./draw-cards";
 export * from "./atr";
 export * from "./card-to-candles";
+export * from "./readers";
 export * from "./accuracy";
 export * from "./card-effect";
 export * from "./step-digest";

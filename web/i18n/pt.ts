@@ -247,7 +247,7 @@ export const pt: Dictionary = {
       ? `${f.rulingName}${rev} rege o dia a partir das ${when}: ${ruling(f.rulingEffect)}.`
       : `Sem arcanos maiores hoje, o dia é dos menores; ${f.rulingName}${rev} dá o tom nas ${when}: ${ruling(f.rulingEffect)}.`;
     const path = `De manhã — ${short(f.effects[0])}, ao meio-dia — ${short(f.effects[1])}, à noite — ${short(f.effects[2])}.`;
-    const number = `No fechamento do dia as cartas veem ${f.netPct} % (${f.netAtr} ATR), com ${f.highPct} % acima e ${f.lowPct} % abaixo pelo caminho.`;
+    const number = `No fechamento do dia as cartas veem ${f.netPct} %, com ${f.highPct} % acima e ${f.lowPct} % abaixo pelo caminho.`;
     const closing = pick(CLOSING[f.reversal ? "reversal" : f.direction], f.variant);
     return `${opening} ${path} ${number} ${closing}`;
   },

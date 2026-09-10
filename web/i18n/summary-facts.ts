@@ -10,7 +10,6 @@ export interface SummaryFacts {
   rulingPosition: number;
   effects: readonly [CardEffect, CardEffect, CardEffect];
   netPct: string;
-  netAtr: string;
   highPct: string;
   lowPct: string;
   direction: Direction;

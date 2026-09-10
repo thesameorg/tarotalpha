@@ -4,6 +4,7 @@
  * fire-and-forget and never throw, because losing a funnel row must not break a reading.
  */
 import type { StepCards } from "../engine/draw-cards";
+import type { ReaderId } from "../engine/readers";
 import type { Source } from "../exchange/provider";
 
 export class ApiError extends Error {
@@ -25,6 +26,7 @@ export interface ReadingRecord {
   anchor_ts: number;
   source: Source;
   engine_version: string;
+  reader: ReaderId;
   created_at: string | number;
   steps: StepCards[];
   candles_snapshot: SnapshotRow[];
@@ -36,6 +38,7 @@ export interface CreateReadingBody {
   anchor_ts: number;
   steps: number;
   source: Source;
+  reader: ReaderId;
   engine_version: string;
 }
 

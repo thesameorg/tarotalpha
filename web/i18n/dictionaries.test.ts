@@ -14,7 +14,6 @@ const FACTS: SummaryFacts = {
   rulingPosition: 0,
   effects: [TOWER, { kind: "hanged" }, { kind: "wands", up: true, atr: 2 }],
   netPct: "+1.3",
-  netAtr: "+3.0",
   highPct: "+1.8",
   lowPct: "-0.1",
   direction: "up",
@@ -51,7 +50,6 @@ describe.each(LANGS.map((entry) => entry.code))("dictionary %s", (code) => {
         for (const rulingMajor of [false, true]) {
           const text = d.summary({ ...FACTS, direction, reversal, rulingMajor });
           expect(text).toContain("+1.3");
-          expect(text).toContain("+3.0");
           expect(text.length).toBeGreaterThan(60);
         }
       }
