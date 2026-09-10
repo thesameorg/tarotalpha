@@ -1,7 +1,8 @@
 /**
  * Series primitive that tints the chart from the anchor to the right edge, draws a dashed line per forecast day
  * with its label and marks the anchor with the "now" word. Coordinates are recomputed by the chart on every viewport
- * change, so the zone follows scroll, zoom and resize with no DOM overlay to keep in sync.
+ * change, so the zone follows scroll, zoom and resize with no DOM overlay to keep in sync. The one DOM element
+ * that rides with it, the button row over the free days, takes its place from the layout reported here.
  */
 import type {
   IChartApiBase,
@@ -19,8 +20,9 @@ type RenderTarget = Parameters<IPrimitivePaneRenderer["draw"]>[0];
 
 const CANDLES_PER_DAY = 24;
 
-interface ZoneLayout {
+export interface ZoneLayout {
   start: number;
+  width: number;
   separators: number[];
   dayLabels: { x: number; text: string }[];
 }
@@ -37,6 +39,7 @@ export class ForecastZone implements ISeriesPrimitive {
   private anchor: UTCTimestamp | null = null;
   private steps = 0;
   private layout: ZoneLayout | null = null;
+  private listener: ((layout: ZoneLayout | null) => void) | null = null;
   private readonly views: readonly IPrimitivePaneView[] = [new BackdropView(this), new LabelsView(this)];
 
   attached(param: SeriesAttachedParameter): void {
@@ -55,8 +58,13 @@ export class ForecastZone implements ISeriesPrimitive {
     this.requestUpdate?.();
   }
 
+  onLayout(listener: ((layout: ZoneLayout | null) => void) | null): void {
+    this.listener = listener;
+  }
+
   updateAllViews(): void {
     this.layout = this.measure();
+    this.listener?.(this.layout);
   }
 
   paneViews(): readonly IPrimitivePaneView[] {
@@ -77,16 +85,16 @@ export class ForecastZone implements ISeriesPrimitive {
     const anchorX = scale.logicalToCoordinate(base as Logical);
     const nextX = scale.logicalToCoordinate((base + 1) as Logical);
     if (anchorX === null || nextX === null) return null;
-    const barWidth = nextX - anchorX;
+    const dayWidth = CANDLES_PER_DAY * (nextX - anchorX);
     const start = (anchorX + nextX) / 2;
     const separators: number[] = [];
     const dayLabels: { x: number; text: string }[] = [];
     for (let day = 0; day <= this.steps; day++) {
-      const x = start + day * CANDLES_PER_DAY * barWidth;
+      const x = start + day * dayWidth;
       separators.push(x);
       if (day < this.steps) dayLabels.push({ x: x + 6, text: t().day(day + 1) });
     }
-    return { start, separators, dayLabels };
+    return { start, width: scale.width(), separators, dayLabels };
   }
 }
 

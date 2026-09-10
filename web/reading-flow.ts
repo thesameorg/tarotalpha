@@ -4,6 +4,9 @@
  * shared with the author's language in the link. Candles come straight from the exchange and steps from the engine
  * in this browser; the API only stores a reading and takes funnel events, and both calls degrade quietly. Every
  * label is a function of the dictionary, so a language switch relabels the page without touching its state.
+ * The only buttons are the row over the free days of the forecast zone: the next day and, once a day is open,
+ * share. On a wide screen the row rides with the chart and shortens to the day alone when the free part is narrow;
+ * on a phone it stands at the right of the chart with the full label wrapped.
  */
 import { computeSteps, ENGINE_VERSION, natr, type Candle, type StepResult } from "../engine/index";
 import { ASSET_PATTERN, fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
@@ -13,6 +16,7 @@ import { createCandleChart, type CandleChart } from "./chart";
 import { createCoinPicker, type CoinPicker } from "./coin-picker";
 import { required } from "./dom-lookup";
 import { showExchangeLogo } from "./exchange-logo";
+import type { ZoneLayout } from "./forecast-zone";
 import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
 import { openPaywall } from "./paywall-modal";
@@ -31,6 +35,9 @@ const FLOW_MS_PER_CANDLE = 45;
 const CHANGE_LOOKBACK = 24;
 const DEFAULT_ASSET = "BTCUSDT";
 const ASSET_KEY = "ta.asset";
+// The stylesheet's phone breakpoint: below it the row spans the pane instead of following the free days.
+const narrow = window.matchMedia("(max-width: 640px)");
+const ROW_MARGIN_PX = 8;
 
 type Text = () => string;
 
@@ -53,10 +60,13 @@ interface Elements {
   chartState: HTMLElement;
   chartMessage: HTMLElement;
   retry: HTMLButtonElement;
-  panel: HTMLElement;
+  cta: HTMLElement;
+  row: HTMLElement;
+  ctaFull: HTMLElement;
+  ctaShort: HTMLElement;
   draw: HTMLButtonElement;
   share: HTMLButtonElement;
-  note: HTMLElement;
+  panel: HTMLElement;
 }
 
 function storedAsset(): string | null {
@@ -84,19 +94,18 @@ function landingMarkup(): string {
   </div>
   <div class="chart-box">
     <div class="chart" id="chart"></div>
+    <div class="zone-cta" id="zone-cta" hidden>
+      <div class="row">
+        <button class="draw" id="draw" type="button" disabled><span class="full"></span><span class="short"></span></button>
+        <button class="icon-btn" id="share" type="button" disabled hidden>${icons.share}</button>
+      </div>
+    </div>
     <div class="chart-state" id="chart-state">
       <p id="chart-message"></p>
       <button class="go" id="retry" hidden></button>
     </div>
   </div>
   <div id="panel"></div>
-  <div class="actions">
-    <div class="group">
-      <button class="draw" id="draw" disabled></button>
-      <button class="icon-btn" id="share" type="button" disabled>${icons.share}</button>
-    </div>
-    <span class="note" id="note"></span>
-  </div>
 </div>`;
 }
 
@@ -112,10 +121,13 @@ function lookup(root: HTMLElement): Elements {
     chartState: required(root, "#chart-state", HTMLElement),
     chartMessage: required(root, "#chart-message", HTMLElement),
     retry: required(root, "#retry", HTMLButtonElement),
-    panel: required(root, "#panel", HTMLElement),
+    cta: required(root, "#zone-cta", HTMLElement),
+    row: required(root, "#zone-cta .row", HTMLElement),
+    ctaFull: required(root, "#zone-cta .full", HTMLElement),
+    ctaShort: required(root, "#zone-cta .short", HTMLElement),
     draw: required(root, "#draw", HTMLButtonElement),
     share: required(root, "#share", HTMLButtonElement),
-    note: required(root, "#note", HTMLElement),
+    panel: required(root, "#panel", HTMLElement),
   };
 }
 
@@ -128,6 +140,12 @@ function shareErrorMessage(error: unknown): string {
   return t().share.failed;
 }
 
+// Where the free part begins: the last day separator, which is the anchor itself while no day is open.
+const freeFrom = (zone: ZoneLayout): number => zone.separators[zone.separators.length - 1] ?? zone.start;
+
+const sameZone = (a: ZoneLayout | null, b: ZoneLayout | null): boolean =>
+  a === b || (a !== null && b !== null && a.start === b.start && a.width === b.width && freeFrom(a) === freeFrom(b));
+
 class LandingPage {
   private readonly el: Elements;
   private readonly chart: CandleChart;
@@ -138,7 +156,7 @@ class LandingPage {
   private busy = false;
   private loadSeq = 0;
   private loaded: Loaded | null = null;
-  private noteText: Text | null = null;
+  private zone: ZoneLayout | null = null;
   private stateText: Text | null = null;
   private stateRetry = false;
 
@@ -147,6 +165,11 @@ class LandingPage {
     this.el = lookup(root);
     this.panel = createSpreadPanel(this.el.panel, true);
     this.chart = createCandleChart(this.el.chart);
+    this.chart.onZoneLayout((layout) => {
+      if (sameZone(layout, this.zone)) return;
+      this.zone = layout;
+      this.placeCta();
+    });
     setTechFacts({ lag: null, source: null, engine: ENGINE_VERSION, anchorTs: null, atr: null, readingId: null });
     this.unsubscribe = onLangChange(() => {
       this.relabel();
@@ -161,6 +184,9 @@ class LandingPage {
       void this.load(this.picker.value());
     });
     this.el.draw.addEventListener("click", () => {
+      void this.openStep();
+    });
+    this.el.cta.addEventListener("click", () => {
       void this.openStep();
     });
     this.el.share.addEventListener("click", () => {
@@ -182,11 +208,6 @@ class LandingPage {
     return !this.alive;
   }
 
-  private note(text: Text | null): void {
-    this.noteText = text;
-    this.el.note.textContent = text?.() ?? "";
-  }
-
   private chartState(text: Text | null, retry: boolean): void {
     this.stateText = text;
     this.stateRetry = retry;
@@ -196,14 +217,53 @@ class LandingPage {
   }
 
   private relabel(): void {
-    this.note(this.noteText);
     this.chartState(this.stateText, this.stateRetry);
     this.el.retry.textContent = t().retry;
-    this.el.draw.textContent = t().drawStep((this.loaded?.steps.length ?? 0) + 1);
+    this.labelDraw();
     this.el.share.setAttribute("aria-label", t().share.button);
     this.el.share.title = t().share.button;
     this.el.steps.title = t().lockedStep;
     this.showPrice();
+  }
+
+  private labelDraw(): void {
+    const next = (this.loaded?.steps.length ?? 0) + 1;
+    this.el.ctaFull.textContent = t().drawStep(next);
+    this.el.ctaShort.textContent = t().day(next);
+    this.el.draw.setAttribute("aria-label", t().drawStep(next));
+  }
+
+  private enableDraw(on: boolean): void {
+    this.el.draw.disabled = !on;
+    this.placeCta();
+  }
+
+  // The row stands over what is still free, from the last day separator to the pane's right edge. When even the
+  // day alone does not fit there, and always on a phone, it spans the pane and keeps to the right edge instead.
+  private placeCta(): void {
+    const zone = this.zone;
+    if (zone === null || this.el.draw.disabled) {
+      this.el.cta.hidden = true;
+      return;
+    }
+    this.el.share.hidden = (this.loaded?.steps.length ?? 0) === 0;
+    const inFree = !narrow.matches && this.fit(Math.max(0, freeFrom(zone)), zone.width);
+    const fits = inFree || this.fit(0, zone.width);
+    this.el.cta.classList.toggle("edge", !inFree);
+    this.el.cta.hidden = !fits;
+  }
+
+  // Lays the row out from `left` to the pane's right edge, the day alone when the full label is too wide, and says
+  // whether even that fits; measured, so every language and font fallback gets the same rule.
+  private fit(left: number, width: number): boolean {
+    const free = width - left;
+    const room = free - 2 * ROW_MARGIN_PX;
+    this.el.cta.hidden = false;
+    this.el.cta.style.left = `${String(left)}px`;
+    this.el.cta.style.width = `${String(free)}px`;
+    this.el.cta.classList.remove("compact");
+    if (this.el.row.offsetWidth > room) this.el.cta.classList.add("compact");
+    return this.el.row.offsetWidth <= room;
   }
 
   private showPrice(): void {
@@ -233,16 +293,14 @@ class LandingPage {
     const stale = (): boolean => this.gone() || seq !== this.loadSeq;
     this.picker.setValue(asset);
     if (!ASSET_PATTERN.test(asset)) {
-      this.note(() => t().badAsset);
       this.chartState(() => t().badAsset, false);
       return;
     }
     this.loaded = null;
-    this.el.draw.disabled = true;
+    this.enableDraw(false);
     this.el.share.disabled = true;
     showExchangeLogo(this.el.srcLogo, null);
     this.showPrice();
-    this.note(() => t().loading);
     this.chartState(() => t().loading, false);
     this.relabel();
     this.panel.clear();
@@ -258,7 +316,6 @@ class LandingPage {
       if (stale()) return;
       const kind = error instanceof ExchangeError ? error.kind : "unavailable";
       this.chartState(() => t().exchange[kind], kind !== "unknown_asset");
-      this.note(() => t().exchange[kind]);
       return;
     }
     const lag = Math.round(performance.now() - started);
@@ -267,7 +324,6 @@ class LandingPage {
     const candles = snapshot.candles;
     if (candles.length <= CHANGE_LOOKBACK) {
       this.chartState(() => t().exchange.too_old, true);
-      this.note(() => t().exchange.too_old);
       return;
     }
     this.loaded = { asset, anchorTs, snapshot: candles, source: snapshot.source, steps: [] };
@@ -276,12 +332,11 @@ class LandingPage {
     setTechFacts({ lag, source: snapshot.source, anchorTs, atr });
     showExchangeLogo(this.el.srcLogo, snapshot.source);
     this.showPrice();
-    this.note(null);
     this.chartState(null, false);
 
     await this.chart.showSnapshot(candles, true);
     if (stale()) return;
-    this.el.draw.disabled = false;
+    this.enableDraw(true);
     postEvent({ type: "chart_loaded", asset });
   }
 
@@ -299,14 +354,16 @@ class LandingPage {
     if (result === undefined) return;
 
     this.busy = true;
-    this.el.draw.disabled = true;
+    this.enableDraw(false);
     this.el.share.disabled = true;
     const pulled = await playReveal(cardsOf(result));
     if (this.gone()) return;
     if (!pulled) {
       this.busy = false;
-      this.el.draw.disabled = false;
-      this.el.share.disabled = loaded.steps.length === 0;
+      if (this.loaded === loaded) {
+        this.enableDraw(true);
+        this.el.share.disabled = false;
+      }
       return;
     }
     loaded.steps.push(result);
@@ -325,8 +382,8 @@ class LandingPage {
     this.busy = false;
     if (this.loaded !== loaded) return;
     this.el.share.disabled = false;
-    this.el.draw.textContent = t().drawStep(step + 1);
-    this.el.draw.disabled = false;
+    this.labelDraw();
+    this.enableDraw(true);
     postEvent({ type: "step_opened", asset: loaded.asset, step });
   }
 
