@@ -1,7 +1,7 @@
 /**
  * The terminal chart on Lightweight Charts: real candles that draw in left to right, forecast candles that flow
- * in one at a time, hollow real candles over the forecast for the prophecy check, plus the forecast zone and the
- * anchor pulse as series primitives. Colours come from the theme's CSS variables and are re-applied on a theme
+ * in one at a time, hollow real candles over the forecast for the prophecy check, plus the forecast zone, the band
+ * between the two sets of closes and the anchor pulse as series primitives. Colours come from the theme's CSS variables and are re-applied on a theme
  * switch; the locale follows the interface language. The library has no timezone, so candle times are shifted by
  * the viewer's offset before they go in: day ticks then land on local midnight and labels read as local wall clock.
  * The frame is fixed around the anchor: 72 real candles on the left, room for the three forecast days on the right.
@@ -15,13 +15,13 @@ import {
   type CandlestickData,
   type DeepPartial,
   type IChartApi,
-  type ISeriesApi,
   type Time,
   type TimeChartOptions,
   type UTCTimestamp,
 } from "lightweight-charts";
 import type { Candle } from "../engine/atr";
 import { AnchorPulse } from "./anchor-pulse";
+import { DeviationRibbon, type DeviationPair } from "./deviation-ribbon";
 import { ForecastZone, type ZoneLayout } from "./forecast-zone";
 import { onLangChange, t } from "./i18n/index";
 import { localOffsetMs } from "./local-time-format";
@@ -155,8 +155,10 @@ export function createCandleChart(container: HTMLElement): CandleChart {
     lastValueVisible: false,
   });
   const zone = new ForecastZone();
+  const ribbon = new DeviationRibbon();
   const pulse = new AnchorPulse();
   real.attachPrimitive(zone);
+  real.attachPrimitive(ribbon);
   real.attachPrimitive(pulse);
 
   const retheme = (): void => {
@@ -221,11 +223,19 @@ export function createCandleChart(container: HTMLElement): CandleChart {
       requestAnimationFrame(tick);
     });
 
-  const seriesSetter =
-    (series: ISeriesApi<"Candlestick">) =>
-    (candles: readonly Candle[]): void => {
-      series.setData(candles.map(toBar));
-    };
+  let forecastCandles: Candle[] = [];
+  let actualCandles: readonly Candle[] = [];
+
+  // The band is a function of both sets of candles, so every write to either of them recomputes the pairs.
+  const syncRibbon = (): void => {
+    const realByTime = new Map(actualCandles.map((candle) => [candle.t, candle.c]));
+    const pairs: DeviationPair[] = [];
+    for (const candle of forecastCandles) {
+      const close = realByTime.get(candle.t);
+      if (close !== undefined) pairs.push({ time: toTime(candle.t), forecast: candle.c, real: close });
+    }
+    ribbon.setPairs(pairs);
+  };
 
   return {
     async showSnapshot(candles, animate) {
@@ -237,6 +247,9 @@ export function createCandleChart(container: HTMLElement): CandleChart {
       anchor = toTime(last.t);
       forecast.setData([]);
       actual.setData([]);
+      forecastCandles = [];
+      actualCandles = [];
+      syncRibbon();
       pulse.setPoint(null);
       zone.setAnchor(anchor, 0);
       applyPriceFormat(last.c);
@@ -258,9 +271,19 @@ export function createCandleChart(container: HTMLElement): CandleChart {
     },
     appendForecast(candle) {
       forecast.update(toBar(candle));
+      forecastCandles.push(candle);
+      syncRibbon();
     },
-    setForecast: seriesSetter(forecast),
-    setActual: seriesSetter(actual),
+    setForecast(candles) {
+      forecast.setData(candles.map(toBar));
+      forecastCandles = [...candles];
+      syncRibbon();
+    },
+    setActual(candles) {
+      actual.setData(candles.map(toBar));
+      actualCandles = candles;
+      syncRibbon();
+    },
     onZoneLayout(listener) {
       zone.onLayout(listener);
     },
@@ -271,6 +294,7 @@ export function createCandleChart(container: HTMLElement): CandleChart {
       observer.disconnect();
       zone.onLayout(null);
       real.detachPrimitive(pulse);
+      real.detachPrimitive(ribbon);
       real.detachPrimitive(zone);
       chart.remove();
     },

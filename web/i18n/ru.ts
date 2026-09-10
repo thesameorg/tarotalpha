@@ -211,15 +211,18 @@ export const ru = {
     checking: "Проверяем пророчество по свечам биржи…",
     notYet: (closesAt: string): string => `Будущее ещё не наступило: первая свеча проверки закроется в ${closesAt}`,
     checkFailed: "Биржа не отвечает, проверка пророчества отложена",
+    noCandles: "Биржа не отдала свечей за это время",
     hit: (pct: number): string => `Пророчество сбылось на ${String(pct)} %`,
     miss: (pct: number): string => `Рынок отверг пророчество: ${String(pct)} %`,
-    compared: (n: number, total: number): string => `по ${String(n)} из ${String(total)} свечей`,
     final: "итог",
     interim: "промежуточно",
-    stepLine: (day: number, pct: number | null, hits: number, compared: number): string =>
-      pct === null
-        ? `день ${String(day)}: ещё не наступил`
-        : `день ${String(day)}: ${String(pct)} % (${String(hits)}/${String(compared)})`,
+    praise: {
+      close: (name: string): string => `${name}: почти по рынку`,
+      near: (name: string): string => `${name}: рядом с рынком`,
+      far: (name: string): string => `${name}: мимо рынка`,
+    },
+    stepLine: (day: number, pct: number | null): string =>
+      pct === null ? `день ${String(day)}: ещё не наступил` : `день ${String(day)}: ${String(pct)} %`,
   },
   summaryTitle: "Итог дня.",
   how: "Как это считается",

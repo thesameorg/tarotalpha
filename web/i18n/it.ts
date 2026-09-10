@@ -223,15 +223,18 @@ export const it: Dictionary = {
     notYet: (closesAt: string): string =>
       `Il futuro non è ancora arrivato: la prima candela da verificare chiude alle ${closesAt}`,
     checkFailed: "L'exchange non risponde, la verifica della profezia è rinviata",
+    noCandles: "La borsa non ha restituito candele per quel periodo",
     hit: (pct: number): string => `La profezia si è avverata al ${String(pct)} %`,
     miss: (pct: number): string => `Il mercato ha respinto la profezia: ${String(pct)} %`,
-    compared: (n: number, total: number): string => `su ${String(n)} candele di ${String(total)}`,
     final: "finale",
     interim: "provvisorio",
-    stepLine: (day: number, pct: number | null, hits: number, compared: number): string =>
-      pct === null
-        ? `giorno ${String(day)}: non ancora`
-        : `giorno ${String(day)}: ${String(pct)} % (${String(hits)}/${String(compared)})`,
+    praise: {
+      close: (name: string): string => `${name}: in pieno sul mercato`,
+      near: (name: string): string => `${name}: vicino al mercato`,
+      far: (name: string): string => `${name}: lontano dal mercato`,
+    },
+    stepLine: (day: number, pct: number | null): string =>
+      pct === null ? `giorno ${String(day)}: non ancora` : `giorno ${String(day)}: ${String(pct)} %`,
   },
   summaryTitle: "La giornata in una riga.",
   how: "Come viene calcolato",
