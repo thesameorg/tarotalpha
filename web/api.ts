@@ -26,7 +26,6 @@ export interface ReadingRecord {
   source: Source;
   engine_version: string;
   created_at: string | number;
-  views: number;
   steps: StepCards[];
   candles_snapshot: SnapshotRow[];
 }

@@ -14,30 +14,51 @@
     <meta name="twitter:card" content="summary" />
   </head>
   <body>
-    <div class="flash" id="flash"></div>
-    <div class="ring" id="ring"></div>
-    <div class="toast" id="toast"></div>
-
-    <div class="wrap">
+    <div class="app">
       <header>
-        <a class="brand" href="/">TarotAlpha <small>расклад по свечам · 1H · UTC</small></a>
-        <div class="clock">лаг <b id="lag">—</b> · <b id="utc">—</b></div>
+        <a class="brand" href="/"
+          >TarotAlpha
+          <small><span class="brand-tag">расклад по свечам · </span>1H · <span id="zone">UTC</span></small></a
+        >
+        <button class="tech-toggle" id="tech-toggle" type="button" aria-expanded="false" aria-controls="tech">
+          tech
+        </button>
+        <div class="tech" id="tech" hidden>
+          <span>лаг <b id="tech-lag">—</b></span>
+          <span>UTC <b id="tech-utc">—</b></span>
+          <span>источник <b id="tech-source">—</b></span>
+          <span>движок <b id="tech-engine">—</b></span>
+          <span>якорь <b id="tech-anchor">—</b></span>
+          <span>ATR(14) <b id="tech-atr">—</b></span>
+          <span>расклад <b id="tech-reading">—</b></span>
+        </div>
       </header>
 
       <main id="view"></main>
 
       <footer>
-        <span>движок: <b id="engine">v1</b></span>
-        <span>источник: <b id="footer-source">—</b></span>
         <span>не является финансовой рекомендацией; карты тоже так считают</span>
       </footer>
     </div>
+
+    <div class="reveal" id="reveal" hidden>
+      <canvas class="reveal-sparks"></canvas>
+      <div class="flash" id="flash"></div>
+      <div class="ring" id="ring"></div>
+      <div class="reveal-stage">
+        <div class="reveal-deck"></div>
+        <div class="reveal-slots"></div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
 
     <div class="modal" id="paywall">
       <div class="box">
         <h2>Карты дальше молчат</h2>
         <p class="lead">
-          Бесплатный доступ покрывает три дня вперёд. Для более дальнего горизонта нужен статус посвящённого.
+          Бесплатный доступ покрывает два дня вперёд. Третий день и более дальний горизонт открывает статус
+          посвящённого.
         </p>
         <div class="tiers">
           <div class="tier">

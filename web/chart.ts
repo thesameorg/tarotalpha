@@ -1,8 +1,9 @@
 /**
  * The terminal chart on Lightweight Charts: real candles that draw in left to right, forecast candles that flow
  * in one at a time, hollow real candles over the forecast for the prophecy check, plus the forecast zone and the
- * anchor pulse as series primitives. Candle times go in as ms and out as UTC seconds: the library has no
- * timezone, which is exactly the terminal look the product wants.
+ * anchor pulse as series primitives. The library has no timezone, so candle times are shifted by the viewer's
+ * offset before they go in: day ticks then land on local midnight and the labels read as local wall clock.
+ * The frame is fixed around the anchor: 72 real candles on the left, room for the three forecast days on the right.
  */
 import {
   CandlestickSeries,
@@ -15,14 +16,13 @@ import {
   type ISeriesApi,
   type Time,
   type UTCTimestamp,
-  type WhitespaceData,
 } from "lightweight-charts";
 import type { Candle } from "../engine/v1/atr";
 import { AnchorPulse } from "./anchor-pulse";
 import { ForecastZone } from "./forecast-zone";
+import { localOffsetMs } from "./local-time-format";
 import { formatPrice, priceMinMove } from "./price-format";
 import { reducedMotion } from "./stage-effects";
-import { utcMonthDay, utcTime } from "./utc-format";
 
 const INK_2 = "#1e2130";
 const LINE = "#33384d";
@@ -34,9 +34,11 @@ const FORECAST_UP = "rgba(121,214,168,.85)";
 const FORECAST_DOWN = "rgba(240,138,143,.85)";
 const CROSSHAIR = "#5a5f78";
 const CANDLES_PER_DAY = 24;
+const FORECAST_DAYS = 3;
 const DRAW_MS_PER_CANDLE = 10;
-const MAX_REAL_VISIBLE = 96;
+const REAL_VISIBLE = 72;
 const MIN_REAL_VISIBLE = 24;
+const FUTURE_VISIBLE = FORECAST_DAYS * CANDLES_PER_DAY + 3;
 const PX_PER_BAR = 4.5;
 
 type Bar = CandlestickData;
@@ -50,20 +52,25 @@ export interface CandleChart {
   remove(): void;
 }
 
-const toTime = (ms: number): UTCTimestamp => Math.floor(ms / 1000) as UTCTimestamp;
-const toBar = (c: Candle): Bar => ({ time: toTime(c.t), open: c.o, high: c.h, low: c.l, close: c.c });
-const toWhitespace = (bar: Bar): WhitespaceData => ({ time: bar.time });
+// A candle the draw-in has not reached yet stays in the data as a transparent bar: whitespace would leave the time
+// scale without a base index, and the frame around the anchor could not hold until the last candle was in.
+const CLEAR = "rgba(0,0,0,0)";
+const toHidden = (bar: Bar): Bar => ({ ...bar, color: CLEAR, borderColor: CLEAR, wickColor: CLEAR });
+
+// Shifted times are "UTC" to the library, so ISO slices of them read as the viewer's wall clock.
+const clock = (ms: number): string => new Date(ms).toISOString().slice(11, 16);
+const monthDay = (ms: number): string => new Date(ms).toISOString().slice(5, 10);
 
 function tickMark(time: Time, type: TickMarkType): string {
   if (typeof time !== "number") return "";
   const ms = time * 1000;
-  return type === TickMarkType.Time || type === TickMarkType.TimeWithSeconds ? utcTime(ms) : utcMonthDay(ms);
+  return type === TickMarkType.Time || type === TickMarkType.TimeWithSeconds ? clock(ms) : monthDay(ms);
 }
 
 function crosshairLabel(time: Time): string {
   if (typeof time !== "number") return "";
   const ms = time * 1000;
-  return `${utcMonthDay(ms)} ${utcTime(ms)}`;
+  return `${monthDay(ms)} ${clock(ms)}`;
 }
 
 export function createCandleChart(container: HTMLElement): CandleChart {
@@ -87,6 +94,7 @@ export function createCandleChart(container: HTMLElement): CandleChart {
       timeVisible: true,
       secondsVisible: false,
       rightOffset: 0,
+      shiftVisibleRangeOnNewBar: false,
       tickMarkFormatter: tickMark,
     },
     localization: { locale: "ru", priceFormatter: formatPrice, timeFormatter: crosshairLabel },
@@ -129,22 +137,27 @@ export function createCandleChart(container: HTMLElement): CandleChart {
 
   let anchor: UTCTimestamp | null = null;
   let snapshotLength = 0;
-  let steps = 0;
   let generation = 0;
+  // One offset per snapshot, taken at the anchor: a per-candle offset could double a time across a DST switch.
+  let offsetMs = 0;
+  const toTime = (ms: number): UTCTimestamp => Math.floor((ms + offsetMs) / 1000) as UTCTimestamp;
+  const toBar = (c: Candle): Bar => ({ time: toTime(c.t), open: c.o, high: c.h, low: c.l, close: c.c });
 
   const applyPriceFormat = (lastClose: number): void => {
     const priceFormat = { type: "custom" as const, formatter: formatPrice, minMove: priceMinMove(lastClose) };
     for (const series of [real, forecast, actual]) series.applyOptions({ priceFormat });
   };
 
-  // Frame: as many real candles as fit at a readable bar width, then room for every day opened so far.
+  // Frame: the anchor near the middle, 72 real candles left of it (fewer on a narrow screen), all three days right.
   const frame = (): void => {
     if (snapshotLength === 0) return;
     const anchorIndex = snapshotLength - 1;
-    const future = Math.max(1, steps) * CANDLES_PER_DAY + 3;
-    const fits = Math.floor(chart.timeScale().width() / PX_PER_BAR) - future;
-    const visibleReal = Math.min(MAX_REAL_VISIBLE, Math.max(MIN_REAL_VISIBLE, fits));
-    chart.timeScale().setVisibleLogicalRange({ from: anchorIndex - visibleReal + 0.5, to: anchorIndex + future + 0.5 });
+    const fits = Math.floor(chart.timeScale().width() / PX_PER_BAR) - FUTURE_VISIBLE;
+    const visibleReal = Math.min(REAL_VISIBLE, Math.max(MIN_REAL_VISIBLE, fits));
+    chart.timeScale().setVisibleLogicalRange({
+      from: anchorIndex - visibleReal + 0.5,
+      to: anchorIndex + FUTURE_VISIBLE + 0.5,
+    });
   };
 
   let lastWidth = container.clientWidth;
@@ -164,7 +177,7 @@ export function createCandleChart(container: HTMLElement): CandleChart {
           return;
         }
         const shown = Math.min(bars.length, Math.floor((now - start) / DRAW_MS_PER_CANDLE) + 1);
-        real.setData([...bars.slice(0, shown), ...bars.slice(shown).map(toWhitespace)]);
+        real.setData([...bars.slice(0, shown), ...bars.slice(shown).map(toHidden)]);
         if (shown < bars.length) requestAnimationFrame(tick);
         else resolve();
       };
@@ -183,8 +196,8 @@ export function createCandleChart(container: HTMLElement): CandleChart {
       const last = candles[candles.length - 1];
       if (last === undefined) return;
       snapshotLength = candles.length;
+      offsetMs = localOffsetMs(last.t);
       anchor = toTime(last.t);
-      steps = 0;
       forecast.setData([]);
       actual.setData([]);
       pulse.setPoint(null);
@@ -195,7 +208,7 @@ export function createCandleChart(container: HTMLElement): CandleChart {
         real.setData(bars);
         frame();
       } else {
-        real.setData(bars.map(toWhitespace));
+        real.setData(bars.map(toHidden));
         frame();
         await drawIn(bars, mine);
         if (mine !== generation) return;
@@ -203,7 +216,6 @@ export function createCandleChart(container: HTMLElement): CandleChart {
       pulse.setPoint({ time: anchor, price: last.c });
     },
     setSteps(count) {
-      steps = count;
       zone.setAnchor(anchor, count);
       frame();
     },
