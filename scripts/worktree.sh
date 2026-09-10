@@ -13,7 +13,7 @@ MAIN="$(dirname "$COMMON")" # основной чекаут, даже когда
 TREES="$MAIN/.claude/worktrees"
 REMOTE="refs/remotes/origin" # полное имя: локальная ветка origin/main перекрыла бы короткое
 
-# Локфайла ещё нет — ставить нечего, и это не ошибка (оснастка живёт в TA-003).
+# Локфайла ещё нет — ставить нечего, и это не ошибка.
 install_deps() {
   local dir="$1"
   if [ -f "$dir/pnpm-lock.yaml" ] && command -v pnpm >/dev/null 2>&1; then

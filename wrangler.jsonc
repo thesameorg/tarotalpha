@@ -16,7 +16,6 @@
   },
   "vars": {
     "SEED_ENTROPY": "off",
-    "ENGINE_VERSION": "v1",
   },
   // Workers Rate Limiting binding: 60 calls a minute per key (the client address), counted per Cloudflare location.
   // `namespace_id` is any integer unique inside the account; nothing has to be created remotely.

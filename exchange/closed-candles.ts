@@ -3,7 +3,7 @@
  * Nothing is cached anywhere: a snapshot exists only inside a saved reading.
  * Why the anchor is the last closed candle and why there is no cache: docs/flows/candles-from-exchange.md
  */
-import type { Candle } from "../engine/v1/atr";
+import type { Candle } from "../engine/atr";
 import { binance } from "./binance";
 import { bybit } from "./bybit";
 import { ExchangeError, type Provider, type Source } from "./provider";

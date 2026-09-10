@@ -1,5 +1,5 @@
 /** Bybit spot klines, the fallback when Binance is blocked or down. Format and limits: docs/reference/bybit-kline.md */
-import type { Candle } from "../engine/v1/atr";
+import type { Candle } from "../engine/atr";
 import { ExchangeError, type KlineWindow, type Provider } from "./provider";
 
 const KLINE_URL = "https://api.bybit.com/v5/market/kline";

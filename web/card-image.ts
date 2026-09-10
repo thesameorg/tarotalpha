@@ -2,7 +2,7 @@
  * Card scans are static files under web/public/cards, one per engine card id, served from /cards.
  * Where they come from and how they were compressed: docs/reference/rider-waite-deck.md.
  */
-import { DECK } from "../engine/v1/deck";
+import { DECK } from "../engine/deck";
 
 export function cardImageUrl(cardId: number): string {
   if (!Number.isInteger(cardId) || cardId < 0 || cardId >= DECK.length)

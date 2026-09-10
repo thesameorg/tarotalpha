@@ -1,8 +1,9 @@
 /**
  * The terminal chart on Lightweight Charts: real candles that draw in left to right, forecast candles that flow
  * in one at a time, hollow real candles over the forecast for the prophecy check, plus the forecast zone and the
- * anchor pulse as series primitives. The library has no timezone, so candle times are shifted by the viewer's
- * offset before they go in: day ticks then land on local midnight and the labels read as local wall clock.
+ * anchor pulse as series primitives. Colours come from the theme's CSS variables and are re-applied on a theme
+ * switch; the locale follows the interface language. The library has no timezone, so candle times are shifted by
+ * the viewer's offset before they go in: day ticks then land on local midnight and labels read as local wall clock.
  * The frame is fixed around the anchor: 72 real candles on the left, room for the three forecast days on the right.
  */
 import {
@@ -12,27 +13,23 @@ import {
   CrosshairMode,
   TickMarkType,
   type CandlestickData,
+  type DeepPartial,
   type IChartApi,
   type ISeriesApi,
   type Time,
+  type TimeChartOptions,
   type UTCTimestamp,
 } from "lightweight-charts";
-import type { Candle } from "../engine/v1/atr";
+import type { Candle } from "../engine/atr";
 import { AnchorPulse } from "./anchor-pulse";
 import { ForecastZone } from "./forecast-zone";
+import { onLangChange, t } from "./i18n/index";
 import { localOffsetMs } from "./local-time-format";
+import { palette, type Palette } from "./palette";
 import { formatPrice, priceMinMove } from "./price-format";
 import { reducedMotion } from "./stage-effects";
+import { onThemeChange } from "./theme";
 
-const INK_2 = "#1e2130";
-const LINE = "#33384d";
-const GRID = "#2a2e40";
-const PAPER_DIM = "#9d9887";
-const UP = "#4fbf8b";
-const DOWN = "#e05c62";
-const FORECAST_UP = "rgba(121,214,168,.85)";
-const FORECAST_DOWN = "rgba(240,138,143,.85)";
-const CROSSHAIR = "#5a5f78";
 const CANDLES_PER_DAY = 24;
 const FORECAST_DAYS = 3;
 const DRAW_MS_PER_CANDLE = 10;
@@ -40,6 +37,7 @@ const REAL_VISIBLE = 72;
 const MIN_REAL_VISIBLE = 24;
 const FUTURE_VISIBLE = FORECAST_DAYS * CANDLES_PER_DAY + 3;
 const PX_PER_BAR = 4.5;
+const TRANSPARENT = "rgba(0,0,0,0)";
 
 type Bar = CandlestickData;
 
@@ -54,8 +52,7 @@ export interface CandleChart {
 
 // A candle the draw-in has not reached yet stays in the data as a transparent bar: whitespace would leave the time
 // scale without a base index, and the frame around the anchor could not hold until the last candle was in.
-const CLEAR = "rgba(0,0,0,0)";
-const toHidden = (bar: Bar): Bar => ({ ...bar, color: CLEAR, borderColor: CLEAR, wickColor: CLEAR });
+const toHidden = (bar: Bar): Bar => ({ ...bar, color: TRANSPARENT, borderColor: TRANSPARENT, wickColor: TRANSPARENT });
 
 // Shifted times are "UTC" to the library, so ISO slices of them read as the viewer's wall clock.
 const clock = (ms: number): string => new Date(ms).toISOString().slice(11, 16);
@@ -73,60 +70,85 @@ function crosshairLabel(time: Time): string {
   return `${monthDay(ms)} ${clock(ms)}`;
 }
 
+function colours(p: Palette): DeepPartial<TimeChartOptions> {
+  return {
+    layout: { background: { type: ColorType.Solid, color: p.bg }, textColor: p.text },
+    grid: { vertLines: { color: p.grid }, horzLines: { color: p.grid } },
+    crosshair: {
+      vertLine: { color: p.crosshair, labelBackgroundColor: p.line },
+      horzLine: { color: p.crosshair, labelBackgroundColor: p.line },
+    },
+    rightPriceScale: { borderColor: p.line },
+    timeScale: { borderColor: p.line },
+  };
+}
+
+function localization(): DeepPartial<TimeChartOptions> {
+  return { localization: { locale: t().locale, priceFormatter: formatPrice, timeFormatter: crosshairLabel } };
+}
+
+const realColours = (p: Palette) => ({
+  upColor: p.up,
+  downColor: p.down,
+  wickUpColor: p.up,
+  wickDownColor: p.down,
+  priceLineColor: p.line,
+});
+const forecastColours = (p: Palette) => ({
+  upColor: p.forecastUp,
+  downColor: p.forecastDown,
+  wickUpColor: p.forecastUp,
+  wickDownColor: p.forecastDown,
+});
+const actualColours = (p: Palette) => ({
+  borderUpColor: p.up,
+  borderDownColor: p.down,
+  wickUpColor: p.up,
+  wickDownColor: p.down,
+});
+
 export function createCandleChart(container: HTMLElement): CandleChart {
+  const p = palette();
   const chart: IChartApi = createChart(container, {
     autoSize: true,
+    ...colours(p),
+    ...localization(),
     layout: {
-      background: { type: ColorType.Solid, color: INK_2 },
-      textColor: PAPER_DIM,
+      background: { type: ColorType.Solid, color: p.bg },
+      textColor: p.text,
       fontFamily: getComputedStyle(document.body).getPropertyValue("--mono"),
       fontSize: 11,
     },
-    grid: { vertLines: { color: GRID }, horzLines: { color: GRID } },
     crosshair: {
       mode: CrosshairMode.Normal,
-      vertLine: { color: CROSSHAIR, labelBackgroundColor: LINE },
-      horzLine: { color: CROSSHAIR, labelBackgroundColor: LINE },
+      vertLine: { color: p.crosshair, labelBackgroundColor: p.line },
+      horzLine: { color: p.crosshair, labelBackgroundColor: p.line },
     },
-    rightPriceScale: { borderColor: LINE, scaleMargins: { top: 0.12, bottom: 0.14 } },
+    rightPriceScale: { borderColor: p.line, scaleMargins: { top: 0.12, bottom: 0.14 } },
     timeScale: {
-      borderColor: LINE,
+      borderColor: p.line,
       timeVisible: true,
       secondsVisible: false,
       rightOffset: 0,
       shiftVisibleRangeOnNewBar: false,
       tickMarkFormatter: tickMark,
     },
-    localization: { locale: "ru", priceFormatter: formatPrice, timeFormatter: crosshairLabel },
     handleScroll: { vertTouchDrag: false },
   });
 
-  const real = chart.addSeries(CandlestickSeries, {
-    upColor: UP,
-    downColor: DOWN,
-    borderVisible: false,
-    wickUpColor: UP,
-    wickDownColor: DOWN,
-    priceLineColor: LINE,
-  });
+  const real = chart.addSeries(CandlestickSeries, { ...realColours(p), borderVisible: false });
   const forecast = chart.addSeries(CandlestickSeries, {
-    upColor: FORECAST_UP,
-    downColor: FORECAST_DOWN,
+    ...forecastColours(p),
     borderVisible: false,
-    wickUpColor: FORECAST_UP,
-    wickDownColor: FORECAST_DOWN,
     priceLineVisible: false,
     lastValueVisible: false,
   });
   // Hollow bodies with solid outlines: what really happened, drawn over the pale forecast.
   const actual = chart.addSeries(CandlestickSeries, {
-    upColor: "rgba(0,0,0,0)",
-    downColor: "rgba(0,0,0,0)",
+    ...actualColours(p),
+    upColor: TRANSPARENT,
+    downColor: TRANSPARENT,
     borderVisible: true,
-    borderUpColor: UP,
-    borderDownColor: DOWN,
-    wickUpColor: UP,
-    wickDownColor: DOWN,
     priceLineVisible: false,
     lastValueVisible: false,
   });
@@ -134,6 +156,19 @@ export function createCandleChart(container: HTMLElement): CandleChart {
   const pulse = new AnchorPulse();
   real.attachPrimitive(zone);
   real.attachPrimitive(pulse);
+
+  const retheme = (): void => {
+    const next = palette();
+    chart.applyOptions(colours(next));
+    real.applyOptions(realColours(next));
+    forecast.applyOptions(forecastColours(next));
+    actual.applyOptions(actualColours(next));
+  };
+  const relocale = (): void => {
+    chart.applyOptions(localization());
+  };
+  const unsubscribeTheme = onThemeChange(retheme);
+  const unsubscribeLang = onLangChange(relocale);
 
   let anchor: UTCTimestamp | null = null;
   let snapshotLength = 0;
@@ -226,6 +261,8 @@ export function createCandleChart(container: HTMLElement): CandleChart {
     setActual: seriesSetter(actual),
     remove() {
       generation++;
+      unsubscribeTheme();
+      unsubscribeLang();
       observer.disconnect();
       real.detachPrimitive(pulse);
       real.detachPrimitive(zone);

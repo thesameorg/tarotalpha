@@ -6,11 +6,11 @@
  * Reveals queue: two never overlap. A replay uses the same fan — the viewer pulls too; "close" resolves false.
  * With reduced motion there are no particles and no flight: backs vanish from the fan, cards fade in face up.
  */
-import type { Card } from "../engine/v1/deck";
+import type { Card } from "../engine/deck";
 import { createCardFan, type PullPoint } from "./card-fan";
 import { frontMarkup, slotMarkup } from "./card-face";
-import { copy } from "./copy";
 import { required } from "./dom-lookup";
+import { t } from "./i18n/index";
 import { Sparkles } from "./sparkles";
 import { flash, reducedMotion, ring, shake, sleep } from "./stage-effects";
 
@@ -70,8 +70,8 @@ async function run(cards: readonly RevealCard[]): Promise<boolean> {
   const slotEls = [...slots.children].filter((el): el is HTMLElement => el instanceof HTMLElement);
   for (const slot of slotEls) slot.classList.add("awaiting");
   slots.style.visibility = "hidden";
-  hint.textContent = copy.fan.hint;
-  close.textContent = copy.fan.close;
+  hint.textContent = t().fan.hint;
+  close.textContent = t().fan.close;
 
   let live = true;
   let pulled = 0;

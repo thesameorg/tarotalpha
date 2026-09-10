@@ -1,10 +1,9 @@
 /**
  * Writing and reading a reading. The Worker never trusts the client's candles or cards: it snapshots the candles
- * itself, from the author's provider when the edge can reach it, and recomputes the steps with the engine version
- * it stores (law 1 in CLAUDE.md). What is stored and why: docs/flows/reading-lifecycle.md
+ * itself, from the author's provider when the edge can reach it, and draws the cards with its own engine, whose
+ * version label it stores next to them. What is stored and why: docs/flows/reading-lifecycle.md
  */
-import { engineFor } from "../engine/index";
-import type { StepCards } from "../engine/v1/index";
+import { computeSteps, ENGINE_VERSION, type StepCards } from "../engine/index";
 import {
   ASSET_PATTERN,
   fetchSnapshot,
@@ -48,16 +47,19 @@ export interface ReadingMeta {
 }
 
 export async function createReading(request: Request, env: Env): Promise<Response> {
-  const body = await parseCreateBody(request, env.ENGINE_VERSION);
+  const body = await parseCreateBody(request);
   // Nonce generation for SEED_ENTROPY=on is not built; refusing beats storing a reading that cannot be replayed.
   if (env.SEED_ENTROPY !== "off") {
     throw new ApiError(501, "not_implemented", "SEED_ENTROPY other than off is not supported yet");
   }
   const snapshot = await snapshotOrFail(body, request, env.DB);
-  const steps = engineFor(env.ENGINE_VERSION)
-    .computeSteps({ asset: body.asset, anchorTs: body.anchorTs, snapshot: snapshot.candles, steps: body.steps })
-    .map((result) => result.cards);
-  const id = await insertReading(env.DB, body, env.ENGINE_VERSION, steps, snapshot);
+  const steps = computeSteps({
+    asset: body.asset,
+    anchorTs: body.anchorTs,
+    snapshot: snapshot.candles,
+    steps: body.steps,
+  }).map((result) => result.cards);
+  const id = await insertReading(env.DB, body, steps, snapshot);
   await recordEvent(env.DB, request, { type: "shared", asset: body.asset, readingId: id, step: body.steps });
   return Response.json({ id, url: `/r/${id}` }, { status: 201 });
 }
@@ -91,7 +93,7 @@ export async function readingMeta(db: D1Database, id: string): Promise<ReadingMe
   return { asset: row.asset, anchorTs: row.anchor_ts, steps: (JSON.parse(row.steps) as unknown[]).length };
 }
 
-async function parseCreateBody(request: Request, engineVersion: string): Promise<CreateBody> {
+async function parseCreateBody(request: Request): Promise<CreateBody> {
   const { asset, anchor_ts: anchorTs, steps, source, engine_version: version } = await readJsonBody(request);
   if (typeof asset !== "string" || !ASSET_PATTERN.test(asset)) throw bad("asset must match ^[A-Z0-9]{2,20}$");
   if (typeof anchorTs !== "number" || !isHourAligned(anchorTs)) throw bad("anchor_ts must be an hour-aligned ms UTC");
@@ -101,8 +103,11 @@ async function parseCreateBody(request: Request, engineVersion: string): Promise
     throw new ApiError(402, "paywall", `only ${String(FREE_STEPS)} steps are free`, { free_steps: FREE_STEPS });
   }
   if (!isSource(source)) throw bad(`source must be one of ${SOURCES.join(", ")}`);
-  if (version !== engineVersion) {
-    throw new ApiError(409, "engine_mismatch", `server engine is ${engineVersion}`, { engine_version: engineVersion });
+  // A stale tab with an older bundle would have shown cards this engine no longer draws; refuse rather than mislabel.
+  if (version !== ENGINE_VERSION) {
+    throw new ApiError(409, "engine_mismatch", `server engine is ${ENGINE_VERSION}`, {
+      engine_version: ENGINE_VERSION,
+    });
   }
   return { asset, anchorTs, steps, source };
 }
@@ -124,7 +129,6 @@ async function snapshotOrFail(body: CreateBody, request: Request, db: D1Database
 async function insertReading(
   db: D1Database,
   body: CreateBody,
-  engineVersion: string,
   steps: readonly StepCards[],
   snapshot: Snapshot,
 ): Promise<string> {
@@ -137,7 +141,16 @@ async function insertReading(
     const id = shortId();
     try {
       await insert
-        .bind(id, body.asset, body.anchorTs, snapshot.source, engineVersion, JSON.stringify(steps), candles, Date.now())
+        .bind(
+          id,
+          body.asset,
+          body.anchorTs,
+          snapshot.source,
+          ENGINE_VERSION,
+          JSON.stringify(steps),
+          candles,
+          Date.now(),
+        )
         .run();
       return id;
     } catch (error) {

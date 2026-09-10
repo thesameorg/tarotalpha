@@ -1,5 +1,5 @@
 /** The share dialog: the reading link and one copy button; closes on the corner cross, a click outside or Escape. */
-import { copy } from "./copy";
+import { onLangChange, t } from "./i18n/index";
 import { icons, setIcon } from "./icons";
 import { toast } from "./toast";
 
@@ -22,8 +22,12 @@ export function initShareModal(): void {
   const modal = byId("sharemodal");
   const closeButton = byId("closeShare");
   const copyButton = byId("copy");
-  setIcon(closeButton, icons.close, copy.close);
-  setIcon(copyButton, icons.copy, copy.share.copy);
+  const label = (): void => {
+    setIcon(closeButton, icons.close, t().close);
+    setIcon(copyButton, icons.copy, t().share.copy);
+  };
+  label();
+  onLangChange(label);
   const close = (): void => {
     modal.classList.remove("on");
   };
@@ -39,11 +43,11 @@ export function initShareModal(): void {
     navigator.clipboard
       .writeText(field.value)
       .then(() => {
-        toast(copy.share.copied);
+        toast(t().share.copied);
       })
       .catch(() => {
         field.select();
-        toast(copy.share.selectToCopy);
+        toast(t().share.selectToCopy);
       });
   });
 }

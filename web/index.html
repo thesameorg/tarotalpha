@@ -7,37 +7,64 @@
     <meta property="og:title" content="TarotAlpha" />
     <meta
       property="og:description"
-      content="Таро-расклад, который дорисовывает свечной график на сутки вперёд. Не является финансовой рекомендацией."
+      content="A tarot reading that draws the candlestick chart one day ahead. Not financial advice."
     />
     <meta property="og:url" content="" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary" />
+    <script>
+      // The theme lands on <html> before the first paint, so a light-theme viewer never sees a dark flash.
+      (function () {
+        var theme = "dark";
+        try {
+          var stored = localStorage.getItem("ta.theme");
+          var system = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          theme = stored === "light" || stored === "dark" ? stored : system;
+        } catch (e) {
+          // Storage blocked: the system's choice above still applies.
+        }
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
   </head>
   <body>
     <div class="app">
       <header>
         <a class="brand" href="/"
           >TarotAlpha
-          <small><span class="brand-tag">расклад по свечам · </span>1H · <span id="zone">UTC</span></small></a
+          <small
+            ><span class="brand-tag" data-i18n="tagline">расклад по свечам · </span>1H ·
+            <span id="zone">UTC</span></small
+          ></a
         >
-        <button class="tech-toggle" id="tech-toggle" type="button" aria-expanded="false" aria-controls="tech">
-          tech
-        </button>
+        <div class="header-controls">
+          <div id="header-controls" class="switches"></div>
+          <button
+            class="tech-toggle"
+            id="tech-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="tech"
+            data-i18n="tech.toggle"
+          >
+            tech
+          </button>
+        </div>
         <div class="tech" id="tech" hidden>
-          <span>лаг <b id="tech-lag">—</b></span>
-          <span>UTC <b id="tech-utc">—</b></span>
-          <span>источник <b id="tech-source">—</b></span>
-          <span>движок <b id="tech-engine">—</b></span>
-          <span>якорь <b id="tech-anchor">—</b></span>
-          <span>ATR(14) <b id="tech-atr">—</b></span>
-          <span>расклад <b id="tech-reading">—</b></span>
+          <span><span data-i18n="tech.lag">лаг</span> <b id="tech-lag">—</b></span>
+          <span><span data-i18n="tech.utc">UTC</span> <b id="tech-utc">—</b></span>
+          <span><span data-i18n="tech.source">источник</span> <b id="tech-source">—</b></span>
+          <span><span data-i18n="tech.engine">движок</span> <b id="tech-engine">—</b></span>
+          <span><span data-i18n="tech.anchor">якорь</span> <b id="tech-anchor">—</b></span>
+          <span><span data-i18n="tech.atr">ATR(14)</span> <b id="tech-atr">—</b></span>
+          <span><span data-i18n="tech.reading">расклад</span> <b id="tech-reading">—</b></span>
         </div>
       </header>
 
       <main id="view"></main>
 
       <footer>
-        <span>не является финансовой рекомендацией; карты тоже так считают</span>
+        <span data-i18n="disclaimer">не является финансовой рекомендацией; карты тоже так считают</span>
       </footer>
     </div>
 
@@ -59,53 +86,60 @@
     <div class="modal" id="paywall">
       <div class="box">
         <button class="icon-btn modal-close" id="closePayCorner" type="button"></button>
-        <h2>Карты дальше молчат</h2>
-        <p class="lead">
+        <h2 data-i18n="paywall.title">Карты дальше молчат</h2>
+        <p class="lead" data-i18n="paywall.lead">
           Бесплатный доступ покрывает два дня вперёд. Третий день и более дальний горизонт открывает статус
           посвящённого.
         </p>
         <div class="tiers">
           <div class="tier">
-            <div class="t">Посвящённый</div>
-            <div class="p">$4.99<small>/мес</small></div>
+            <div class="t" data-i18n="paywall.tiers.0.name">Посвящённый</div>
+            <div class="p">
+              <span data-i18n="paywall.tiers.0.price">$4.99</span><small data-i18n="paywall.tiers.0.period">/мес</small>
+            </div>
             <ul>
-              <li>до 7 дней вперёд</li>
-              <li>история раскладов</li>
-              <li>без рекламы (её и так нет)</li>
+              <li data-i18n="paywall.tiers.0.features.0">до 7 дней вперёд</li>
+              <li data-i18n="paywall.tiers.0.features.1">история раскладов</li>
+              <li data-i18n="paywall.tiers.0.features.2">без рекламы (её и так нет)</li>
             </ul>
-            <button>Выбрать</button>
+            <button data-i18n="paywall.tiers.0.cta">Выбрать</button>
           </div>
           <div class="tier hi">
-            <div class="t">Старший аркан</div>
-            <div class="p">$19.99<small>/мес</small></div>
+            <div class="t" data-i18n="paywall.tiers.1.name">Старший аркан</div>
+            <div class="p">
+              <span data-i18n="paywall.tiers.1.price">$19.99</span
+              ><small data-i18n="paywall.tiers.1.period">/мес</small>
+            </div>
             <ul>
-              <li>всё из «Посвящённого»</li>
-              <li>премиум-колоды</li>
-              <li>второе мнение другой колодой</li>
-              <li>фейерверк при открытии</li>
+              <li data-i18n="paywall.tiers.1.features.0">всё из «Посвящённого»</li>
+              <li data-i18n="paywall.tiers.1.features.1">премиум-колоды</li>
+              <li data-i18n="paywall.tiers.1.features.2">второе мнение другой колодой</li>
+              <li data-i18n="paywall.tiers.1.features.3">фейерверк при открытии</li>
             </ul>
-            <button>Выбрать</button>
+            <button data-i18n="paywall.tiers.1.cta">Выбрать</button>
           </div>
           <div class="tier">
-            <div class="t">Институциональный</div>
-            <div class="p">$999<small>/мес</small></div>
+            <div class="t" data-i18n="paywall.tiers.2.name">Институциональный</div>
+            <div class="p">
+              <span data-i18n="paywall.tiers.2.price">$999</span><small data-i18n="paywall.tiers.2.period">/мес</small>
+            </div>
             <ul>
-              <li>API-доступ</li>
-              <li>PDF-отчёт с печатью</li>
-              <li>персональный менеджер</li>
+              <li data-i18n="paywall.tiers.2.features.0">API-доступ</li>
+              <li data-i18n="paywall.tiers.2.features.1">PDF-отчёт с печатью</li>
+              <li data-i18n="paywall.tiers.2.features.2">персональный менеджер</li>
             </ul>
-            <button>Запросить</button>
+            <button data-i18n="paywall.tiers.2.cta">Запросить</button>
           </div>
         </div>
-        <button class="close" id="closePay">Вернуться к раскладу</button>
+        <button class="close" id="closePay" data-i18n="paywall.back">Вернуться к раскладу</button>
       </div>
     </div>
 
     <div class="modal" id="sharemodal">
       <div class="box sharebox">
         <button class="icon-btn modal-close" id="closeShare" type="button"></button>
-        <h2>Ссылка на расклад</h2>
-        <p class="lead">
+        <h2 data-i18n="share.title">Ссылка на расклад</h2>
+        <p class="lead" data-i18n="share.lead">
           Откроется с теми же свечами и картами. Когда будущее наступит, ссылка покажет проверку пророчества.
         </p>
         <div class="share-field">

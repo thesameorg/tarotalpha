@@ -1,6 +1,8 @@
-/** Prices as the prototype prints them: thousands with a space, two decimals above 10, four below. */
+/** Prices as the terminal prints them: thousands grouped by the interface locale, two decimals above 10, four below. */
+import { t } from "./i18n/index";
+
 export function formatPrice(x: number): string {
-  if (x >= 1000) return x.toLocaleString("ru", { maximumFractionDigits: 0 });
+  if (x >= 1000) return x.toLocaleString(t().locale, { maximumFractionDigits: 0 });
   if (x >= 10) return x.toFixed(2);
   return x.toFixed(4);
 }
@@ -13,5 +15,5 @@ export function priceMinMove(x: number): number {
 }
 
 export function formatChange(pct: number): string {
-  return `${pct >= 0 ? "+" : ""}${pct.toFixed(2)} % / 24ч`;
+  return `${pct >= 0 ? "+" : ""}${pct.toFixed(2)} % ${t().per24h}`;
 }

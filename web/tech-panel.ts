@@ -1,10 +1,10 @@
 /**
  * The terminal facts behind the "tech" button: exchange lag, UTC clock, candle source, engine version, anchor, ATR,
  * reading id. Hidden by default, the choice survives in localStorage; markup lives in index.html. The only place
- * on the page that still speaks UTC.
+ * on the page that still speaks UTC. Values are kept so a language switch repaints them.
  */
 import type { Source } from "../exchange/provider";
-import { copy } from "./copy";
+import { onLangChange, t } from "./i18n/index";
 import { utcClock, utcDateTime } from "./utc-format";
 
 const STORAGE_KEY = "ta.tech";
@@ -18,6 +18,8 @@ export interface TechFacts {
   readingId: string | null;
 }
 
+const facts: TechFacts = { lag: null, source: null, engine: null, anchorTs: null, atr: null, readingId: null };
+
 function setText(id: string, text: string): void {
   const el = document.getElementById(id);
   if (el !== null) el.textContent = text;
@@ -25,18 +27,23 @@ function setText(id: string, text: string): void {
 
 const dash = (text: string | null): string => text ?? "—";
 
-export function setTechFacts(facts: Partial<TechFacts>): void {
-  if (facts.lag !== undefined) setText("tech-lag", facts.lag === null ? "—" : `${String(facts.lag)} мс`);
-  if (facts.source !== undefined) setText("tech-source", facts.source === null ? "—" : copy.sources[facts.source]);
-  if (facts.engine !== undefined) setText("tech-engine", dash(facts.engine));
-  if (facts.anchorTs !== undefined) {
-    setText(
-      "tech-anchor",
-      facts.anchorTs === null ? "—" : `${utcDateTime(facts.anchorTs)} · ${String(facts.anchorTs)}`,
-    );
-  }
-  if (facts.atr !== undefined) setText("tech-atr", dash(facts.atr));
-  if (facts.readingId !== undefined) setText("tech-reading", dash(facts.readingId));
+function paint(): void {
+  setText("tech-lag", facts.lag === null ? "—" : t().tech.ms(facts.lag));
+  setText("tech-source", facts.source === null ? "—" : t().sources[facts.source]);
+  setText("tech-engine", dash(facts.engine));
+  setText("tech-anchor", facts.anchorTs === null ? "—" : `${utcDateTime(facts.anchorTs)} · ${String(facts.anchorTs)}`);
+  setText("tech-atr", dash(facts.atr));
+  setText("tech-reading", dash(facts.readingId));
+}
+
+export function setTechFacts(next: Partial<TechFacts>): void {
+  if (next.lag !== undefined) facts.lag = next.lag;
+  if (next.source !== undefined) facts.source = next.source;
+  if (next.engine !== undefined) facts.engine = next.engine;
+  if (next.anchorTs !== undefined) facts.anchorTs = next.anchorTs;
+  if (next.atr !== undefined) facts.atr = next.atr;
+  if (next.readingId !== undefined) facts.readingId = next.readingId;
+  paint();
 }
 
 function storedOpen(): boolean {
@@ -74,4 +81,6 @@ export function initTechPanel(): void {
   };
   tick();
   setInterval(tick, 1000);
+  onLangChange(paint);
+  paint();
 }

@@ -5,8 +5,8 @@
  * what exists. Markup is rendered into the given root; what a pick does (load, navigate) is the caller's.
  */
 import { COINS, type Coin } from "./coin-list";
-import { copy } from "./copy";
 import { required } from "./dom-lookup";
+import { onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
 
 export interface CoinPicker {
@@ -31,7 +31,7 @@ function itemMarkup(coin: Coin, active: boolean): string {
 }
 
 function markup(): string {
-  return `<button class="picker-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" title="${copy.picker.choose}"><img class="picker-icon" alt="" hidden><span class="picker-ticker"></span>${icons.chevron}</button><div class="picker-pop" hidden><input id="asset" role="combobox" aria-autocomplete="list" aria-expanded="true" aria-controls="picker-list" aria-label="${copy.picker.choose}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="${copy.picker.placeholder}"><ul class="picker-list" id="picker-list" role="listbox"></ul></div>`;
+  return `<button class="picker-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" title="${t().picker.choose}"><img class="picker-icon" alt="" hidden><span class="picker-ticker"></span>${icons.chevron}</button><div class="picker-pop" hidden><input id="asset" role="combobox" aria-autocomplete="list" aria-expanded="true" aria-controls="picker-list" aria-label="${t().picker.choose}" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="${t().picker.placeholder}"><ul class="picker-list" id="picker-list" role="listbox"></ul></div>`;
 }
 
 export function createCoinPicker(root: HTMLElement, initial: string, onPick: (symbol: string) => void): CoinPicker {
@@ -126,6 +126,11 @@ export function createCoinPicker(root: HTMLElement, initial: string, onPick: (sy
   });
 
   show(initial);
+  onLangChange(() => {
+    trigger.title = t().picker.choose;
+    input.setAttribute("aria-label", t().picker.choose);
+    input.placeholder = t().picker.placeholder;
+  });
 
   return {
     value: () => symbol,

@@ -4,7 +4,7 @@
 
 1. `pnpm install --frozen-lockfile` — Node 22+, зависимости из локфайла.
 2. `pnpm exec wrangler d1 migrations apply tarotalpha --local` — схема в локальную D1 (`.wrangler/state`, тот же каталог читает `vite dev`).
-3. `pnpm run dev` — клиент и воркер на `http://localhost:5173`; `/api/health` отвечает `{"ok":true,"engine":"v1"}`.
+3. `pnpm run dev` — клиент и воркер на `http://localhost:5173`; `/api/health` отвечает `{"ok":true,"engine":"v2"}`.
 4. Открыть `http://localhost:5173/?asset=BTCUSDT`: график грузится живым запросом к Binance из браузера; если биржа недоступна из сети — страница скажет об этом, а не покажет пустой график.
 
 Что ещё гоняют руками:
