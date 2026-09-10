@@ -47,6 +47,18 @@ export interface CreatedReading {
   url: string;
 }
 
+export interface ReaderStanding {
+  reader: ReaderId;
+  stars: number;
+  /** Share of the scored readings where nobody at the table was closer to the market. */
+  wins: number;
+}
+
+export interface ReaderTable {
+  verdicts: number;
+  readers: ReaderStanding[];
+}
+
 export type EventType = "chart_loaded" | "step_opened" | "paywall_hit" | "own_reading_clicked" | "replayed";
 
 export interface FunnelEvent {
@@ -80,6 +92,10 @@ export async function createReading(body: CreateReadingBody): Promise<CreatedRea
 
 export async function fetchReading(id: string): Promise<ReadingRecord> {
   return (await requestJson(`/api/readings/${encodeURIComponent(id)}`)) as ReadingRecord;
+}
+
+export async function fetchReaderTable(): Promise<ReaderTable> {
+  return (await requestJson("/api/readers")) as ReaderTable;
 }
 
 export function postEvent(event: FunnelEvent): void {

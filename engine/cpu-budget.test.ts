@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { Candle } from "./atr";
-import { computeSteps, READER_IDS, type ReaderId } from "./index";
+import { computeSteps, deviation, forecastFromCards, natr, READER_IDS, type ReaderId } from "./index";
 import { makeRng } from "./seed";
 
 interface CpuUsage {
@@ -48,4 +48,33 @@ it.each(READER_IDS)("computes three %s steps from a 168-candle snapshot in under
   const median = ((sorted[9] ?? NaN) + (sorted[10] ?? NaN)) / 2;
   console.info(`${reader}: 3 steps over 168 candles + JSON round trip, median ${median.toFixed(3)} ms CPU of 20 runs`);
   expect(median).toBeLessThan(5);
+});
+
+// The sweep scores a whole table on one reading, and it runs on a Cron Trigger with the same 10 ms of CPU.
+// How many readings one run may take is sized from this number: docs/flows/reading-lifecycle.md
+it("scores one reading for all five readers in under 2 ms of CPU", () => {
+  const anchorTs = 1789020000000;
+  const snapshot = syntheticSnapshot(168, anchorTs);
+  const cards = computeSteps({ asset: "BTCUSDT", anchorTs, snapshot, reader: "atr", steps: 2 }).map(
+    (step) => step.cards,
+  );
+  const real = syntheticSnapshot(48, anchorTs).map((candle, i) => ({ ...candle, t: anchorTs + (i + 1) * 3_600_000 }));
+  const samples: number[] = [];
+  for (let i = 0; i < 20; i++) {
+    const before = node.cpuUsage();
+    const parsed = JSON.parse(JSON.stringify(snapshot)) as Candle[];
+    const unit = natr(parsed);
+    for (const reader of READER_IDS) {
+      const forecast = forecastFromCards({ asset: "BTCUSDT", anchorTs, snapshot: parsed, reader, cards }).flatMap(
+        (step) => step.candles,
+      );
+      expect(deviation(forecast, real, unit).compared).toBe(48);
+    }
+    const used = node.cpuUsage(before);
+    samples.push((used.user + used.system) / 1000);
+  }
+  const sorted = samples.toSorted((a, b) => a - b);
+  const median = ((sorted[9] ?? NaN) + (sorted[10] ?? NaN)) / 2;
+  console.info(`one reading, five readers, median ${median.toFixed(3)} ms CPU of 20 runs`);
+  expect(median).toBeLessThan(2);
 });

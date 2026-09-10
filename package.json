@@ -8,6 +8,7 @@
     "check:all": "python3 scripts/docs_lint.py",
     "related": "python3 scripts/docs_lint.py --base origin/main --related",
     "test:lint": "python3 scripts/test_docs_lint.py",
+    "seed": "python3 scripts/seed_readings.py",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",

@@ -1,10 +1,15 @@
-/** One Worker: `/api/*` is answered here, `/r/<id>` is index.html with the reading's meta tags, the rest is static. */
+/**
+ * One Worker: `/api/*` is answered here, `/r/<id>` is index.html with the reading's meta tags, the rest is static.
+ * The cron is the only writer that no request asks for: it scores readings whose horizon has closed.
+ */
 import { ENGINE_VERSION } from "../engine/index";
 import { postEvent } from "./events";
 import { ApiError } from "./json-api";
 import { rateLimited } from "./rate-limit";
+import { readReaderRatings } from "./reader-ratings";
 import { readingPage } from "./reading-page";
 import { createReading, readReading } from "./readings";
+import { sweepMatured } from "./scoring";
 
 const READING_PAGE = /^\/r\/([^/]+)$/;
 const READING_API = /^\/api\/readings\/([^/]+)$/;
@@ -16,6 +21,10 @@ export default {
     const page = READING_PAGE.exec(pathname);
     if (page?.[1] !== undefined) return readingPage(page[1], request, env);
     return env.ASSETS.fetch(request);
+  },
+  async scheduled(_controller, env) {
+    const sweep = await sweepMatured(env, Date.now());
+    console.log(`sweep: scored ${String(sweep.scored)}, parked ${String(sweep.parked)}`);
   },
 } satisfies ExportedHandler<Env>;
 
@@ -35,6 +44,7 @@ function route(pathname: string, request: Request, env: Env): Promise<Response> 
   const { method } = request;
   if (pathname === "/api/health" && method === "GET") return Response.json({ ok: true, engine: ENGINE_VERSION });
   if (pathname === "/api/readings" && method === "POST") return createReading(request, env);
+  if (pathname === "/api/readers" && method === "GET") return readReaderRatings(env);
   const reading = READING_API.exec(pathname);
   if (reading?.[1] !== undefined && method === "GET") return readReading(reading[1], env);
   if (pathname === "/api/events" && method === "POST") return postEvent(request, env);
