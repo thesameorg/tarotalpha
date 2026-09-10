@@ -275,8 +275,14 @@ class LandingPage {
     this.busy = true;
     this.el.draw.disabled = true;
     this.el.share.disabled = true;
-    await playReveal(cardsOf(result, this.engine.cardById));
+    const pulled = await playReveal(cardsOf(result, this.engine.cardById));
     if (this.gone()) return;
+    if (!pulled) {
+      this.busy = false;
+      this.el.draw.disabled = false;
+      this.el.share.disabled = loaded.steps.length === 0;
+      return;
+    }
     loaded.steps.push(result);
     this.panel.setSteps(loaded.steps, step - 1);
     this.chart.setSteps(step);

@@ -310,7 +310,7 @@ class ReadingPage {
     this.setStepsBar(el, 0);
     for (const [index, step] of results.entries()) {
       if (this.gone()) return;
-      await playReveal(cardsOf(step, engine.cardById));
+      await playReveal(cardsOf(step, engine.cardById), { auto: true });
       if (this.gone()) return;
       panel.setSteps(results.slice(0, index + 1), index);
       chart.setSteps(index + 1);
