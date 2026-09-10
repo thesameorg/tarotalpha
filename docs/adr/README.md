@@ -11,4 +11,5 @@ ADR пишется в момент принятия решения, а не по
 | Документ | Решение |
 | --- | --- |
 | [`0001-cloudflare-worker-d1.md`](0001-cloudflare-worker-d1.md) | один Worker со статикой, D1 под расклады, свечи с биржи без кэша, Vite без воркспейсов |
-| [`0002-ci-on-pr-deploy-from-local.md`](0002-ci-on-pr-deploy-from-local.md) | проверки на PR в Actions, деплой руками с машины, e2e нигде |
+| [`0002-ci-on-pr-deploy-from-local.md`](0002-ci-on-pr-deploy-from-local.md) | устарело: деплой руками с машины — отменён ADR-0003 |
+| [`0003-deploy-from-actions-on-main.md`](0003-deploy-from-actions-on-main.md) | проверки на PR, деплой из Actions на пуш в `main`, один секрет с токеном Cloudflare, e2e нигде |
