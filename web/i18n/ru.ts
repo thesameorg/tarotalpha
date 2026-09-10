@@ -136,32 +136,18 @@ export const ru = {
   locale: "ru",
   title: "TarotAlpha — прогноз рынка по раскладу",
   tagline: "расклад по свечам · ",
-  tech: {
-    toggle: "tech",
-    lag: "лаг",
-    utc: "UTC",
-    source: "источник",
-    engine: "движок",
-    anchor: "якорь",
-    atr: "ATR(14)",
-    reading: "расклад",
-    ms: (n: number): string => `${String(n)} мс`,
-  },
   theme: { label: "Тема", light: "Светлая тема", dark: "Тёмная тема", system: "Тема как в системе" },
   language: { label: "Язык" },
   disclaimer: "не является финансовой рекомендацией; карты тоже так считают",
-  positions: ["часы 0–8", "часы 8–16", "часы 16–24"] as readonly [string, string, string],
   reversed: "перевёрнутая",
   day: (n: number): string => `день ${String(n)}`,
   now: "сейчас",
   drawStep: (n: number): string => `Открыть расклад · день ${String(n)}`,
   lockedStep: "два дня бесплатно, третий — за пейволом",
-  info: "технические детали",
   close: "Закрыть",
   picker: { choose: "Выбрать инструмент", placeholder: "Тикер или название" },
   badAsset: "Инструмент — 2–20 символов: латиница и цифры",
   loading: "Загружаем свечи…",
-  atrLine: (atr: string): string => `ATR(14) = ${atr} от цены, горизонт 24 свечи`,
   per24h: "/ 24ч",
   sources: { binance: "Binance", bybit: "Bybit" } as const,
   retry: "Повторить",
@@ -236,44 +222,13 @@ export const ru = {
         : `день ${String(day)}: ${String(pct)} % (${String(hits)}/${String(compared)})`,
   },
   summaryTitle: "Итог дня.",
+  how: "Как это считается",
   cardName: (card: Card): string =>
     card.arcana === "major" ? (MAJORS[card.index] ?? "") : `${RANKS[card.rank - 1] ?? ""} ${SUITS[card.suit]}`,
   meaning: (cardId: number, reversed: boolean): string => {
     const meaning = MEANINGS_RU[cardId];
     if (meaning === undefined) throw new RangeError(`card id ${String(cardId)} has no meaning`);
     return reversed ? meaning[1] : meaning[0];
-  },
-  effect: (e: CardEffect): string => {
-    switch (e.kind) {
-      case "tower":
-        return e.up
-          ? `Обвал отменяется: рывок вверх на ${String(e.jump)} ATR первой свечой и медленный подъём`
-          : `Обвал на ${String(e.jump)} ATR первой же свечой, далее стабильное сползание`;
-      case "sun":
-        return e.up
-          ? `Взлёт на ${String(e.jump)} ATR первой свечой и уверенный ход выше`
-          : `Свет гаснет: провал на ${String(e.jump)} ATR первой свечой и сползание`;
-      case "wheel":
-        return "Разворот текущего тренда с этого часа";
-      case "hanged":
-        return "Флэт. Рынок думает.";
-      case "moon":
-        return "Волатильность удвоена, направление неясно";
-      case "death":
-        return "Смена режима: тренд меняет знак";
-      case "fool":
-        return "Хаотичное движение без ориентира, размах в полтора раза шире";
-      case "drift":
-        return `Умеренный дрейф ${upDown(e.up)}, волатильность средняя`;
-      case "wands":
-        return `Импульс ${upDown(e.up)} ~${e.atr.toFixed(1)} ATR за отрезок`;
-      case "cups":
-        return e.wide ? "Расширение диапазона, длинные свечи" : "Сжатие волатильности, узкие свечи";
-      case "swords":
-        return "Шипы и ложные пробои, тени длинные";
-      case "pentacles":
-        return `Возврат к MA(24) с силой ${String(e.pull)} %`;
-    }
   },
   summary: (f: SummaryFacts): string => {
     const rev = f.rulingReversed ? " в перевёрнутом положении" : "";

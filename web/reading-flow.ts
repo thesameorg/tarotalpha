@@ -246,7 +246,6 @@ class LandingPage {
     this.chartState(() => t().loading, false);
     this.relabel();
     this.panel.clear();
-    this.panel.setAtr(null);
     this.setStepsBar(0);
     setTechFacts({ lag: null, source: null, anchorTs: null, atr: null });
 
@@ -277,7 +276,6 @@ class LandingPage {
     setTechFacts({ lag, source: snapshot.source, anchorTs, atr });
     showExchangeLogo(this.el.srcLogo, snapshot.source);
     this.showPrice();
-    this.panel.setAtr(atr);
     this.note(null);
     this.chartState(null, false);
 

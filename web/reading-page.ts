@@ -229,7 +229,6 @@ class ReadingPage {
 
     const panel = createSpreadPanel(el.panel, false);
     this.panel = panel;
-    panel.setAtr(atr);
     panel.setSteps(results, 0);
 
     const chart = createCandleChart(el.chart);

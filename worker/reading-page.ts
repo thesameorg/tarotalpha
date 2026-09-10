@@ -42,6 +42,11 @@ const META: Record<Lang, Meta> = {
     description: (steps, stamp) =>
       `Legung ${String(steps)} ${steps === 1 ? "Tag" : "Tage"} voraus ab ${stamp} UTC. Keine Finanzberatung.`,
   },
+  tr: {
+    title: (asset, id) => `TarotAlpha · ${asset} · açılım ${id}`,
+    description: (steps, stamp) =>
+      `${stamp} UTC itibarıyla ${String(steps)} gün ilerisi için tarot açılımı. Yatırım tavsiyesi değildir.`,
+  },
   pt: {
     title: (asset, id) => `TarotAlpha · ${asset} · leitura ${id}`,
     description: (steps, stamp) =>

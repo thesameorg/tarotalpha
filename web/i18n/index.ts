@@ -1,5 +1,5 @@
 /**
- * Ten interface languages, one dictionary shape. The language is the viewer's stored choice, else the share link's
+ * Eleven interface languages, one dictionary shape. The language is the viewer's stored choice, else the share link's
  * `lang`, else the first browser language we have, else English. Switching is live: modules that hold text
  * re-render on `onLangChange`, static markup in index.html is relabelled through `data-i18n` keys ("path.to.text",
  * or "path@attr" for an attribute, several joined with ";").
@@ -14,13 +14,14 @@ import { ko } from "./ko";
 import { isLang, LANGS, matchLang, type Lang } from "./langs";
 import { pt } from "./pt";
 import { ru } from "./ru";
+import { tr } from "./tr";
 import { zh } from "./zh";
 
 export { isLang, LANGS, type Lang };
 export type Dictionary = typeof ru;
 
 const STORAGE_KEY = "ta.lang";
-export const DICTIONARIES: Record<Lang, Dictionary> = { en, es, pt, fr, it, de, ru, zh, ja, ko };
+export const DICTIONARIES: Record<Lang, Dictionary> = { en, es, pt, fr, it, de, tr, ru, zh, ja, ko };
 const listeners = new Set<() => void>();
 let current: Lang = "en";
 
