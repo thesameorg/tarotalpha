@@ -6,7 +6,7 @@
 **/dist/
 **/build/
 **/.wrangler/
-package-lock.json
+pnpm-lock.yaml
 pnpm-lock.yaml
 
 # генерирует `npm run types`, формат задаёт wrangler

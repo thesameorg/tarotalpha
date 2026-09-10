@@ -1,6 +1,6 @@
 # TA-010 · Движок v1 в коде
 
-> ветка: feat/prototype · PR: нет
+> ветка: feat/prototype · PR: https://github.com/thesameorg/tarotalpha/pull/1
 
 **Зачем.** Формулы описаны в `docs/flows/card-to-candles.md`, но живут пока только в `tarot-alpha.html` внутри страницы. Сервер не может ни посчитать расклад, ни проверить пророчество.
 

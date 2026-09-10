@@ -8,6 +8,7 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        exclude: ^pnpm-lock\.yaml$ # lockfile pnpm — многодокументный YAML, руками не правится
       - id: check-json
       - id: check-merge-conflict
       - id: check-added-large-files
@@ -44,12 +45,12 @@ repos:
     hooks:
       - id: eslint
         name: eslint
-        entry: npx eslint --max-warnings=0 --no-warn-ignored
+        entry: pnpm exec eslint --max-warnings=0 --no-warn-ignored
         language: system
         types_or: [ts, tsx, javascript]
       - id: typecheck
         name: typecheck
-        entry: npm run typecheck
+        entry: pnpm run typecheck
         language: system
         pass_filenames: false
         always_run: false

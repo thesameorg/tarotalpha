@@ -1,0 +1,4 @@
+# pnpm blocks install scripts by default; these two ship their own binaries and the dev server and tests need them.
+allowBuilds:
+  esbuild: true
+  workerd: true

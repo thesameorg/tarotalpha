@@ -46,7 +46,7 @@
 ## Проверка
 
 ```bash
-npm run check       # только изменённые строки
-npm run related     # противоречия перед PR
-npm run check:all   # весь репозиторий
+pnpm run check       # только изменённые строки
+pnpm run related     # противоречия перед PR
+pnpm run check:all   # весь репозиторий
 ```
