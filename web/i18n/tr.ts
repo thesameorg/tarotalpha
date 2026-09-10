@@ -1,8 +1,10 @@
 /** Turkish interface text, the same shape as ru.ts. Content, not code. */
 import type { CardEffect } from "../../engine/card-effect";
 import { DECK, type Card } from "../../engine/deck";
+import type { ReaderId } from "../../engine/readers";
 import type { Dictionary } from "./index";
 import { MEANINGS_TR } from "./meanings-tr";
+import { READERS_TR } from "./readers-tr";
 import { pick, type SummaryFacts } from "./summary-facts";
 
 const MAJORS = [
@@ -193,6 +195,14 @@ export const tr: Dictionary = {
     ],
   },
   fan: { hint: "Üç kart çekin", close: "kapat" },
+  reader: {
+    unscored: "Henüz puanlanmadı",
+    rated: (stars: number, of: number): string => `${String(of)} üzerinden ${String(stars)} puan`,
+    wins: (pct: number): string => `Beş falcı arasında açılımların %${String(pct)} oranında en yakın olan`,
+    others: "Masadaki herkes",
+    current: "Şu anda mumlarınızı okuyor",
+    choose: (name: string): string => `${name} baksın`,
+  },
   reading: {
     notFound: "Açılım bulunamadı",
     loadFailed: "Açılım yüklenemedi",
@@ -230,6 +240,8 @@ export const tr: Dictionary = {
     if (meaning === undefined) throw new RangeError(`card id ${String(cardId)} has no meaning`);
     return reversed ? meaning[1] : meaning[0];
   },
+  readerName: (id: ReaderId): string => READERS_TR[id].name,
+  readerBlurb: (id: ReaderId): string => READERS_TR[id].blurb,
   summary: (f: SummaryFacts): string => {
     const rev = f.rulingReversed ? " (ters)" : "";
     const when = ["0–8 saatleri", "8–16 saatleri", "16–24 saatleri"][f.rulingPosition] ?? "";

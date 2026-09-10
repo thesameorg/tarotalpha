@@ -1,8 +1,10 @@
 /** Korean interface text, the same shape as ru.ts. Content, not code. */
 import type { CardEffect } from "../../engine/card-effect";
 import { DECK, type Card } from "../../engine/deck";
+import type { ReaderId } from "../../engine/readers";
 import type { Dictionary } from "./index";
 import { MEANINGS_KO } from "./meanings-ko";
+import { READERS_KO } from "./readers-ko";
 import { pick, type SummaryFacts } from "./summary-facts";
 
 const MAJORS = [
@@ -178,6 +180,14 @@ export const ko: Dictionary = {
     ],
   },
   fan: { hint: "카드 세 장을 뽑으세요", close: "닫기" },
+  reader: {
+    unscored: "아직 평가 없음",
+    rated: (stars: number, of: number): string => `${String(of)}점 만점에 ${String(stars)}점`,
+    wins: (pct: number): string => `다섯 중 가장 가까웠던 리딩 ${String(pct)} %`,
+    others: "이 탁자의 모두",
+    current: "당신의 캔들을 읽는 중",
+    choose: (name: string): string => `${name}에게 맡기기`,
+  },
   reading: {
     notFound: "리딩을 찾을 수 없습니다",
     loadFailed: "리딩을 불러오지 못했습니다",
@@ -214,6 +224,8 @@ export const ko: Dictionary = {
     if (meaning === undefined) throw new RangeError(`card id ${String(cardId)} has no meaning`);
     return reversed ? meaning[1] : meaning[0];
   },
+  readerName: (id: ReaderId): string => READERS_KO[id].name,
+  readerBlurb: (id: ReaderId): string => READERS_KO[id].blurb,
   summary: (f: SummaryFacts): string => {
     const rev = f.rulingReversed ? " (역방향)" : "";
     const when = ["0–8시", "8–16시", "16–24시"][f.rulingPosition] ?? "";

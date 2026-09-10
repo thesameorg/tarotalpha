@@ -4,11 +4,11 @@
  * from the Worker and arrive after the card is already open, so opening repaints it. The paragraphs are still
  * placeholders. How the formulas work is one link on the page itself, not here.
  */
-import { isReaderId, type ReaderId } from "../engine/readers";
+import { isReaderId, READER_IDS, type ReaderId } from "../engine/readers";
 import { icons } from "./icons";
-import { t } from "./i18n/index";
+import { onLangChange, t } from "./i18n/index";
 import { loadReaderTable, readerStanding } from "./reader-rating";
-import { READER_FACES, reader, readerAvatarUrl, readerFace, setReader, type ReaderFace } from "./reader-choice";
+import { reader, readerAvatarUrl, setReader } from "./reader-choice";
 
 const STARS = 5;
 
@@ -29,38 +29,38 @@ function starMarkup(filled: number): string {
 
 function starsMarkup(id: ReaderId): string {
   const standing = readerStanding(id);
-  if (standing === null) return `<div class="profile-unscored">Not scored yet</div>`;
+  if (standing === null) return `<div class="profile-unscored">${t().reader.unscored}</div>`;
   const stars = Array.from({ length: STARS }, (_, i) => starMarkup(standing.stars - i)).join("");
   const wins = Math.round(standing.wins * 100);
   return (
-    `<div class="stars" role="img" aria-label="rated ${String(standing.stars)} of ${String(STARS)}">${stars}</div>` +
-    `<div class="profile-score">Closest of the five in ${String(wins)}% of readings</div>` +
+    `<div class="stars" role="img" aria-label="${t().reader.rated(standing.stars, STARS)}">${stars}</div>` +
+    `<div class="profile-score">${t().reader.wins(wins)}</div>` +
     `<p class="disclaimer">${t().disclaimer}</p>`
   );
 }
 
 /** Everyone, always in the same order and the same place: a row that reshuffles under the cursor is a trap. */
-function othersMarkup(current: ReaderFace): string {
-  const options = READER_FACES.map(
-    (face) =>
-      `<button class="other${face.id === current.id ? " shown" : ""}" type="button" data-reader-show="${face.id}"><img src="${readerAvatarUrl(face.id)}" alt=""><span>${face.name}</span></button>`,
+function othersMarkup(current: ReaderId): string {
+  const options = READER_IDS.map(
+    (id) =>
+      `<button class="other${id === current ? " shown" : ""}" type="button" data-reader-show="${id}"><img src="${readerAvatarUrl(id)}" alt=""><span>${t().readerName(id)}</span></button>`,
   ).join("");
-  return `<div class="others"><div class="others-title">Everyone at the table</div><div class="others-row">${options}</div></div>`;
+  return `<div class="others"><div class="others-title">${t().reader.others}</div><div class="others-row">${options}</div></div>`;
 }
 
-function chooseMarkup(face: ReaderFace): string {
-  if (face.id === reader()) return `<div class="profile-current">Reading your candles now</div>`;
-  return `<button class="draw profile-choose" type="button" data-reader-pick="${face.id}">Let ${face.name} read</button>`;
+function chooseMarkup(id: ReaderId): string {
+  if (id === reader()) return `<div class="profile-current">${t().reader.current}</div>`;
+  return `<button class="draw profile-choose" type="button" data-reader-pick="${id}">${t().reader.choose(t().readerName(id))}</button>`;
 }
 
 function paint(): void {
-  const face = readerFace(shown);
+  const close = t().close;
   byId("reader-card").innerHTML =
-    `<button class="icon-btn modal-close" id="closeReader" type="button" title="Close" aria-label="Close">${icons.close}</button>` +
-    `<div class="profile-top"><img class="profile-face" src="${readerAvatarUrl(face.id)}" alt=""><div><h2>${face.name}</h2>${starsMarkup(face.id)}</div></div>` +
-    `<p class="profile-blurb">${face.blurb}</p>` +
-    chooseMarkup(face) +
-    othersMarkup(face);
+    `<button class="icon-btn modal-close" id="closeReader" type="button" title="${close}" aria-label="${close}">${icons.close}</button>` +
+    `<div class="profile-top"><img class="profile-face" src="${readerAvatarUrl(shown)}" alt=""><div><h2>${t().readerName(shown)}</h2>${starsMarkup(shown)}</div></div>` +
+    `<p class="profile-blurb">${t().readerBlurb(shown)}</p>` +
+    chooseMarkup(shown) +
+    othersMarkup(shown);
 }
 
 export function openReaderProfile(): void {
@@ -75,6 +75,9 @@ export function initReaderProfile(): void {
   const close = (): void => {
     modal.classList.remove("on");
   };
+  onLangChange(() => {
+    if (modal.classList.contains("on")) paint();
+  });
   modal.addEventListener("click", (event) => {
     if (event.target === modal) {
       close();

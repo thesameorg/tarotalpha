@@ -5,7 +5,9 @@
  */
 import type { CardEffect } from "../../engine/card-effect";
 import { DECK, type Card } from "../../engine/deck";
+import type { ReaderId } from "../../engine/readers";
 import { MEANINGS_RU } from "./meanings-ru";
+import { READERS_RU } from "./readers-ru";
 import { pick, type SummaryFacts } from "./summary-facts";
 
 const MAJORS = [
@@ -197,6 +199,14 @@ export const ru = {
     ],
   },
   fan: { hint: "Вытяните три карты", close: "закрыть" },
+  reader: {
+    unscored: "Пока без оценки",
+    rated: (stars: number, of: number): string => `оценка ${String(stars)} из ${String(of)}`,
+    wins: (pct: number): string => `Ближе всех из пяти в ${String(pct)} % раскладов`,
+    others: "Все за столом",
+    current: "Считает ваши свечи",
+    choose: (name: string): string => `Пусть гадает ${name}`,
+  },
   reading: {
     notFound: "Расклад не найден",
     loadFailed: "Не удалось загрузить расклад",
@@ -233,6 +243,8 @@ export const ru = {
     if (meaning === undefined) throw new RangeError(`card id ${String(cardId)} has no meaning`);
     return reversed ? meaning[1] : meaning[0];
   },
+  readerName: (id: ReaderId): string => READERS_RU[id].name,
+  readerBlurb: (id: ReaderId): string => READERS_RU[id].blurb,
   summary: (f: SummaryFacts): string => {
     const rev = f.rulingReversed ? " в перевёрнутом положении" : "";
     const when = ["часы 0–8", "часы 8–16", "часы 16–24"][f.rulingPosition] ?? "";
