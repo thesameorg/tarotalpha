@@ -186,7 +186,7 @@ import docs_lint_hook as H  # noqa: E402
 assert H.outside_repo("../../elsewhere/note.md")
 assert H.outside_repo("..")
 assert not H.outside_repo("docs/flows/customer-email.md")
-assert not H.outside_repo(".claude/skills/critic/SKILL.md")
+assert not H.outside_repo(".claude/agents/critic.md")
 assert not H.outside_repo("appsite/src/lib/notifications/policy.ts")
 
 print("все проверки прошли")

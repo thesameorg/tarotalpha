@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TarotAlpha — прогноз рынка по раскладу</title>
+<style>
+  :root{
+    --ink:#161824; --ink-2:#1e2130; --ink-3:#262a3c; --line:#33384d;
+    --paper:#e9e3d3; --paper-dim:#9d9887; --gold:#d6b25a; --gold-deep:#8c6d22;
+    --up:#4fbf8b; --down:#e05c62; --violet:#8b78d8;
+    --mono:"SF Mono","JetBrains Mono","Menlo","Consolas",monospace;
+    --serif:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:13px;line-height:1.5}
+  button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+  input{font:inherit;color:inherit}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  .wrap{max-width:1080px;margin:0 auto;padding:18px 16px 60px}
+
+  header{display:flex;align-items:baseline;gap:22px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:14px}
+  .brand{font-family:var(--serif);font-size:22px;letter-spacing:.02em}
+  .brand small{font-family:var(--mono);font-size:11px;color:var(--paper-dim);margin-left:10px}
+  .clock{margin-left:auto;color:var(--paper-dim)}
+  .clock b{color:var(--paper);font-weight:500}
+
+  .ask{display:flex;gap:10px;align-items:center;margin:18px 0 12px;flex-wrap:wrap}
+  .ask label{color:var(--paper-dim)}
+  .ask input{background:var(--ink-2);border:1px solid var(--line);border-radius:4px;padding:8px 12px;width:180px;letter-spacing:.06em;text-transform:uppercase}
+  .ask .go{background:var(--ink-3);border:1px solid var(--line);border-radius:4px;padding:8px 14px}
+  .ask .go:hover{border-color:var(--gold)}
+  .src{color:var(--paper-dim);font-size:12px}
+
+  .stage{border:1px solid var(--line);border-radius:6px;background:var(--ink-2);overflow:hidden}
+  .stage-top{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:8px}
+  .stage-top .px{font-size:18px}
+  .stage-top .px .chg{font-size:12px;margin-left:8px}
+  .steps{display:flex;gap:6px}
+  .steps span{width:34px;height:6px;border-radius:3px;background:var(--ink-3)}
+  .steps span.done{background:var(--gold)}
+  canvas{display:block;width:100%;height:380px}
+
+  .spread{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:18px 14px 6px}
+  @media (max-width:640px){.spread{grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 8px 4px}}
+  .slot{perspective:900px;aspect-ratio:5/8;position:relative}
+  .card{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.2,.8,.2,1);border-radius:8px}
+  .card.flipped{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;backface-visibility:hidden;border-radius:8px;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;text-align:center}
+  .back{background:
+    repeating-linear-gradient(45deg,transparent 0 6px,rgba(214,178,90,.08) 6px 7px),
+    repeating-linear-gradient(-45deg,transparent 0 6px,rgba(214,178,90,.08) 6px 7px),
+    var(--ink-3)}
+  .back::after{content:"";width:38%;aspect-ratio:1;border:1px solid var(--gold-deep);border-radius:50%;box-shadow:inset 0 0 0 6px var(--ink-3),inset 0 0 0 7px var(--gold-deep)}
+  .front{transform:rotateY(180deg);background:linear-gradient(180deg,#f3eddc,#e2dac4);color:#2a2418;justify-content:space-between;padding:14px 10px}
+  .front .num{font-size:11px;letter-spacing:.14em;color:#7a6a3d}
+  .front .glyph{font-family:var(--serif);font-size:42px;line-height:1}
+  .front .name{font-family:var(--serif);font-size:15px;line-height:1.15}
+  .front .rev{font-size:10px;color:#9a3b3b;letter-spacing:.08em}
+  .front.major{background:linear-gradient(180deg,#f7ecc9,#dcc48a);box-shadow:0 0 0 1px var(--gold),0 0 26px rgba(214,178,90,.45)}
+  .front.major.reversed{box-shadow:0 0 0 1px var(--down),0 0 30px rgba(224,92,98,.55);background:linear-gradient(180deg,#f3d7c9,#cf9c8d)}
+  .front.reversed .glyph{transform:rotate(180deg)}
+  .slot.empty .card{opacity:.35}
+
+  .reading{padding:8px 14px 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;min-height:64px}
+  @media (max-width:640px){.reading{grid-template-columns:1fr;gap:8px}}
+  .reading p{color:var(--paper-dim);font-size:12px}
+  .reading p b{color:var(--paper);font-weight:500;display:block}
+
+  .actions{display:flex;gap:10px;align-items:center;padding:0 14px 16px;flex-wrap:wrap}
+  .draw{background:linear-gradient(180deg,var(--gold),#b8933f);color:#1a1405;border-radius:4px;padding:11px 18px;font-weight:600;letter-spacing:.02em;position:relative}
+  .draw:disabled{opacity:.4;cursor:not-allowed}
+  .draw:not(:disabled):hover{filter:brightness(1.08)}
+  .share{border:1px solid var(--line);border-radius:4px;padding:10px 14px}
+  .share:hover{border-color:var(--gold)}
+  .note{color:var(--paper-dim);font-size:12px;margin-left:auto}
+
+  .flash{position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 55%,rgba(255,235,180,.9),rgba(214,178,90,.35) 30%,transparent 65%);opacity:0;z-index:20}
+  .flash.on{animation:flash .9s ease-out}
+  @keyframes flash{0%{opacity:0}12%{opacity:1}100%{opacity:0}}
+  .shake{animation:shake .5s}
+  @keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-6px)}40%,60%{transform:translateX(6px)}}
+  .ring{position:fixed;left:50%;top:55%;width:40px;height:40px;border:2px solid var(--gold);border-radius:50%;transform:translate(-50%,-50%);opacity:0;pointer-events:none;z-index:21}
+  .ring.on{animation:ring .8s ease-out}
+  @keyframes ring{0%{opacity:1;width:40px;height:40px}100%{opacity:0;width:140vmax;height:140vmax}}
+  @media (prefers-reduced-motion:reduce){.flash.on,.ring.on,.shake{animation:none}.card{transition:none}}
+
+  .modal{position:fixed;inset:0;background:rgba(10,11,18,.82);display:none;align-items:center;justify-content:center;z-index:30;padding:16px}
+  .modal.on{display:flex}
+  .box{background:var(--ink-2);border:1px solid var(--gold-deep);border-radius:8px;max-width:640px;width:100%;padding:24px}
+  .box h2{font-family:var(--serif);font-size:24px;font-weight:400;margin-bottom:6px}
+  .box .lead{color:var(--paper-dim);margin-bottom:18px}
+  .tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  @media (max-width:640px){.tiers{grid-template-columns:1fr}}
+  .tier{border:1px solid var(--line);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:6px}
+  .tier.hi{border-color:var(--gold)}
+  .tier .t{font-family:var(--serif);font-size:17px}
+  .tier .p{font-size:20px}
+  .tier ul{list-style:none;color:var(--paper-dim);font-size:12px;flex:1}
+  .tier li::before{content:"— "}
+  .tier button{margin-top:8px;border:1px solid var(--line);border-radius:4px;padding:8px}
+  .tier.hi button{background:var(--gold);color:#1a1405;border-color:var(--gold)}
+  .box .close{margin-top:16px;color:var(--paper-dim);text-decoration:underline}
+  .sharebox textarea{width:100%;height:76px;background:var(--ink);border:1px solid var(--line);color:var(--paper);font:inherit;font-size:11px;padding:8px;border-radius:4px;resize:vertical}
+  .sharebox .row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+  .sharebox button{border:1px solid var(--line);border-radius:4px;padding:8px 12px}
+
+  footer{margin-top:28px;color:var(--paper-dim);font-size:11px;display:flex;gap:18px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:12px}
+  footer span b{color:var(--paper);font-weight:500}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink-3);border:1px solid var(--gold-deep);padding:8px 14px;border-radius:4px;opacity:0;transition:opacity .3s;z-index:40}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="flash" id="flash"></div>
+<div class="ring" id="ring"></div>
+<div class="toast" id="toast"></div>
+
+<div class="wrap">
+  <header>
+    <div class="brand">TarotAlpha <small>расклад по свечам · 1H · UTC</small></div>
+    <div class="clock">лаг <b id="lag">—</b> · <b id="utc">—</b></div>
+  </header>
+
+  <div class="ask">
+    <label for="asset">Инструмент</label>
+    <input id="asset" value="BTCUSDT" autocomplete="off" spellcheck="false">
+    <button class="go" id="load">Загрузить график</button>
+    <span class="src" id="src"></span>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="stage-top">
+      <div class="px"><span id="sym">—</span> <span id="last">—</span><span class="chg" id="chg"></span></div>
+      <div class="steps" id="steps"><span></span><span></span><span></span></div>
+    </div>
+    <canvas id="chart" width="1080" height="380"></canvas>
+
+    <div class="spread" id="spread"></div>
+    <div class="reading" id="reading"></div>
+
+    <div class="actions">
+      <button class="draw" id="draw" disabled>Открыть расклад · день 1</button>
+      <button class="share" id="share" disabled>Поделиться</button>
+      <span class="note" id="note">Введите инструмент и загрузите график</span>
+    </div>
+  </div>
+
+  <footer>
+    <span>бэктест: <b>41 208</b> раскладов с 2017</span>
+    <span>точность направления: <b>50,3 %</b></span>
+    <span>p-value: <b>0,47</b></span>
+    <span>движок: <b>v1</b></span>
+    <span>не является финансовой рекомендацией; карты тоже так считают</span>
+  </footer>
+</div>
+
+<div class="modal" id="paywall">
+  <div class="box">
+    <h2>Карты дальше молчат</h2>
+    <p class="lead">Бесплатный доступ покрывает три дня вперёд. Для более дальнего горизонта нужен статус посвящённого.</p>
+    <div class="tiers">
+      <div class="tier"><div class="t">Посвящённый</div><div class="p">$4.99<small>/мес</small></div>
+        <ul><li>до 7 дней вперёд</li><li>история раскладов</li><li>без рекламы (её и так нет)</li></ul><button>Выбрать</button></div>
+      <div class="tier hi"><div class="t">Старший аркан</div><div class="p">$19.99<small>/мес</small></div>
+        <ul><li>всё из «Посвящённого»</li><li>премиум-колоды</li><li>второе мнение другой колодой</li><li>фейерверк при открытии</li></ul><button>Выбрать</button></div>
+      <div class="tier"><div class="t">Институциональный</div><div class="p">$999<small>/мес</small></div>
+        <ul><li>API-доступ</li><li>PDF-отчёт с печатью</li><li>персональный менеджер</li></ul><button>Запросить</button></div>
+    </div>
+    <button class="close" id="closePay">Вернуться к раскладу</button>
+  </div>
+</div>
+
+<div class="modal" id="sharemodal">
+  <div class="box sharebox">
+    <h2>Код расклада</h2>
+    <p class="lead">Вставьте его в поле ниже на любом устройстве — расклад воспроизведётся с теми же картами и анимациями.</p>
+    <textarea id="code" spellcheck="false"></textarea>
+    <div class="row">
+      <button id="copy">Скопировать</button>
+      <button id="replay">Воспроизвести из кода</button>
+      <button id="closeShare" style="margin-left:auto">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- deck ---------- */
+const MAJORS=["Шут","Маг","Верховная Жрица","Императрица","Император","Иерофант","Влюблённые","Колесница","Сила","Отшельник","Колесо Фортуны","Справедливость","Повешенный","Смерть","Умеренность","Дьявол","Башня","Звезда","Луна","Солнце","Суд","Мир"];
+const MGLYPH=["0","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI"];
+const SUITS=[["Жезлов","wands","♠︎"],["Кубков","cups","♥︎"],["Мечей","swords","♦︎"],["Пентаклей","pents","♣︎"]];
+const RANKS=["Туз","Двойка","Тройка","Четвёрка","Пятёрка","Шестёрка","Семёрка","Восьмёрка","Девятка","Десятка","Паж","Рыцарь","Королева","Король"];
+const DECK=[];
+for(let i=0;i<22;i++)DECK.push({id:i,major:true,idx:i,name:MAJORS[i],glyph:MGLYPH[i],num:"аркан "+MGLYPH[i]});
+SUITS.forEach((s,si)=>RANKS.forEach((r,ri)=>DECK.push({id:22+si*14+ri,major:false,suit:s[1],rank:ri+1,name:r+" "+s[0],glyph:s[2],num:String(ri+1).padStart(2,"0")})));
+
+/* ---------- rng ---------- */
+function hash(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return(h^=h>>>16)>>>0}}
+function rng(seed){let a=hash(seed)();return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const ENGINE="v1";
+
+/* ---------- state ---------- */
+const S={asset:"",anchor:0,real:[],fc:[],steps:[],src:"",atr:0,busy:false,shown:0};
+
+/* ---------- data ---------- */
+async function loadCandles(asset){
+  const t0=performance.now();
+  try{
+    const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${asset}&interval=1h&limit=168`);
+    if(!r.ok)throw 0;
+    const j=await r.json();
+    document.getElementById("lag").textContent=Math.round(performance.now()-t0)+" мс";
+    return{src:"Binance",c:j.map(k=>({t:k[0],o:+k[1],h:+k[2],l:+k[3],c:+k[4]}))};
+  }catch(e){
+    document.getElementById("lag").textContent="—";
+    return{src:"синтетический ряд (нет доступа к бирже из этого окна)",c:synth(asset)};
+  }
+}
+function synth(asset){
+  const r=rng("synth:"+asset+":"+ENGINE);
+  let p=asset.startsWith("BTC")?62000:asset.startsWith("ETH")?2900:asset.startsWith("EUR")?1.08:150+r()*400;
+  const vol=p*0.006,now=Math.floor(Date.now()/36e5)*36e5-167*36e5,out=[];
+  for(let i=0;i<168;i++){const o=p,dr=(r()-.5)*vol*2+Math.sin(i/17)*vol*.4;const c=o+dr;const h=Math.max(o,c)+r()*vol,l=Math.min(o,c)-r()*vol;out.push({t:now+i*36e5,o,h,l,c});p=c}
+  return out;
+}
+function atr(c,n=14){let s=0;for(let i=c.length-n;i<c.length;i++){const p=c[i-1];s+=Math.max(c[i].h-c[i].l,Math.abs(c[i].h-p.c),Math.abs(c[i].l-p.c))}return s/n}
+
+/* ---------- engine ---------- */
+function drawCards(asset,anchor,step){
+  const r=rng(`${asset}|${anchor}|${step}|${ENGINE}`),used=new Set(),out=[];
+  while(out.length<3){const i=Math.floor(r()*78);if(used.has(i))continue;used.add(i);out.push([i,r()<.28?1:0])}
+  return out;
+}
+function extrapolate(prevCandles,cards,step){
+  const A=S.atr,r=rng(`noise|${S.asset}|${S.anchor}|${step}`);
+  const all=[...S.real,...prevCandles];let last=all[all.length-1];
+  const ma=all.slice(-24).reduce((s,x)=>s+x.c,0)/24;
+  const trend=Math.sign(last.c-all[all.length-24].c)||1;
+  const out=[];let dir=trend;
+  for(let k=0;k<24;k++){
+    const [id,rev]=cards[Math.floor(k/8)],card=DECK[id],m=card.major?1:card.rank/14;
+    let drift=0,v=0.6,gap=0,pull=0;
+    if(card.major){
+      const i=card.idx;
+      if(i===16){if(k%8===0)gap=-3;drift=-.3}
+      else if(i===19){if(k%8===0)gap=2;drift=.2}
+      else if(i===10){if(k%8===0)dir=-dir;drift=.3*dir}
+      else if(i===12){drift=0;v=.2}
+      else if(i===18){v=2;drift=.1*dir}
+      else if(i===13){if(k%8===0)dir=-dir;drift=.4*dir}
+      else{drift=(i-10.5)/10.5*.4;v=.7}
+      if(rev){drift=-drift;gap=-gap}
+    }else{
+      const sg=rev?-1:1;
+      if(card.suit==="wands"){drift=sg*m*.5}
+      else if(card.suit==="cups"){v=rev?m*.4:m*1.4;drift=0}
+      else if(card.suit==="swords"){v=m*1.1;drift=sg*(r()<.5?-1:1)*m*.35}
+      else{pull=m*.3;v=.4;drift=0}
+    }
+    const o=last.c+gap*A;
+    const close=o+drift*A+(r()-.5)*v*A+pull*(ma-o);
+    const h=Math.max(o,close)+r()*v*A*.6,l=Math.min(o,close)-r()*v*A*.6;
+    const c={t:last.t+36e5,o,h,l,c:close};out.push(c);last=c;
+  }
+  return out;
+}
+
+/* ---------- reading text ---------- */
+function readingText(card,rev,day,pos){
+  const slots=["часы 0–8","часы 8–16","часы 16–24"];
+  const A=S.atr,fmt=x=>fmtPx(x);
+  let s;
+  if(card.major){
+    const i=card.idx;
+    s= i===16?(rev?"Обвал отменяется, но не сразу — гэп вверх и нервный откат":"Гэп вниз на 3 ATR, далее стабильное сползание")
+      :i===19?(rev?"Свет гаснет: разрыв вниз, слабая попытка вернуться":"Гэп вверх на 2 ATR и уверенный ход выше")
+      :i===10?"Разворот текущего тренда с этого часа":i===12?"Флэт. Рынок думает.":i===18?"Волатильность удвоена, направление неясно"
+      :i===13?"Смена режима: тренд меняет знак":i===0?"Хаотичное движение без ориентира":"Умеренный дрейф "+((i>10.5)^rev?"вверх":"вниз")+", волатильность средняя";
+  }else{
+    const m=(card.rank/14);
+    s= card.suit==="wands"?`Импульс ${rev?"вниз":"вверх"} ~${(m*.5*8).toFixed(1)} ATR за отрезок`
+      :card.suit==="cups"?(rev?"Сжатие волатильности, узкие свечи":"Расширение диапазона, длинные свечи")
+      :card.suit==="swords"?"Шипы и ложные пробои, тени длинные":`Возврат к MA(24) с силой ${Math.round(m*30)} %`;
+  }
+  return `<p><b>${card.name}${rev?", перевёрнутая":""} · ${slots[pos]}</b>${s}</p>`;
+}
+
+/* ---------- chart ---------- */
+const cv=document.getElementById("chart"),ctx=cv.getContext("2d");
+function fmtPx(x){return x>=1000?x.toLocaleString("ru",{maximumFractionDigits:0}):x>=10?x.toFixed(2):x.toFixed(4)}
+function render(showFc){
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=380;
+  cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  const real=S.real.slice(-96),fc=S.fc.slice(0,showFc),all=[...real,...fc];
+  if(!all.length)return;
+  const padR=70,padT=14,padB=26,n=Math.max(all.length,96+S.steps.length*24);
+  const cw=(W-padR-10)/n;
+  let lo=Infinity,hi=-Infinity;all.forEach(c=>{lo=Math.min(lo,c.l);hi=Math.max(hi,c.h)});
+  const pad=(hi-lo)*.08;lo-=pad;hi+=pad;
+  const y=v=>padT+(hi-v)/(hi-lo)*(H-padT-padB);
+  // forecast zone
+  const fx=10+real.length*cw;
+  ctx.fillStyle="rgba(214,178,90,.05)";ctx.fillRect(fx,0,W-padR-fx,H-padB);
+  // grid
+  ctx.strokeStyle="#2a2e40";ctx.lineWidth=1;ctx.fillStyle="#9d9887";ctx.font="11px "+getComputedStyle(document.body).getPropertyValue("--mono");
+  for(let i=0;i<=5;i++){const v=lo+(hi-lo)*i/5,yy=y(v);ctx.beginPath();ctx.moveTo(10,yy);ctx.lineTo(W-padR,yy);ctx.stroke();ctx.fillText(fmtPx(v),W-padR+8,yy+4)}
+  // day separators for forecast
+  ctx.setLineDash([3,4]);ctx.strokeStyle="#5a4a20";
+  for(let d=0;d<=S.steps.length;d++){const x=fx+d*24*cw;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H-padB);ctx.stroke();
+    if(d<S.steps.length){ctx.fillStyle="#d6b25a";ctx.fillText("день "+(d+1),x+6,H-padB-8)}}
+  ctx.setLineDash([]);
+  ctx.fillStyle="#d6b25a";ctx.fillText("сейчас",fx-44,12);
+  // time labels
+  ctx.fillStyle="#9d9887";
+  all.forEach((c,i)=>{if(i%24===0){const d=new Date(c.t);ctx.fillText(d.toISOString().slice(5,10),10+i*cw,H-8)}});
+  // candles
+  all.forEach((c,i)=>{
+    const x=10+i*cw+cw/2,up=c.c>=c.o,isF=i>=real.length;
+    ctx.strokeStyle=ctx.fillStyle=up?(isF?"#79d6a8":"#4fbf8b"):(isF?"#f08a8f":"#e05c62");
+    if(isF)ctx.globalAlpha=.85;
+    ctx.beginPath();ctx.moveTo(x,y(c.h));ctx.lineTo(x,y(c.l));ctx.stroke();
+    const t=y(Math.max(c.o,c.c)),b=y(Math.min(c.o,c.c));
+    ctx.fillRect(x-cw*.32,t,cw*.64,Math.max(1,b-t));
+    ctx.globalAlpha=1;
+  });
+}
+
+/* ---------- ui ---------- */
+const $=id=>document.getElementById(id);
+const spreadEl=$("spread"),readingEl=$("reading"),drawBtn=$("draw");
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");setTimeout(()=>t.classList.remove("on"),1800)}
+function setSteps(){[...$("steps").children].forEach((s,i)=>s.classList.toggle("done",i<S.steps.length))}
+function slotHTML(){return `<div class="slot empty"><div class="card"><div class="face back"></div><div class="face front"></div></div></div>`}
+function resetSpread(){spreadEl.innerHTML=slotHTML()+slotHTML()+slotHTML();readingEl.innerHTML=""}
+function cardFront(card,rev){return `<div class="num">${card.num}</div><div class="glyph">${card.glyph}</div><div><div class="name">${card.name}</div>${rev?'<div class="rev">перевёрнутая</div>':""}</div>`}
+
+async function load(){
+  const asset=$("asset").value.trim().toUpperCase();if(!asset)return;
+  $("note").textContent="Загружаем свечи…";drawBtn.disabled=true;$("share").disabled=true;
+  const {src,c}=await loadCandles(asset);
+  Object.assign(S,{asset,real:c,fc:[],steps:[],src,anchor:c[c.length-1].t,atr:atr(c),shown:0});
+  $("src").textContent="источник: "+src;$("sym").textContent=asset;
+  const last=c[c.length-1],prev=c[c.length-25];$("last").textContent=fmtPx(last.c);
+  const ch=(last.c/prev.c-1)*100;$("chg").textContent=(ch>=0?"+":"")+ch.toFixed(2)+" % / 24ч";$("chg").style.color=ch>=0?"var(--up)":"var(--down)";
+  resetSpread();setSteps();render(0);
+  drawBtn.textContent="Открыть расклад · день 1";drawBtn.disabled=false;
+  $("note").textContent="ATR(14) = "+fmtPx(S.atr)+" · горизонт шага 24 свечи";
+}
+
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function playStep(cards,step){
+  S.busy=true;drawBtn.disabled=true;resetSpread();
+  $("ring").classList.remove("on");void $("ring").offsetWidth;$("ring").classList.add("on");
+  await sleep(350);
+  $("flash").classList.remove("on");void $("flash").offsetWidth;$("flash").classList.add("on");
+  const slots=[...spreadEl.children];
+  for(let i=0;i<3;i++){
+    const [id,rev]=cards[i],card=DECK[id],slot=slots[i],el=slot.querySelector(".card"),front=el.querySelector(".front");
+    slot.classList.remove("empty");
+    front.innerHTML=cardFront(card,rev);
+    front.classList.toggle("major",card.major);front.classList.toggle("reversed",!!rev);
+    await sleep(120);el.classList.add("flipped");
+    if(card.major&&rev){$("stage").classList.remove("shake");void $("stage").offsetWidth;$("stage").classList.add("shake")}
+    readingEl.insertAdjacentHTML("beforeend",readingText(card,rev,step,i));
+    await sleep(650);
+  }
+  const prevFc=S.fc.slice();
+  const nc=extrapolate(prevFc,cards,step);
+  S.fc=[...prevFc,...nc];S.steps.push(cards);setSteps();
+  for(let k=1;k<=24;k++){render(prevFc.length+k);await sleep(45)}
+  S.busy=false;$("share").disabled=false;
+  const next=S.steps.length+1;
+  if(next<=3){drawBtn.textContent="Открыть расклад · день "+next;drawBtn.disabled=false}
+  else{drawBtn.textContent="Открыть расклад · день 4";drawBtn.disabled=false}
+}
+
+drawBtn.onclick=async()=>{
+  if(S.busy||!S.real.length)return;
+  if(S.steps.length>=3){$("paywall").classList.add("on");return}
+  const step=S.steps.length+1;
+  await playStep(drawCards(S.asset,S.anchor,step),step);
+};
+$("load").onclick=load;
+$("asset").addEventListener("keydown",e=>{if(e.key==="Enter")load()});
+$("closePay").onclick=()=>$("paywall").classList.remove("on");
+document.querySelectorAll(".tier button").forEach(b=>b.onclick=()=>toast("Платёжный модуль ещё медитирует"));
+
+/* ---------- share / replay ---------- */
+function encode(){return btoa(unescape(encodeURIComponent(JSON.stringify({v:ENGINE,a:S.asset,t:S.anchor,s:S.steps,src:S.src.startsWith("Binance")?"b":"s"}))))}
+function decode(code){return JSON.parse(decodeURIComponent(escape(atob(code.trim()))))}
+$("share").onclick=()=>{$("code").value=encode();$("sharemodal").classList.add("on")};
+$("closeShare").onclick=()=>$("sharemodal").classList.remove("on");
+$("copy").onclick=async()=>{try{await navigator.clipboard.writeText($("code").value);toast("Скопировано")}catch(e){$("code").select();toast("Выделено — нажмите Ctrl+C")}};
+$("replay").onclick=async()=>{
+  let d;try{d=decode($("code").value)}catch(e){toast("Код не читается");return}
+  $("sharemodal").classList.remove("on");
+  $("asset").value=d.a;await load();
+  if(d.src==="b"&&!S.src.startsWith("Binance"))toast("Оригинал был на данных Binance, сейчас показан синтетический ряд");
+  S.anchor=d.t;S.fc=[];S.steps=[];
+  for(let i=0;i<d.s.length;i++){await playStep(d.s[i],i+1)}
+};
+
+/* ---------- misc ---------- */
+setInterval(()=>{$("utc").textContent=new Date().toISOString().slice(11,19)+" UTC"},1000);
+window.addEventListener("resize",()=>render(S.fc.length));
+resetSpread();
+</script>
+</body>
+</html>
