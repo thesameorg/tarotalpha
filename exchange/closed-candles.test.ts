@@ -45,23 +45,33 @@ describe("fetchSnapshot", () => {
       expect(url.searchParams.get("endTime")).toBe(String(ANCHOR + HOUR_MS - 1));
       return jsonResponse(binanceRows(SNAPSHOT_LENGTH, ANCHOR));
     });
-    const snapshot = await fetchSnapshot("BTCUSDT", ANCHOR);
+    const snapshot = await fetchSnapshot("BTCUSDT", ANCHOR, ["binance"]);
     expect(snapshot.source).toBe("binance");
     expect(snapshot.candles).toHaveLength(SNAPSHOT_LENGTH);
     expect(snapshot.candles[SNAPSHOT_LENGTH - 1]).toEqual({ t: ANCHOR, o: 1, h: 2, l: 0.5, c: 1.5 });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("falls back to Bybit when Binance is geo-blocked and reverses its newest-first list", async () => {
-    stubFetch((url) =>
-      url.hostname === "api.binance.com"
-        ? new Response("blocked", { status: 451 })
-        : jsonResponse({ retCode: 0, retMsg: "OK", result: { list: bybitRows(SNAPSHOT_LENGTH, ANCHOR) } }),
-    );
+  it("asks Bybit first and reverses its newest-first list", async () => {
+    const fetchMock = stubFetch((url) => {
+      expect(url.hostname).toBe("api.bybit.com");
+      return jsonResponse({ retCode: 0, retMsg: "OK", result: { list: bybitRows(SNAPSHOT_LENGTH, ANCHOR) } });
+    });
     const snapshot = await fetchSnapshot("BTCUSDT", ANCHOR);
     expect(snapshot.source).toBe("bybit");
     expect(snapshot.candles[0]?.t).toBe(ANCHOR - (SNAPSHOT_LENGTH - 1) * HOUR_MS);
     expect(snapshot.candles[SNAPSHOT_LENGTH - 1]?.t).toBe(ANCHOR);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to Binance when Bybit is blocked", async () => {
+    stubFetch((url) =>
+      url.hostname === "api.bybit.com"
+        ? new Response("blocked", { status: 403 })
+        : jsonResponse(binanceRows(SNAPSHOT_LENGTH, ANCHOR)),
+    );
+    const snapshot = await fetchSnapshot("BTCUSDT", ANCHOR);
+    expect(snapshot.source).toBe("binance");
   });
 
   it("uses only the sources it is given", async () => {

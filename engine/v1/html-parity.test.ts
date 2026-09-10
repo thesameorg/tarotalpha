@@ -10,8 +10,8 @@ import { computeSteps, ENGINE_VERSION } from "./index";
 import { interpret } from "./interpretation";
 import { makeRng, seedString } from "./seed";
 
-// The prototype seeds its noise without the engine version; the port takes the seed explicitly, so the test hands it
-// the prototype's own string and expects the same doubles, not merely close ones.
+// The fixture keeps the prototype's noise seed (no engine version); `cardsToCandles` takes the seed explicitly, so
+// the test hands it that string and expects the same doubles, not merely close ones.
 function replay(steps: readonly HtmlStep[]): void {
   const previousForecast: Candle[] = [];
   for (const s of steps) {
@@ -50,14 +50,6 @@ describe("parity with tarot-alpha.html", () => {
     }
   });
 
-  it("generates the same 72 candles for the drawn cards", () => {
-    replay(F.steps);
-  });
-
-  it("generates the same candles for hand-picked cards that reach every card branch", () => {
-    replay(F.chosen);
-  });
-
   it("says the same sentence for every card in both orientations", () => {
     expect(F.interpretations).toHaveLength(DECK.length * 2);
     for (const { id, reversed, text } of F.interpretations) {
@@ -65,10 +57,21 @@ describe("parity with tarot-alpha.html", () => {
     }
   });
 
-  it("differs from the prototype only in the noise seed, which now carries the engine version", () => {
+  it("draws the prototype's cards but seeds the noise with the engine version, so the candles differ", () => {
     const [first] = computeSteps({ asset: F.asset, anchorTs: F.anchorTs, snapshot: F.snapshot, steps: 1 });
     const [drawn] = F.steps;
     expect(first?.cards).toEqual(drawn?.cards);
     expect(first?.candles).not.toEqual(drawn?.candles);
+  });
+});
+
+// The candle scale was recalibrated away from the prototype, so the candles are the engine's own golden output.
+describe("golden candles of engine v1 (its own output, not the HTML's)", () => {
+  it("reproduces the 72 golden candles for the drawn cards", () => {
+    replay(F.steps);
+  });
+
+  it("reproduces the golden candles for hand-picked cards that reach every card branch", () => {
+    replay(F.chosen);
   });
 });

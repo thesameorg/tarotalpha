@@ -1,8 +1,8 @@
 /**
  * One step of the forecast: three cards, eight candles each, every amplitude in units of the snapshot ATR.
- * Tables, formulas and the generator call order are in docs/flows/card-to-candles.md. The arithmetic mirrors the
- * prototype's `extrapolate` expression by expression: floating-point evaluation order is part of what a stored
- * reading replays, so do not "simplify" a formula here without a new engine version.
+ * Tables, formulas and the generator call order are in docs/flows/card-to-candles.md. The shape follows the
+ * prototype's `extrapolate`; the scale is recalibrated so a candle spans about one ATR. Floating-point evaluation
+ * order is part of what a stored reading replays, so do not "simplify" a formula here without a new engine version.
  */
 import type { Candle } from "./atr";
 import { cardById } from "./deck";
@@ -20,6 +20,8 @@ export interface StepInput {
 const HOUR_MS = 3_600_000;
 const CANDLES_PER_CARD = 8;
 const LOOKBACK = 24;
+const MIN_V = 0.6;
+const MIN_RANGE = 0.3;
 
 export function cardsToCandles(input: StepInput): Candle[] {
   const A = input.atr;
@@ -40,7 +42,7 @@ export function cardsToCandles(input: StepInput): Candle[] {
     for (let j = 0; j < CANDLES_PER_CARD; j++) {
       const blockStart = j === 0;
       let drift = 0;
-      let v = 0.6;
+      let v = 1;
       let gap = 0;
       let pull = 0;
       if (card.arcana === "major") {
@@ -55,7 +57,8 @@ export function cardsToCandles(input: StepInput): Candle[] {
           if (blockStart) dir = -dir;
           drift = 0.3 * dir;
         } else if (i === 12) {
-          v = 0.2;
+          v = 0.7;
+          pull = 0.35;
         } else if (i === 18) {
           v = 2;
           drift = 0.1 * dir;
@@ -64,7 +67,6 @@ export function cardsToCandles(input: StepInput): Candle[] {
           drift = 0.4 * dir;
         } else {
           drift = ((i - 10.5) / 10.5) * 0.4;
-          v = 0.7;
         }
         if (reversed === 1) {
           drift = -drift;
@@ -75,19 +77,26 @@ export function cardsToCandles(input: StepInput): Candle[] {
         if (card.suit === "wands") {
           drift = sg * m * 0.5;
         } else if (card.suit === "cups") {
-          v = reversed === 1 ? m * 0.4 : m * 1.4;
+          v = reversed === 1 ? 0.6 + 0.3 * m : 1 + 0.8 * m;
         } else if (card.suit === "swords") {
-          v = m * 1.1;
+          v = 0.8 + 0.6 * m;
           drift = sg * (r() < 0.5 ? -1 : 1) * m * 0.35;
         } else {
           pull = m * 0.3;
-          v = 0.4;
+          v = 0.8;
         }
       }
+      v = Math.max(v, MIN_V);
       const o = last.c + gap * A;
       const close = o + drift * A + (r() - 0.5) * v * A + pull * (ma - o);
-      const h = Math.max(o, close) + r() * v * A * 0.6;
-      const l = Math.min(o, close) - r() * v * A * 0.6;
+      let h = Math.max(o, close) + r() * v * A * 0.6;
+      let l = Math.min(o, close) - r() * v * A * 0.6;
+      // A candle narrower than 0.3 ATR gets both wicks widened to it, so no card draws a flat line of dots.
+      const missing = MIN_RANGE * A - (h - l);
+      if (missing > 0) {
+        h += missing / 2;
+        l -= missing / 2;
+      }
       const candle: Candle = { t: last.t + HOUR_MS, o, h, l, c: close };
       out.push(candle);
       last = candle;

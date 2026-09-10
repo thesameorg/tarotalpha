@@ -9,10 +9,8 @@ CREATE TABLE readings (
   seed_nonce TEXT,
   steps TEXT NOT NULL,
   candles_snapshot TEXT NOT NULL,
-  created_at INTEGER NOT NULL,
-  views INTEGER NOT NULL DEFAULT 0
+  created_at INTEGER NOT NULL
 );
-CREATE INDEX readings_asset_anchor ON readings (asset, anchor_ts);
 
 -- Funnel journal, one row per event; only the landing counter and the owner's own SQL read it.
 CREATE TABLE events (

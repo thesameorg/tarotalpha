@@ -11,9 +11,10 @@ import { ExchangeError, type Provider, type Source } from "./provider";
 export const HOUR_MS = 3_600_000;
 export const SNAPSHOT_LENGTH = 168;
 export const ASSET_PATTERN = /^[A-Z0-9]{2,20}$/;
-export const SOURCES: readonly Source[] = ["binance", "bybit"];
+export const SOURCES: readonly Source[] = ["bybit", "binance"];
 
-const PROVIDERS: readonly Provider[] = [binance, bybit];
+// Bybit first: it answers from both the browser and the Cloudflare edge; Binance blocks the edge (403).
+const PROVIDERS: readonly Provider[] = [bybit, binance];
 
 export interface Snapshot {
   source: Source;
@@ -35,7 +36,7 @@ export async function fetchSnapshot(
   anchorTs: number,
   sources: readonly Source[] = SOURCES,
 ): Promise<Snapshot> {
-  let lastError: ExchangeError | null = null;
+  const failures: ExchangeError[] = [];
   for (const source of sources) {
     const provider = providerFor(source);
     try {
@@ -44,10 +45,14 @@ export async function fetchSnapshot(
       return { source, anchorTs, candles };
     } catch (error) {
       if (!(error instanceof ExchangeError)) throw error;
-      lastError = error;
+      failures.push(error);
     }
   }
-  throw lastError ?? new ExchangeError("unavailable", null, "no exchange sources given");
+  // An exchange that answered (unknown symbol, short history) beats one that did not answer at all.
+  const answered = failures.find((failure) => failure.kind !== "unavailable");
+  throw (
+    answered ?? failures[failures.length - 1] ?? new ExchangeError("unavailable", null, "no exchange sources given")
+  );
 }
 
 /** Closed candles after the anchor, at most `limit`, from the snapshot's own provider so accuracy compares like with like. */

@@ -1,7 +1,7 @@
 /**
  * Writing and reading a reading. The Worker never trusts the client's candles or cards: it snapshots the candles
- * from the author's own provider and recomputes the steps with the engine version it stores (law 1 in CLAUDE.md).
- * What is stored, and why the snapshot comes from one provider only: docs/flows/reading-lifecycle.md
+ * itself, from the author's provider when the edge can reach it, and recomputes the steps with the engine version
+ * it stores (law 1 in CLAUDE.md). What is stored and why: docs/flows/reading-lifecycle.md
  */
 import { engineFor } from "../engine/index";
 import type { StepCards } from "../engine/v1/index";
@@ -18,7 +18,7 @@ import { recordEvent } from "./events";
 import { ApiError, readJsonBody } from "./json-api";
 import { ID_PATTERN, shortId } from "./short-id";
 
-export const FREE_STEPS = 3;
+export const FREE_STEPS = 2;
 const ID_ATTEMPTS = 3;
 const EXCHANGE_STATUS = { unknown_asset: 400, too_old: 422, unavailable: 502 } as const;
 
@@ -37,7 +37,6 @@ interface ReadingRow {
   source: string;
   engine_version: string;
   created_at: number;
-  views: number;
   steps: string;
   candles_snapshot: string;
 }
@@ -63,22 +62,17 @@ export async function createReading(request: Request, env: Env): Promise<Respons
   return Response.json({ id, url: `/r/${id}` }, { status: 201 });
 }
 
-export async function readReading(id: string, request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+export async function readReading(id: string, env: Env): Promise<Response> {
   const row = ID_PATTERN.test(id)
     ? await env.DB.prepare(
-        "SELECT id, asset, timeframe, anchor_ts, source, engine_version, created_at, views, steps, candles_snapshot" +
+        "SELECT id, asset, timeframe, anchor_ts, source, engine_version, created_at, steps, candles_snapshot" +
           " FROM readings WHERE id = ?1",
       )
         .bind(id)
         .first<ReadingRow>()
     : null;
   if (row === null) throw new ApiError(404, "not_found", `no reading ${id}`);
-  ctx.waitUntil(
-    Promise.all([
-      env.DB.prepare("UPDATE readings SET views = views + 1 WHERE id = ?1").bind(id).run(),
-      recordEvent(env.DB, request, { type: "link_opened", asset: row.asset, readingId: id }),
-    ]),
-  );
+  // Reads write nothing: views are an analytics fact and live in Workers observability, not in D1.
   return Response.json({
     ...row,
     steps: JSON.parse(row.steps) as unknown,
@@ -115,8 +109,9 @@ async function parseCreateBody(request: Request, engineVersion: string): Promise
 
 async function snapshotOrFail(body: CreateBody, request: Request, db: D1Database): Promise<Snapshot> {
   try {
-    // Only the author's provider: a snapshot from another exchange would not be what the author saw.
-    return await fetchSnapshot(body.asset, body.anchorTs, [body.source]);
+    // Author's provider first; Binance blocks the Cloudflare edge, so the next one beats no link at all.
+    const order = [body.source, ...SOURCES.filter((source) => source !== body.source)];
+    return await fetchSnapshot(body.asset, body.anchorTs, order);
   } catch (error) {
     if (!(error instanceof ExchangeError)) throw error;
     if (error.kind === "unavailable") {

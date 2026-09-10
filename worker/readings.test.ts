@@ -5,7 +5,7 @@ import { HOUR_MS, SNAPSHOT_LENGTH, lastClosedAnchor } from "../exchange/closed-c
 import { callApi, post } from "./call-api";
 
 const ANCHOR = lastClosedAnchor(Date.now()) - 24 * HOUR_MS;
-const CREATE = { asset: "BTCUSDT", anchor_ts: ANCHOR, steps: 3, source: "binance", engine_version: "v1" };
+const CREATE = { asset: "BTCUSDT", anchor_ts: ANCHOR, steps: 2, source: "binance", engine_version: "v1" };
 
 interface Created {
   id: string;
@@ -16,7 +16,6 @@ interface ReadingBody {
   id: string;
   asset: string;
   anchor_ts: number;
-  views: number;
   steps: unknown;
   candles_snapshot: [number, number, number, number, number][];
 }
@@ -29,15 +28,33 @@ function binanceRows(count: number, endTs: number): unknown[] {
   });
 }
 
+function bybitRows(count: number, endTs: number): unknown[] {
+  return binanceRows(count, endTs)
+    .map((row) => (row as unknown[]).slice(0, 5).map(String))
+    .reverse();
+}
+
+interface Reply {
+  status: number;
+  body: unknown;
+}
+
+const BLOCKED: Reply = { status: 403, body: "blocked" };
+
 // The Worker code runs in the test isolate, so stubbing the global keeps every exchange call off the network.
-function stubBinance(status: number, body: unknown): void {
+function stubExchanges(binance: Reply, bybit: Reply = BLOCKED): void {
   vi.stubGlobal(
     "fetch",
     vi.fn((input: string | URL) => {
-      expect(new URL(input).hostname).toBe("api.binance.com");
-      return Promise.resolve(new Response(typeof body === "string" ? body : JSON.stringify(body), { status }));
+      const reply = new URL(input).hostname === "api.binance.com" ? binance : bybit;
+      const text = typeof reply.body === "string" ? reply.body : JSON.stringify(reply.body);
+      return Promise.resolve(new Response(text, { status: reply.status }));
     }),
   );
+}
+
+function stubBinance(status: number, body: unknown): void {
+  stubExchanges({ status, body });
 }
 
 // Storage is shared inside a test file, so events are compared against the row count seen before the call.
@@ -75,21 +92,13 @@ describe("POST /api/readings then GET /api/readings/:id", () => {
     expect(read.status).toBe(200);
     const body = await read.json<ReadingBody>();
     expect(body).toMatchObject({ id, asset: "BTCUSDT", timeframe: "1H", anchor_ts: ANCHOR, source: "binance" });
-    expect(body).toMatchObject({ engine_version: "v1", views: 0 });
+    expect(body).toMatchObject({ engine_version: "v1" });
     expect(body.candles_snapshot).toHaveLength(SNAPSHOT_LENGTH);
     expect(body.candles_snapshot[SNAPSHOT_LENGTH - 1]?.[0]).toBe(ANCHOR);
     const snapshot = body.candles_snapshot.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
-    const expected = computeSteps({ asset: "BTCUSDT", anchorTs: ANCHOR, snapshot, steps: 3 }).map((step) => step.cards);
+    const expected = computeSteps({ asset: "BTCUSDT", anchorTs: ANCHOR, snapshot, steps: 2 }).map((step) => step.cards);
     expect(body.steps).toEqual(expected);
-    expect(await eventTypesAfter(mark)).toEqual(["shared", "link_opened"]);
-  });
-
-  it("counts a view per read", async () => {
-    stubBinance(200, binanceRows(SNAPSHOT_LENGTH, ANCHOR));
-    const { id } = await (await share()).json<Created>();
-    await callApi(`/api/readings/${id}`);
-    const second = await (await callApi(`/api/readings/${id}`)).json<ReadingBody>();
-    expect(second.views).toBe(1);
+    expect(await eventTypesAfter(mark)).toEqual(["shared"]);
   });
 
   it("answers an unknown id with 404", async () => {
@@ -100,10 +109,10 @@ describe("POST /api/readings then GET /api/readings/:id", () => {
 });
 
 describe("POST /api/readings validation", () => {
-  it("puts a fourth step behind the paywall", async () => {
-    const response = await share({ steps: 4 });
+  it("puts the third step behind the paywall", async () => {
+    const response = await share({ steps: 3 });
     expect(response.status).toBe(402);
-    expect(await response.json()).toMatchObject({ error: "paywall", free_steps: 3 });
+    expect(await response.json()).toMatchObject({ error: "paywall", free_steps: 2 });
   });
 
   it("rejects an asset outside the symbol mask", async () => {
@@ -132,7 +141,18 @@ describe("POST /api/readings when the exchange fails", () => {
     expect(await response.json()).toMatchObject({ error: "too_old" });
   });
 
-  it("answers 502 and journals share_failed when the exchange is blocked", async () => {
+  it("snapshots from the next provider when the author's one blocks the edge, and records it", async () => {
+    const bybit = { status: 200, body: { retCode: 0, result: { list: bybitRows(SNAPSHOT_LENGTH, ANCHOR) } } };
+    stubExchanges(BLOCKED, bybit);
+    const created = await share();
+    expect(created.status).toBe(201);
+    const { id } = await created.json<Created>();
+    const body = await (await callApi(`/api/readings/${id}`)).json<ReadingBody>();
+    expect(body).toMatchObject({ source: "bybit" });
+    expect(body.candles_snapshot[SNAPSHOT_LENGTH - 1]?.[0]).toBe(ANCHOR);
+  });
+
+  it("answers 502 and journals share_failed when every exchange is blocked", async () => {
     stubBinance(451, "blocked");
     const mark = await eventMark();
     const response = await share();

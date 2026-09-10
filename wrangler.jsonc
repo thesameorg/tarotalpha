@@ -5,6 +5,8 @@
   "account_id": "e023ec3576222c6a7b6cdf933de3d915",
   "main": "./worker/index.ts",
   "compatibility_date": "2026-09-08",
+  // Reads of a link are analytics, not data: they live in Workers Logs, so the Worker writes nothing on a read.
+  "observability": { "enabled": true },
   // No `directory`: the Vite plugin fills it in at build time. SPA fallback keeps `/r/<id>` links on index.html.
   "assets": {
     "binding": "ASSETS",

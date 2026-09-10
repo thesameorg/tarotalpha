@@ -1,6 +1,6 @@
 /**
  * Funnel journal: one row per event, read only by the landing counter and by the owner's own SQL.
- * Client and server event types are kept apart so a browser cannot forge `shared` or `link_opened`.
+ * Client and server event types are kept apart so a browser cannot forge `shared`.
  * `ip_hash` is a daily-rotating pseudonym (SHA-256 of address and date), not an identity.
  */
 import { ASSET_PATTERN } from "../exchange/closed-candles";
@@ -12,7 +12,7 @@ const CLIENT_TYPES = ["chart_loaded", "step_opened", "paywall_hit", "own_reading
 const DAY_MS = 86_400_000;
 
 type ClientEventType = (typeof CLIENT_TYPES)[number];
-export type EventType = ClientEventType | "shared" | "share_failed" | "link_opened";
+export type EventType = ClientEventType | "shared" | "share_failed";
 
 export interface EventInput {
   type: EventType;
