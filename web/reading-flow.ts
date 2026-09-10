@@ -206,9 +206,6 @@ class LandingPage {
     this.el.draw.addEventListener("click", () => {
       void this.openStep();
     });
-    this.el.cta.addEventListener("click", () => {
-      void this.openStep();
-    });
     this.el.share.addEventListener("click", () => {
       void this.share();
     });
