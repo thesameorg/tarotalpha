@@ -102,7 +102,8 @@ a:focus-visible {
   display: none !important;
 }
 
-/* One screen on desktop: the grid is the viewport, the chart takes what the fixed rows leave. Mobile may scroll. */
+/* One screen on desktop: the grid is the viewport, the chart takes what the fixed rows leave. Mobile may scroll,
+   and so may a short desktop window: below the height the words need, a scrollbar beats a cut-off disclaimer. */
 .app {
   max-width: 1080px;
   margin: 0 auto;
@@ -113,7 +114,7 @@ a:focus-visible {
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 100dvh;
 }
-@media (min-width: 641px) {
+@media (min-width: 641px) and (min-height: 800px) {
   .app {
     height: 100dvh;
     overflow: hidden;
@@ -671,32 +672,57 @@ main {
   }
 }
 
+/* The words under a card: its name, then the esoteric line. The caption printed on the picture is for the
+   fullscreen reveal only — in this row it would land on the name the card itself carries. */
+.spread .caption {
+  display: none;
+}
 .meanings {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
-  padding: 6px 14px 0;
+  padding: 10px 14px 0;
   min-height: 26px;
 }
-.meanings p {
+.meaning {
+  text-align: center;
+  min-width: 0;
+}
+.card-name {
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.2;
   color: var(--paper);
+}
+.card-name .rev {
+  margin-left: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--down);
+  font-variant: small-caps;
+}
+.meanings p {
+  margin-top: 4px;
+  color: var(--paper-dim);
   font-family: var(--serif);
   font-style: italic;
-  font-size: 13px;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 14px;
+  line-height: 1.35;
+  text-wrap: balance;
 }
-/* The day's summary: one serif paragraph under the cards, its own disclaimer under the number (law 2). */
+/* The day's summary: one serif paragraph under the cards, held to a readable measure and centred under them;
+   its own disclaimer sits under the number (law 1). */
 .summary {
-  padding: 6px 14px 0;
+  padding: 12px 14px 0;
 }
 .summary p {
+  max-width: 68ch;
+  margin: 0 auto;
   font-family: var(--serif);
   font-style: italic;
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 15px;
+  line-height: 1.5;
   color: var(--paper);
 }
 .summary p b {
@@ -707,23 +733,29 @@ main {
 .summary .disclaimer {
   font-family: var(--mono);
   font-style: normal;
-  margin-top: 2px;
+  margin-top: 6px;
+}
+/* One disclaimer per screen: while the summary carries its own, the footer keeps only the link to the method. */
+.app:has(.summary:not([hidden])) footer .disclaimer {
+  display: none;
 }
 @media (max-width: 640px) {
   .meanings {
     gap: 8px;
-    padding: 6px 8px 0;
+    padding: 8px 8px 0;
+  }
+  .card-name {
+    font-size: 15px;
   }
   .meanings p {
-    white-space: normal;
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.3;
   }
   .summary {
-    padding: 6px 8px 0;
+    padding: 10px 8px 0;
   }
   .summary p {
-    font-size: 12px;
+    font-size: 14px;
   }
 }
 .disclaimer {
