@@ -56,7 +56,8 @@ export function createSpreadPanel(root: HTMLElement, eager: boolean): SpreadPane
     how.hidden = step === undefined;
     summary.hidden = step === undefined;
     if (step === undefined) {
-      spread.innerHTML = slotMarkup(null, false).repeat(3);
+      // No card slots before a step: how many cards a reader draws is its own business, and one may throw bones.
+      spread.innerHTML = `<div class="cloth" aria-hidden="true"></div>`;
       meanings.replaceChildren();
       summary.replaceChildren();
       return;

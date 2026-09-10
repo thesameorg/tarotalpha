@@ -5,6 +5,7 @@ import { initLang } from "./i18n/index";
 import { zoneLabel } from "./local-time-format";
 import { initPaywallModal } from "./paywall-modal";
 import { initReader } from "./reader-choice";
+import { initReaderProfile } from "./reader-profile";
 import { landingView } from "./reading-flow";
 import { readingView } from "./reading-page";
 import { startRouter } from "./router";
@@ -25,6 +26,7 @@ initTheme();
 initReader();
 initHeaderControls();
 initTechPanel();
+initReaderProfile();
 initPaywallModal();
 initShareModal();
 
