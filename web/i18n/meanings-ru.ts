@@ -1,12 +1,10 @@
 /**
- * One-line classical Rider-Waite meanings shown under a drawn card, upright and reversed, indexed by engine card id
- * (order as in engine/v1/deck.ts). The lines are content: solemn, esoteric, and free of market vocabulary on purpose.
+ * One-line classical Rider-Waite meanings in Russian, upright and reversed, indexed by engine card id
+ * (order as in engine/deck.ts). Content: solemn, esoteric, and free of market vocabulary on purpose.
  */
-import { DECK } from "../engine/v1/deck";
+export type Meaning = readonly [upright: string, reversed: string];
 
-type Meaning = readonly [upright: string, reversed: string];
-
-const MEANINGS: readonly Meaning[] = [
+export const MEANINGS_RU: readonly Meaning[] = [
   // Major arcana, ids 0-21: Fool ... World
   ["Шаг в неизвестность с лёгким сердцем", "Безрассудство, ведущее к падению"],
   ["Воля обретает форму, всё под рукой", "Ловкость рук и обман намерений"],
@@ -91,13 +89,3 @@ const MEANINGS: readonly Meaning[] = [
   ["Хозяйка сада, щедрая забота", "Заброшенный сад, забота иссякла"],
   ["Владыка земли, прочный достаток", "Алчность, достаток обращён в тяжесть"],
 ];
-
-if (MEANINGS.length !== DECK.length)
-  throw new Error(`card meanings cover ${String(MEANINGS.length)} of ${String(DECK.length)} cards`);
-
-export function cardMeaning(cardId: number, reversed: boolean): string {
-  const meaning = MEANINGS[cardId];
-  if (meaning === undefined)
-    throw new RangeError(`card id ${String(cardId)} is outside the ${String(DECK.length)}-card deck`);
-  return reversed ? meaning[1] : meaning[0];
-}

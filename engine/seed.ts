@@ -1,7 +1,6 @@
 /**
- * xmur3 string hash feeding a mulberry32 generator, bit for bit the prototype's `hash` and `rng`. Every stored
- * reading replays through these two functions, so they are frozen with engine v1 (law 1 in CLAUDE.md).
- * The seed string is the fixation window: same asset, anchor, step and version means the same cards.
+ * xmur3 string hash feeding a mulberry32 generator, bit for bit the prototype's `hash` and `rng`. The seed string
+ * is the fixation window: same asset, anchor, step and version label means the same cards for everyone.
  */
 function xmur3(str: string): () => number {
   let h = 1779033703 ^ str.length;

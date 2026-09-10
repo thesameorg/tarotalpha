@@ -3,7 +3,7 @@
  * A non-2xx answer becomes an ApiError with the status so the UI can pick a message; events are
  * fire-and-forget and never throw, because losing a funnel row must not break a reading.
  */
-import type { StepCards } from "../engine/v1/draw-cards";
+import type { StepCards } from "../engine/draw-cards";
 import type { Source } from "../exchange/provider";
 
 export class ApiError extends Error {

@@ -1,11 +1,17 @@
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { computeSteps } from "../engine/v1/index";
+import { computeSteps, ENGINE_VERSION } from "../engine/index";
 import { HOUR_MS, SNAPSHOT_LENGTH, lastClosedAnchor } from "../exchange/closed-candles";
 import { callApi, post } from "./call-api";
 
 const ANCHOR = lastClosedAnchor(Date.now()) - 24 * HOUR_MS;
-const CREATE = { asset: "BTCUSDT", anchor_ts: ANCHOR, steps: 2, source: "binance", engine_version: "v1" };
+const CREATE = {
+  asset: "BTCUSDT",
+  anchor_ts: ANCHOR,
+  steps: 2,
+  source: "binance",
+  engine_version: ENGINE_VERSION as string,
+};
 
 interface Created {
   id: string;
@@ -92,7 +98,7 @@ describe("POST /api/readings then GET /api/readings/:id", () => {
     expect(read.status).toBe(200);
     const body = await read.json<ReadingBody>();
     expect(body).toMatchObject({ id, asset: "BTCUSDT", timeframe: "1H", anchor_ts: ANCHOR, source: "binance" });
-    expect(body).toMatchObject({ engine_version: "v1" });
+    expect(body).toMatchObject({ engine_version: ENGINE_VERSION });
     expect(body.candles_snapshot).toHaveLength(SNAPSHOT_LENGTH);
     expect(body.candles_snapshot[SNAPSHOT_LENGTH - 1]?.[0]).toBe(ANCHOR);
     const snapshot = body.candles_snapshot.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
@@ -129,7 +135,7 @@ describe("POST /api/readings validation", () => {
   it("refuses to store with an engine other than the server's", async () => {
     const response = await share({ engine_version: "v0" });
     expect(response.status).toBe(409);
-    expect(await response.json()).toMatchObject({ error: "engine_mismatch", engine_version: "v1" });
+    expect(await response.json()).toMatchObject({ error: "engine_mismatch", engine_version: ENGINE_VERSION });
   });
 });
 

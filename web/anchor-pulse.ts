@@ -13,13 +13,13 @@ import type {
   SeriesType,
   UTCTimestamp,
 } from "lightweight-charts";
+import { palette } from "./palette";
 import { reducedMotion } from "./stage-effects";
 
 type RenderTarget = Parameters<IPrimitivePaneRenderer["draw"]>[0];
 
 const PERIOD_MS = 1600;
 const FRAME_MS = 50;
-const GOLD = "#d6b25a";
 
 export interface PulsePoint {
   time: UTCTimestamp;
@@ -98,15 +98,16 @@ class PulseView implements IPrimitivePaneView {
     const phase = reducedMotion() ? 0 : (performance.now() % PERIOD_MS) / PERIOD_MS;
     return {
       draw(target: RenderTarget) {
+        const p = palette();
         target.useMediaCoordinateSpace(({ context }) => {
           context.beginPath();
           context.arc(position.x, position.y, 3, 0, Math.PI * 2);
-          context.fillStyle = GOLD;
+          context.fillStyle = p.gold;
           context.fill();
           if (phase === 0) return;
           context.beginPath();
           context.arc(position.x, position.y, 4 + phase * 12, 0, Math.PI * 2);
-          context.strokeStyle = `rgba(214,178,90,${String(0.7 * (1 - phase))})`;
+          context.strokeStyle = `rgba(${p.goldRgb},${String(0.7 * (1 - phase))})`;
           context.lineWidth = 1.5;
           context.stroke();
         });

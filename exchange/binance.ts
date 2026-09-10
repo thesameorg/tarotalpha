@@ -1,5 +1,5 @@
 /** Binance spot klines, the primary provider. Response format and limits: docs/reference/binance-klines.md */
-import type { Candle } from "../engine/v1/atr";
+import type { Candle } from "../engine/atr";
 import { ExchangeError, type KlineWindow, type Provider } from "./provider";
 
 const KLINES_URL = "https://api.binance.com/api/v3/klines";

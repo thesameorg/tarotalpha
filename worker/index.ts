@@ -1,4 +1,5 @@
 /** One Worker: `/api/*` is answered here, `/r/<id>` is index.html with the reading's meta tags, the rest is static. */
+import { ENGINE_VERSION } from "../engine/index";
 import { postEvent } from "./events";
 import { ApiError } from "./json-api";
 import { rateLimited } from "./rate-limit";
@@ -32,7 +33,7 @@ async function api(pathname: string, request: Request, env: Env): Promise<Respon
 
 function route(pathname: string, request: Request, env: Env): Promise<Response> | Response {
   const { method } = request;
-  if (pathname === "/api/health" && method === "GET") return Response.json({ ok: true, engine: env.ENGINE_VERSION });
+  if (pathname === "/api/health" && method === "GET") return Response.json({ ok: true, engine: ENGINE_VERSION });
   if (pathname === "/api/readings" && method === "POST") return createReading(request, env);
   const reading = READING_API.exec(pathname);
   if (reading?.[1] !== undefined && method === "GET") return readReading(reading[1], env);

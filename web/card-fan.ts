@@ -1,10 +1,11 @@
 /**
- * A hand of card backs fanned along the bottom of the reveal. Each back sits on an arc around a pivot below the
- * screen, so neighbours overlap like cards held in a hand, and the fan closes the gap when one leaves. Pointer
+ * The whole deck of backs fanned along the bottom of the reveal, one per card. Each back sits on an arc around a
+ * pivot below the screen, so neighbours overlap like cards held in a hand, and the fan closes the gap when one leaves. Pointer
  * Events give mouse and touch one path: pressing lifts a back, dragging it up past the threshold pulls it, a release
  * short of that — and a plain tap — snaps it back, so nothing is pulled by accident; arrows move a highlight, Enter
  * or Space pull it. Which back is taken never matters: the caller maps the i-th pull to card i.
  */
+import { DECK } from "../engine/deck";
 import { reducedMotion, sleep } from "./stage-effects";
 
 /** Where a back left the fan: its centre in viewport px, its tilt in radians and its CSS width, for the flight. */
@@ -35,7 +36,7 @@ interface Drag {
   moved: boolean;
 }
 
-const BACKS = 24;
+const BACKS = DECK.length;
 const SPREAD_RAD = (50 * Math.PI) / 180;
 const MAX_ARC_WIDTH = 900;
 const EDGE_PAD = 12;

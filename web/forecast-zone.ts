@@ -12,14 +12,12 @@ import type {
   SeriesAttachedParameter,
   UTCTimestamp,
 } from "lightweight-charts";
-import { copy } from "./copy";
+import { t } from "./i18n/index";
+import { palette } from "./palette";
 
 type RenderTarget = Parameters<IPrimitivePaneRenderer["draw"]>[0];
 
 const CANDLES_PER_DAY = 24;
-const TINT = "rgba(214,178,90,.05)";
-const SEPARATOR = "#5a4a20";
-const LABEL = "#d6b25a";
 
 interface ZoneLayout {
   start: number;
@@ -86,7 +84,7 @@ export class ForecastZone implements ISeriesPrimitive {
     for (let day = 0; day <= this.steps; day++) {
       const x = start + day * CANDLES_PER_DAY * barWidth;
       separators.push(x);
-      if (day < this.steps) dayLabels.push({ x: x + 6, text: copy.day(day + 1) });
+      if (day < this.steps) dayLabels.push({ x: x + 6, text: t().day(day + 1) });
     }
     return { start, separators, dayLabels };
   }
@@ -104,15 +102,16 @@ class BackdropView implements IPrimitivePaneView {
     if (layout === null) return null;
     return {
       draw(target: RenderTarget) {
+        const p = palette();
         target.useMediaCoordinateSpace(({ context, mediaSize }) => {
           const width = mediaSize.width - layout.start;
           if (width > 0) {
-            context.fillStyle = TINT;
+            context.fillStyle = p.zoneTint;
             context.fillRect(layout.start, 0, width, mediaSize.height);
           }
           context.save();
           context.setLineDash([3, 4]);
-          context.strokeStyle = SEPARATOR;
+          context.strokeStyle = p.zoneLine;
           context.lineWidth = 1;
           for (const x of layout.separators) {
             if (x < 0 || x > mediaSize.width) continue;
@@ -140,17 +139,19 @@ class LabelsView implements IPrimitivePaneView {
     if (layout === null) return null;
     return {
       draw(target: RenderTarget) {
+        const p = palette();
         target.useMediaCoordinateSpace(({ context, mediaSize }) => {
           context.font = font();
-          context.fillStyle = LABEL;
+          context.fillStyle = p.gold;
           context.textBaseline = "alphabetic";
           for (const label of layout.dayLabels) {
             if (label.x < 0 || label.x > mediaSize.width) continue;
             context.fillText(label.text, label.x, mediaSize.height - 8);
           }
-          const nowWidth = context.measureText(copy.now).width;
+          const now = t().now;
+          const nowWidth = context.measureText(now).width;
           const nowX = layout.start - nowWidth - 6;
-          if (nowX > 0 && layout.start < mediaSize.width) context.fillText(copy.now, nowX, 14);
+          if (nowX > 0 && layout.start < mediaSize.width) context.fillText(now, nowX, 14);
         });
       },
     };

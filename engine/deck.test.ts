@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cardById, DECK } from "./deck";
+import { cardById, DECK, MAJOR } from "./deck";
 
 describe("deck", () => {
   it("has 78 cards whose id is their index", () => {
@@ -18,14 +18,11 @@ describe("deck", () => {
     }
   });
 
-  it("has unique names", () => {
-    expect(new Set(DECK.map((card) => card.name)).size).toBe(DECK.length);
-  });
-
   it("addresses cards the way the spec does: majors by index, minors at 22 + suit * 14 + rank - 1", () => {
-    expect(cardById(16)).toMatchObject({ arcana: "major", index: 16, name: "Башня", label: "аркан XVI" });
-    expect(cardById(22)).toMatchObject({ arcana: "minor", suit: "wands", rank: 1, name: "Туз Жезлов", label: "01" });
-    expect(cardById(77)).toMatchObject({ arcana: "minor", suit: "pentacles", rank: 14, name: "Король Пентаклей" });
+    expect(cardById(MAJOR.tower)).toEqual({ id: 16, arcana: "major", index: 16 });
+    expect(cardById(22)).toEqual({ id: 22, arcana: "minor", suit: "wands", rank: 1 });
+    expect(cardById(36)).toEqual({ id: 36, arcana: "minor", suit: "cups", rank: 1 });
+    expect(cardById(77)).toEqual({ id: 77, arcana: "minor", suit: "pentacles", rank: 14 });
   });
 
   it("throws outside 0..77", () => {

@@ -2,7 +2,7 @@
  * The paywall on the third step. Tiers are markup in index.html; every buy button only toasts, there is no billing.
  * Closes on the corner cross, the text link, a click outside or Escape.
  */
-import { copy } from "./copy";
+import { onLangChange, t } from "./i18n/index";
 import { icons, setIcon } from "./icons";
 import { toast } from "./toast";
 
@@ -23,7 +23,10 @@ export function initPaywallModal(): void {
   };
   const corner = document.getElementById("closePayCorner");
   if (corner !== null) {
-    setIcon(corner, icons.close, copy.close);
+    setIcon(corner, icons.close, t().close);
+    onLangChange(() => {
+      setIcon(corner, icons.close, t().close);
+    });
     corner.addEventListener("click", close);
   }
   document.getElementById("closePay")?.addEventListener("click", close);
@@ -35,7 +38,7 @@ export function initPaywallModal(): void {
   });
   for (const button of el.querySelectorAll(".tier button")) {
     button.addEventListener("click", () => {
-      toast(copy.paywall.meditating);
+      toast(t().paywall.meditating);
     });
   }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { drawCards } from "./draw-cards";
-import { HTML_FIXTURE as F } from "./html-parity/btcusdt";
+import { GOLDEN as F } from "./golden/btcusdt";
 import { computeSteps, ENGINE_VERSION, forecastFromCards } from "./index";
 import { seedString } from "./seed";
 
@@ -17,7 +17,7 @@ describe("determinism", () => {
     expect(a.flatMap((s) => s.candles)).toHaveLength(72);
   });
 
-  it("replays stored cards into the same candles and sentences", () => {
+  it("replays stored cards into the same candles, effects and digest", () => {
     const drawn = computeSteps({ ...input, steps: 3 });
     const replayed = forecastFromCards({ ...input, cards: drawn.map((s) => s.cards) });
     expect(replayed).toEqual(drawn);
@@ -33,14 +33,14 @@ describe("determinism", () => {
 
 describe("engine version in the seed", () => {
   it("changes the seed string and the drawn cards", () => {
-    const v1 = STEPS.map((step) =>
+    const now = STEPS.map((step) =>
       seedString({ asset: F.asset, anchorTs: F.anchorTs, step, engineVersion: ENGINE_VERSION }),
     );
-    const v2 = STEPS.map((step) => seedString({ asset: F.asset, anchorTs: F.anchorTs, step, engineVersion: "v2" }));
-    v1.forEach((seed, i) => {
-      expect(seed).not.toBe(v2[i]);
+    const v1 = STEPS.map((step) => seedString({ asset: F.asset, anchorTs: F.anchorTs, step, engineVersion: "v1" }));
+    now.forEach((seed, i) => {
+      expect(seed).not.toBe(v1[i]);
     });
-    expect(v2.map(drawCards)).not.toEqual(v1.map(drawCards));
+    expect(v1.map(drawCards)).not.toEqual(now.map(drawCards));
   });
 
   it("appends the nonce as a fifth field only when it is set", () => {

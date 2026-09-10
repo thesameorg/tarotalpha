@@ -1,5 +1,5 @@
 /** What every exchange adapter gives: 1H candles in one shape, and one error vocabulary the UI can show. */
-import type { Candle } from "../engine/v1/atr";
+import type { Candle } from "../engine/atr";
 
 export type Source = "binance" | "bybit";
 export type ExchangeErrorKind = "unknown_asset" | "unavailable" | "too_old";
