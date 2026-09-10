@@ -224,14 +224,15 @@ export const en: Dictionary = {
     noCandles: "The exchange returned no candles for that stretch",
     hit: (pct: number): string => `The prophecy came true at ${String(pct)} %`,
     miss: (pct: number): string => `The market rejected the prophecy: ${String(pct)} %`,
-    compared: (n: number, total: number): string => `on ${String(n)} of ${String(total)} candles`,
     final: "final",
     interim: "interim",
-    deviation: (value: string): string => `off by ${value} ATR`,
-    stepLine: (day: number, pct: number | null, hits: number, compared: number): string =>
-      pct === null
-        ? `day ${String(day)}: not yet`
-        : `day ${String(day)}: ${String(pct)} % (${String(hits)}/${String(compared)})`,
+    praise: {
+      close: (name: string): string => `${name}: right on the market`,
+      near: (name: string): string => `${name}: close to the market`,
+      far: (name: string): string => `${name}: wide of the market`,
+    },
+    stepLine: (day: number, pct: number | null): string =>
+      pct === null ? `day ${String(day)}: not yet` : `day ${String(day)}: ${String(pct)} %`,
   },
   summaryTitle: "The day in one line.",
   how: "How it's computed",

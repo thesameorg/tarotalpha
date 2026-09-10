@@ -187,14 +187,15 @@ export const zh: Dictionary = {
     noCandles: "交易所没有返回这段时间的 K 线",
     hit: (pct: number): string => `预言应验了 ${String(pct)} %`,
     miss: (pct: number): string => `市场拒绝了预言：${String(pct)} %`,
-    compared: (n: number, total: number): string => `基于 ${String(total)} 根蜡烛中的 ${String(n)} 根`,
     final: "最终",
     interim: "暂时",
-    deviation: (value: string): string => `偏差 ${value} ATR`,
-    stepLine: (day: number, pct: number | null, hits: number, compared: number): string =>
-      pct === null
-        ? `第 ${String(day)} 天：尚未到来`
-        : `第 ${String(day)} 天：${String(pct)} %（${String(hits)}/${String(compared)}）`,
+    praise: {
+      close: (name: string): string => `${name}: 正中市场`,
+      near: (name: string): string => `${name}: 贴近市场`,
+      far: (name: string): string => `${name}: 远离市场`,
+    },
+    stepLine: (day: number, pct: number | null): string =>
+      pct === null ? `第 ${String(day)} 天：尚未到来` : `第 ${String(day)} 天：${String(pct)} %`,
   },
   summaryTitle: "一句话看今天。",
   how: "计算方法",

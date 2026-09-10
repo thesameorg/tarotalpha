@@ -195,14 +195,15 @@ export const ko: Dictionary = {
     noCandles: "거래소가 이 구간의 캔들을 주지 않았습니다",
     hit: (pct: number): string => `예언이 ${String(pct)} % 적중했습니다`,
     miss: (pct: number): string => `시장이 예언을 거부했습니다: ${String(pct)} %`,
-    compared: (n: number, total: number): string => `${String(total)}개 캔들 중 ${String(n)}개 기준`,
     final: "최종",
     interim: "중간",
-    deviation: (value: string): string => `오차 ${value} ATR`,
-    stepLine: (day: number, pct: number | null, hits: number, compared: number): string =>
-      pct === null
-        ? `${String(day)}일차: 아직`
-        : `${String(day)}일차: ${String(pct)} % (${String(hits)}/${String(compared)})`,
+    praise: {
+      close: (name: string): string => `${name}: 시장 한복판`,
+      near: (name: string): string => `${name}: 시장 가까이`,
+      far: (name: string): string => `${name}: 시장에서 멀리`,
+    },
+    stepLine: (day: number, pct: number | null): string =>
+      pct === null ? `${String(day)}일차: 아직` : `${String(day)}일차: ${String(pct)} %`,
   },
   summaryTitle: "한 줄로 보는 오늘.",
   how: "계산 방식",

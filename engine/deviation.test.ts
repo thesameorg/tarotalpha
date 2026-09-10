@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Candle } from "./atr";
-import { deviation } from "./deviation";
+import { deviation, praise } from "./deviation";
 
 const HOUR = 3_600_000;
 const candle = (hour: number, o: number, c: number): Candle => ({
@@ -38,5 +38,31 @@ describe("deviation", () => {
 
   it("refuses a unit that cannot scale a gap", () => {
     expect(() => deviation([candle(1, 10, 11)], [candle(1, 10, 10)], 0)).toThrow(RangeError);
+  });
+});
+
+describe("praise", () => {
+  const SPAN = 48;
+  const gapOf = (normalised: number): number => normalised * Math.sqrt(SPAN);
+
+  it("praises a reading that stayed inside a quarter of the readings measured", () => {
+    expect(praise(gapOf(0.2), SPAN)).toBe("close");
+  });
+
+  it("says neither close nor far in the middle band", () => {
+    expect(praise(gapOf(0.5), SPAN)).toBe("near");
+  });
+
+  it("calls a reading far when the gap passes the top quarter", () => {
+    expect(praise(gapOf(1.2), SPAN)).toBe("far");
+  });
+
+  it("scales with the horizon: the same gap reads worse over fewer candles", () => {
+    expect(praise(2, 48)).toBe("close");
+    expect(praise(2, 4)).toBe("far");
+  });
+
+  it("refuses to judge before a single candle has been compared", () => {
+    expect(() => praise(1, 0)).toThrow(RangeError);
   });
 });

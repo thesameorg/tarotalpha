@@ -226,14 +226,15 @@ export const it: Dictionary = {
     noCandles: "La borsa non ha restituito candele per quel periodo",
     hit: (pct: number): string => `La profezia si è avverata al ${String(pct)} %`,
     miss: (pct: number): string => `Il mercato ha respinto la profezia: ${String(pct)} %`,
-    compared: (n: number, total: number): string => `su ${String(n)} candele di ${String(total)}`,
     final: "finale",
     interim: "provvisorio",
-    deviation: (value: string): string => `scarto di ${value} ATR`,
-    stepLine: (day: number, pct: number | null, hits: number, compared: number): string =>
-      pct === null
-        ? `giorno ${String(day)}: non ancora`
-        : `giorno ${String(day)}: ${String(pct)} % (${String(hits)}/${String(compared)})`,
+    praise: {
+      close: (name: string): string => `${name}: in pieno sul mercato`,
+      near: (name: string): string => `${name}: vicino al mercato`,
+      far: (name: string): string => `${name}: lontano dal mercato`,
+    },
+    stepLine: (day: number, pct: number | null): string =>
+      pct === null ? `giorno ${String(day)}: non ancora` : `giorno ${String(day)}: ${String(pct)} %`,
   },
   summaryTitle: "La giornata in una riga.",
   how: "Come viene calcolato",

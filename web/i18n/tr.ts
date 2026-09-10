@@ -211,14 +211,15 @@ export const tr: Dictionary = {
     noCandles: "Borsa bu aralık için mum vermedi",
     hit: (pct: number): string => `Kehanet %${String(pct)} tuttu`,
     miss: (pct: number): string => `Piyasa kehaneti reddetti: %${String(pct)}`,
-    compared: (n: number, total: number): string => `${String(total)} mumdan ${String(n)} tanesinde`,
     final: "nihai",
     interim: "geçici",
-    deviation: (value: string): string => `sapma ${value} ATR`,
-    stepLine: (day: number, pct: number | null, hits: number, compared: number): string =>
-      pct === null
-        ? `${String(day)}. gün: henüz değil`
-        : `${String(day)}. gün: %${String(pct)} (${String(hits)}/${String(compared)})`,
+    praise: {
+      close: (name: string): string => `${name}: tam piyasanın üstünde`,
+      near: (name: string): string => `${name}: piyasaya yakın`,
+      far: (name: string): string => `${name}: piyasadan uzak`,
+    },
+    stepLine: (day: number, pct: number | null): string =>
+      pct === null ? `gün ${String(day)}: henüz değil` : `gün ${String(day)}: %${String(pct)}`,
   },
   summaryTitle: "Gün tek satırda.",
   how: "Nasıl hesaplanıyor",

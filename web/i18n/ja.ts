@@ -207,14 +207,15 @@ export const ja: Dictionary = {
     noCandles: "取引所はこの期間のローソク足を返しませんでした",
     hit: (pct: number): string => `予言は ${String(pct)} % 的中しました`,
     miss: (pct: number): string => `相場は予言を退けました：${String(pct)} %`,
-    compared: (n: number, total: number): string => `${String(total)}本中${String(n)}本で`,
     final: "確定",
     interim: "暫定",
-    deviation: (value: string): string => `ずれ ${value} ATR`,
-    stepLine: (day: number, pct: number | null, hits: number, compared: number): string =>
-      pct === null
-        ? `${String(day)}日目：まだ`
-        : `${String(day)}日目：${String(pct)} %（${String(hits)}/${String(compared)}）`,
+    praise: {
+      close: (name: string): string => `${name}: 相場のど真ん中`,
+      near: (name: string): string => `${name}: 相場のすぐそば`,
+      far: (name: string): string => `${name}: 相場から遠く`,
+    },
+    stepLine: (day: number, pct: number | null): string =>
+      pct === null ? `${String(day)} 日目: まだ` : `${String(day)} 日目: ${String(pct)} %`,
   },
   summaryTitle: "今日を一行で。",
   how: "計算方法",

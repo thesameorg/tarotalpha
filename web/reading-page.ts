@@ -11,6 +11,7 @@ import {
   atr,
   deviation,
   forecastFromCards,
+  praise,
   readerScale,
   type Accuracy,
   type Candle,
@@ -20,6 +21,7 @@ import { fetchAfter, HOUR_MS } from "../exchange/closed-candles";
 import { ApiError, fetchReading, postEvent, type ReadingRecord } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
 import { createCoinPicker } from "./coin-picker";
+import { readerFace } from "./reader-choice";
 import { required } from "./dom-lookup";
 import { showExchangeLogo } from "./exchange-logo";
 import { lang, onLangChange, t } from "./i18n/index";
@@ -60,6 +62,7 @@ interface Verdict {
   overall: Accuracy;
   perStep: readonly Accuracy[];
   total: number;
+  reader: string;
   deviation: number | null;
 }
 
@@ -122,18 +125,16 @@ function percent(value: number | null): number | null {
   return value === null ? null : Math.round(value * 100);
 }
 
-function verdictMarkup({ overall, perStep, total, deviation }: Verdict): string {
+function verdictMarkup({ overall, perStep, total, reader, deviation }: Verdict): string {
   const pct = percent(overall.accuracy) ?? 0;
   const hit = (overall.accuracy ?? 0) >= 0.5;
   const title = hit ? t().prophecy.hit(pct) : t().prophecy.miss(pct);
   const status = overall.compared === total ? t().prophecy.final : t().prophecy.interim;
-  const gap = deviation === null ? "" : ` · ${t().prophecy.deviation(deviation.toFixed(1))}`;
-  const lines = perStep
-    .map((step, index) => t().prophecy.stepLine(index + 1, percent(step.accuracy), step.hits, step.compared))
-    .join(" · ");
+  const word = deviation === null ? "" : ` · ${t().prophecy.praise[praise(deviation, overall.compared)](reader)}`;
+  const lines = perStep.map((step, index) => t().prophecy.stepLine(index + 1, percent(step.accuracy))).join(" · ");
   return `<div class="verdict ${hit ? "hit" : "miss"}">
   <div class="verdict-title">${title}</div>
-  <div class="verdict-sub">${t().prophecy.compared(overall.compared, total)} · ${status}${gap}</div>
+  <div class="verdict-sub">${status}${word}</div>
   <div class="verdict-steps">${lines}</div>
   <p class="disclaimer">${t().disclaimer}</p>
 </div>`;
@@ -388,7 +389,10 @@ class ReadingPage {
       real,
       unit,
     );
-    this.setProphecy(el, { kind: "verdict", verdict: { overall, perStep, total, deviation: gap.deviation } });
+    this.setProphecy(el, {
+      kind: "verdict",
+      verdict: { overall, perStep, total, reader: readerFace(record.reader).name, deviation: gap.deviation },
+    });
   }
 
   private async replay(
