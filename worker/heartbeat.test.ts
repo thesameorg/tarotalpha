@@ -4,7 +4,8 @@ import { HOUR_MS } from "../exchange/closed-candles";
 import { beat, BENCHMARK } from "./heartbeat";
 
 const SLOT_MS = 4 * HOUR_MS;
-const NOW = Date.now();
+// Two hours into the previous slot: an hour later is still the same slot, whatever the wall clock says.
+const NOW = Math.floor(Date.now() / SLOT_MS) * SLOT_MS - SLOT_MS + 2 * HOUR_MS;
 
 function stubExchanges(): void {
   vi.stubGlobal(
