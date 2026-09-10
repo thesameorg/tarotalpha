@@ -184,6 +184,7 @@ export const zh: Dictionary = {
     checking: "正在用交易所的蜡烛图验证预言…",
     notYet: (closesAt: string): string => `未来尚未到来：第一根待验证的蜡烛将于 ${closesAt} 收盘`,
     checkFailed: "交易所无响应，预言验证推迟",
+    noCandles: "交易所没有返回这段时间的 K 线",
     hit: (pct: number): string => `预言应验了 ${String(pct)} %`,
     miss: (pct: number): string => `市场拒绝了预言：${String(pct)} %`,
     compared: (n: number, total: number): string => `基于 ${String(total)} 根蜡烛中的 ${String(n)} 根`,

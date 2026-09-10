@@ -221,6 +221,7 @@ export const es: Dictionary = {
     notYet: (closesAt: string): string =>
       `El futuro aún no ha llegado: la primera vela a verificar cierra a las ${closesAt}`,
     checkFailed: "El exchange no responde, la verificación de la profecía se pospone",
+    noCandles: "La bolsa no devolvió velas de ese periodo",
     hit: (pct: number): string => `La profecía se cumplió al ${String(pct)} %`,
     miss: (pct: number): string => `El mercado rechazó la profecía: ${String(pct)} %`,
     compared: (n: number, total: number): string => `en ${String(n)} de ${String(total)} velas`,

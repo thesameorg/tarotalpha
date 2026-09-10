@@ -192,6 +192,7 @@ export const ko: Dictionary = {
     checking: "거래소 캔들로 예언을 검증하는 중…",
     notYet: (closesAt: string): string => `미래는 아직 오지 않았습니다: 검증할 첫 캔들은 ${closesAt}에 마감됩니다`,
     checkFailed: "거래소가 응답하지 않아 예언 검증이 미뤄졌습니다",
+    noCandles: "거래소가 이 구간의 캔들을 주지 않았습니다",
     hit: (pct: number): string => `예언이 ${String(pct)} % 적중했습니다`,
     miss: (pct: number): string => `시장이 예언을 거부했습니다: ${String(pct)} %`,
     compared: (n: number, total: number): string => `${String(total)}개 캔들 중 ${String(n)}개 기준`,

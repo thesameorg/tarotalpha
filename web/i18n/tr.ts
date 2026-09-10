@@ -208,6 +208,7 @@ export const tr: Dictionary = {
     notYet: (closesAt: string): string =>
       `Gelecek henüz gelmedi: kontrol edilecek ilk mum saat ${closesAt} itibarıyla kapanır`,
     checkFailed: "Borsa yanıt vermiyor, kehanet kontrolü ertelendi",
+    noCandles: "Borsa bu aralık için mum vermedi",
     hit: (pct: number): string => `Kehanet %${String(pct)} tuttu`,
     miss: (pct: number): string => `Piyasa kehaneti reddetti: %${String(pct)}`,
     compared: (n: number, total: number): string => `${String(total)} mumdan ${String(n)} tanesinde`,

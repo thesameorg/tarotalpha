@@ -221,6 +221,7 @@ export const en: Dictionary = {
     notYet: (closesAt: string): string =>
       `The future has not happened yet: the first candle to check closes at ${closesAt}`,
     checkFailed: "The exchange does not answer, the prophecy check is postponed",
+    noCandles: "The exchange returned no candles for that stretch",
     hit: (pct: number): string => `The prophecy came true at ${String(pct)} %`,
     miss: (pct: number): string => `The market rejected the prophecy: ${String(pct)} %`,
     compared: (n: number, total: number): string => `on ${String(n)} of ${String(total)} candles`,

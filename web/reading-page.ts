@@ -367,8 +367,13 @@ class ReadingPage {
     setTechFacts({ lag: Math.round(performance.now() - started) });
     if (this.gone()) return;
     if (real.length === 0) {
-      const closesAt = localTime(record.anchor_ts + 2 * HOUR_MS);
-      this.setProphecy(el, { kind: "pending", text: () => t().prophecy.notYet(closesAt), retry: false });
+      // Nothing after an anchor whose horizon has passed is a hole in exchange data, not a future that has not come.
+      const firstClose = record.anchor_ts + 2 * HOUR_MS;
+      const waiting = Date.now() < firstClose;
+      const text = waiting
+        ? (): string => t().prophecy.notYet(localTime(firstClose))
+        : (): string => t().prophecy.noCandles;
+      this.setProphecy(el, { kind: "pending", text, retry: !waiting });
       return;
     }
     this.actual = real;

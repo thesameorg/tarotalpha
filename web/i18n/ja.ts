@@ -204,6 +204,7 @@ export const ja: Dictionary = {
     checking: "取引所のローソク足で予言を検証中…",
     notYet: (closesAt: string): string => `未来はまだ来ていません：検証する最初のローソク足は ${closesAt} に確定します`,
     checkFailed: "取引所が応答しないため、予言の検証は延期されました",
+    noCandles: "取引所はこの期間のローソク足を返しませんでした",
     hit: (pct: number): string => `予言は ${String(pct)} % 的中しました`,
     miss: (pct: number): string => `相場は予言を退けました：${String(pct)} %`,
     compared: (n: number, total: number): string => `${String(total)}本中${String(n)}本で`,

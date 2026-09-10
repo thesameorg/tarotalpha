@@ -225,6 +225,7 @@ export const fr: Dictionary = {
     notYet: (closesAt: string): string =>
       `Le futur n'est pas encore arrivé : la première bougie à vérifier clôture à ${closesAt}`,
     checkFailed: "La bourse ne répond pas, la vérification de la prophétie est reportée",
+    noCandles: "La bourse n'a renvoyé aucune bougie pour cette période",
     hit: (pct: number): string => `La prophétie s'est réalisée à ${String(pct)} %`,
     miss: (pct: number): string => `Le marché a rejeté la prophétie : ${String(pct)} %`,
     compared: (n: number, total: number): string => `sur ${String(n)} bougies sur ${String(total)}`,

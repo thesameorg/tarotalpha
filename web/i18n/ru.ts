@@ -211,6 +211,7 @@ export const ru = {
     checking: "Проверяем пророчество по свечам биржи…",
     notYet: (closesAt: string): string => `Будущее ещё не наступило: первая свеча проверки закроется в ${closesAt}`,
     checkFailed: "Биржа не отвечает, проверка пророчества отложена",
+    noCandles: "Биржа не отдала свечей за это время",
     hit: (pct: number): string => `Пророчество сбылось на ${String(pct)} %`,
     miss: (pct: number): string => `Рынок отверг пророчество: ${String(pct)} %`,
     compared: (n: number, total: number): string => `по ${String(n)} из ${String(total)} свечей`,
