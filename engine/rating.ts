@@ -1,8 +1,9 @@
 /**
  * How the table stands. On one matured reading the readers are sorted by how far they ran from the market, and only
  * the place counts: the week itself cancels out, so a calm stretch cannot flatter all of them at once and no
- * threshold has to be calibrated. Places fade exponentially — last month's luck stops holding a reader up — and the
- * stars are that same number rounded. Where the number is shown and what it may not claim:
+ * threshold has to be calibrated. Places fade exponentially — last month's luck stops holding a reader up. Stars are
+ * a place at this table and not a mark out of five: five similar mechanics all sit near the middle, so the ratings
+ * are spread across the scale against each other. Where the number is shown and what it may not claim:
  * ../docs/flows/reading-lifecycle.md
  */
 import { READER_IDS, type ReaderId } from "./readers";
@@ -14,6 +15,7 @@ export interface ReaderRating {
   reader: ReaderId;
   /** −1 is last at every reading, +1 is first at every one, 0 is the middle of the table. */
   rating: number;
+  /** 1 to 5 in halves, spread across the table rather than measured against an absolute mark. */
   stars: number;
   /** Share of the counted readings where nobody at the table was closer to the market. */
   wins: number;
@@ -33,8 +35,19 @@ export function places(drifts: Required<Drifts>): Record<ReaderId, number> {
   return Object.fromEntries(order.map((id, index) => [id, 1 - (2 * index) / last])) as Record<ReaderId, number>;
 }
 
-export function stars(rating: number): number {
-  return Math.round(3 + 2 * rating);
+const MIDDLE = 3;
+const LIMIT = { low: 1, high: 5 };
+
+// Stars for the table at once: the middle of the scale is the middle of the table, one deviation is one star, and
+// a full five needs a reader two deviations clear of the rest. Ratings sum to zero, so only the scale is found.
+export function starsAcross(ratings: readonly number[]): number[] {
+  const spread = Math.sqrt(ratings.reduce((sum, rating) => sum + rating * rating, 0) / ratings.length);
+  if (spread === 0) return ratings.map(() => MIDDLE);
+  return ratings.map((rating) => halves(Math.min(LIMIT.high, Math.max(LIMIT.low, MIDDLE + rating / spread))));
+}
+
+function halves(stars: number): number {
+  return Math.round(stars * 2) / 2;
 }
 
 /** Verdicts oldest first: the fold is exponential, so the order is the whole point. */
@@ -51,10 +64,11 @@ export function ratings(verdicts: readonly Drifts[]): ReaderRating[] {
       if (place[id] === 1) wins[id]++;
     }
   }
-  return READER_IDS.map((reader) => ({
+  const stars = starsAcross(READER_IDS.map((id) => rating[id]));
+  return READER_IDS.map((reader, index) => ({
     reader,
     rating: rating[reader],
-    stars: stars(rating[reader]),
+    stars: stars[index] ?? MIDDLE,
     wins: counted === 0 ? 0 : wins[reader] / counted,
     verdicts: counted,
   }));

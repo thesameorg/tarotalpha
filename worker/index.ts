@@ -4,6 +4,7 @@
  */
 import { ENGINE_VERSION } from "../engine/index";
 import { postEvent } from "./events";
+import { beat } from "./heartbeat";
 import { ApiError } from "./json-api";
 import { rateLimited } from "./rate-limit";
 import { readReaderRatings } from "./reader-ratings";
@@ -24,7 +25,12 @@ export default {
   },
   async scheduled(_controller, env) {
     const sweep = await sweepMatured(env, Date.now());
-    console.log(`sweep: scored ${String(sweep.scored)}, parked ${String(sweep.parked)}`);
+    // Scoring first: an exchange that refuses a fresh snapshot must not cost the verdicts already waiting.
+    const drawn = await beat(env, Date.now()).catch((error: unknown) => {
+      console.error(error);
+      return [];
+    });
+    console.log(`sweep: scored ${String(sweep.scored)}, parked ${String(sweep.parked)}, drew ${String(drawn.length)}`);
   },
 } satisfies ExportedHandler<Env>;
 

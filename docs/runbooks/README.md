@@ -6,4 +6,3 @@
 | --- | --- |
 | [`run-locally.md`](run-locally.md) | поднять клиент и воркер с локальной D1 одним процессом |
 | [`deploy-workers-dev.md`](deploy-workers-dev.md) | как прод обновляется с `main`, как завести секрет для Actions, как выкатить и откатить руками |
-| [`seed-readings.md`](seed-readings.md) | налить раскладов задним числом, чтобы у гадалок появились звёзды |

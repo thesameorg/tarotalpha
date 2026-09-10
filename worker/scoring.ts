@@ -1,9 +1,8 @@
 /**
- * The sweep that scores matured readings. One reading judges the whole table at once: the cards are common ground,
- * so five forecasts are rebuilt from what the row already holds and measured against one set of real candles — the
- * same market, the same cards, the same unit. Nobody's view triggers this and no view can change it, which is why
- * the score cannot be inflated by opening a link. When it runs and what it writes:
- * ../docs/flows/reading-lifecycle.md
+ * The sweep that scores the score's own readings once their horizon has closed. One reading judges the whole table:
+ * the cards are common ground, so five forecasts are rebuilt from what the row already holds and measured against
+ * one set of real candles — the same market, the same cards, the same unit. Shared readings are never scored, and
+ * no view triggers or changes any of this. When it runs and what it writes: ../docs/flows/reading-lifecycle.md
  */
 import {
   deviation,
@@ -48,8 +47,8 @@ export interface Sweep {
 export async function sweepMatured(env: Env, nowMs: number): Promise<Sweep> {
   const { results } = await env.DB.prepare(
     "SELECT id, asset, anchor_ts, source, seed_nonce, steps, candles_snapshot FROM readings" +
-      " WHERE scored_at IS NULL AND attempts < ?1 AND anchor_ts + json_array_length(steps) * ?2 <= ?3" +
-      " ORDER BY anchor_ts LIMIT ?4",
+      " WHERE origin = 'beat' AND scored_at IS NULL AND attempts < ?1" +
+      " AND anchor_ts + json_array_length(steps) * ?2 <= ?3 ORDER BY anchor_ts LIMIT ?4",
   )
     .bind(ATTEMPTS, DAY_MS, nowMs, SWEEP)
     .all<MaturedRow>();

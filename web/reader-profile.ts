@@ -20,13 +20,17 @@ function byId(id: string): HTMLElement {
   return el;
 }
 
+// Halves are drawn, not rounded away: a gold copy of the star sits over the dim one, clipped to its left half.
+function starMarkup(filled: number): string {
+  if (filled >= 1) return `<span class="star on">${icons.star}</span>`;
+  if (filled < 0.5) return `<span class="star">${icons.star}</span>`;
+  return `<span class="star half">${icons.star}<span class="star-lit">${icons.star}</span></span>`;
+}
+
 function starsMarkup(id: ReaderId): string {
   const standing = readerStanding(id);
   if (standing === null) return `<div class="profile-unscored">Not scored yet</div>`;
-  const stars = Array.from(
-    { length: STARS },
-    (_, i) => `<span class="star${i < standing.stars ? " on" : ""}">${icons.star}</span>`,
-  ).join("");
+  const stars = Array.from({ length: STARS }, (_, i) => starMarkup(standing.stars - i)).join("");
   const wins = Math.round(standing.wins * 100);
   return (
     `<div class="stars" role="img" aria-label="rated ${String(standing.stars)} of ${String(STARS)}">${stars}</div>` +

@@ -55,6 +55,13 @@ async function shareAt(anchorTs: number): Promise<string> {
   return (await response.json<{ id: string }>()).id;
 }
 
+// The score's own track is drawn by the cron; here the shortest way onto it is to share a reading and relabel it.
+async function beatAt(anchorTs: number): Promise<string> {
+  const id = await shareAt(anchorTs);
+  await env.DB.prepare("UPDATE readings SET origin = 'beat' WHERE id = ?1").bind(id).run();
+  return id;
+}
+
 async function verdictOf(id: string): Promise<Verdict> {
   const row = await env.DB.prepare("SELECT scores, scored_at, scored_version, attempts FROM readings WHERE id = ?1")
     .bind(id)
@@ -70,7 +77,7 @@ afterEach(() => {
 describe("the sweep", () => {
   it("scores every reader at the table from one set of real candles", async () => {
     stubExchanges();
-    const id = await shareAt(MATURED);
+    const id = await beatAt(MATURED);
     expect(await sweepMatured(env, NOW)).toMatchObject({ scored: 1 });
 
     const verdict = await verdictOf(id);
@@ -85,7 +92,7 @@ describe("the sweep", () => {
 
   it("leaves a verdict alone however often it runs", async () => {
     stubExchanges();
-    const id = await shareAt(MATURED - HOUR_MS);
+    const id = await beatAt(MATURED - HOUR_MS);
     await sweepMatured(env, NOW);
     const first = await verdictOf(id);
     expect(await sweepMatured(env, NOW + HOUR_MS)).toMatchObject({ scored: 0 });
@@ -94,14 +101,21 @@ describe("the sweep", () => {
 
   it("waits for the horizon to close", async () => {
     stubExchanges();
-    const id = await shareAt(GREEN);
+    const id = await beatAt(GREEN);
+    await sweepMatured(env, NOW);
+    expect(await verdictOf(id)).toMatchObject({ scores: null, scored_at: null, attempts: 0 });
+  });
+
+  it("never scores a reading somebody shared: the rating is not theirs to move", async () => {
+    stubExchanges();
+    const id = await shareAt(MATURED - 5 * HOUR_MS);
     await sweepMatured(env, NOW);
     expect(await verdictOf(id)).toMatchObject({ scores: null, scored_at: null, attempts: 0 });
   });
 
   it("parks a reading whose candles the exchange keeps refusing", async () => {
     stubExchanges();
-    const id = await shareAt(MATURED - 2 * HOUR_MS);
+    const id = await beatAt(MATURED - 2 * HOUR_MS);
     vi.unstubAllGlobals();
     stubExchanges(500);
     for (let attempt = 0; attempt < 4; attempt++) await sweepMatured(env, NOW);
@@ -112,7 +126,7 @@ describe("the sweep", () => {
 describe("GET /api/readers", () => {
   it("stands the whole table up, scored or not", async () => {
     stubExchanges();
-    await shareAt(MATURED - 3 * HOUR_MS);
+    await beatAt(MATURED - 4 * HOUR_MS);
     await sweepMatured(env, NOW);
     const response = await callApi("/api/readers");
     expect(response.status).toBe(200);

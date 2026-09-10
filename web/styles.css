@@ -1486,6 +1486,16 @@ footer {
 .star.on {
   color: var(--gold);
 }
+.star.half {
+  position: relative;
+}
+.star-lit {
+  position: absolute;
+  inset: 0;
+  width: 50%;
+  overflow: hidden;
+  color: var(--gold);
+}
 .profile-score,
 .profile-unscored {
   color: var(--paper-dim);

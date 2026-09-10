@@ -21,7 +21,7 @@ export const FREE_STEPS = 2;
 const ID_ATTEMPTS = 3;
 const EXCHANGE_STATUS = { unknown_asset: 400, too_old: 422, unavailable: 502 } as const;
 
-interface CreateBody {
+export interface CreateBody {
   asset: string;
   anchorTs: number;
   steps: number;
@@ -62,7 +62,7 @@ export async function createReading(request: Request, env: Env): Promise<Respons
     reader: body.reader,
     steps: body.steps,
   }).map((result) => result.cards);
-  const id = await insertReading(env.DB, body, steps, snapshot);
+  const id = await insertReading(env.DB, body, steps, snapshot, "share");
   await recordEvent(env.DB, request, { type: "shared", asset: body.asset, readingId: id, step: body.steps });
   return Response.json({ id, url: `/r/${id}` }, { status: 201 });
 }
@@ -130,16 +130,21 @@ async function snapshotOrFail(body: CreateBody, request: Request, db: D1Database
   }
 }
 
-async function insertReading(
+/** Who drew it: `share` is a reading somebody made and can send, `beat` is one the score drew for itself. */
+export type ReadingOrigin = "share" | "beat";
+
+/** The write itself, shared by "Share" and by the cron's own track; the funnel event stays the caller's business. */
+export async function insertReading(
   db: D1Database,
   body: CreateBody,
   steps: readonly StepCards[],
   snapshot: Snapshot,
+  origin: ReadingOrigin,
 ): Promise<string> {
   const candles = JSON.stringify(snapshot.candles.map(({ t, o, h, l, c }) => [t, o, h, l, c]));
   const insert = db.prepare(
-    "INSERT INTO readings (id, asset, anchor_ts, source, engine_version, reader, seed_nonce, steps, candles_snapshot, created_at)" +
-      " VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, ?7, ?8, ?9)",
+    "INSERT INTO readings (id, asset, anchor_ts, source, engine_version, reader, seed_nonce, steps," +
+      " candles_snapshot, created_at, origin) VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, ?7, ?8, ?9, ?10)",
   );
   for (let attempt = 1; ; attempt++) {
     const id = shortId();
@@ -155,6 +160,7 @@ async function insertReading(
           JSON.stringify(steps),
           candles,
           Date.now(),
+          origin,
         )
         .run();
       return id;

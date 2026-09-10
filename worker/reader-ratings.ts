@@ -10,7 +10,7 @@ const WINDOW = 200;
 
 export async function readReaderRatings(env: Env): Promise<Response> {
   const { results } = await env.DB.prepare(
-    "SELECT scores FROM readings WHERE scored_at IS NOT NULL ORDER BY anchor_ts DESC LIMIT ?1",
+    "SELECT scores FROM readings WHERE origin = 'beat' AND scored_at IS NOT NULL ORDER BY anchor_ts DESC LIMIT ?1",
   )
     .bind(WINDOW)
     .all<{ scores: string }>();

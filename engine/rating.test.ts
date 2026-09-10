@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { places, ratings, stars, type Drifts } from "./rating";
+import { places, ratings, starsAcross, type Drifts } from "./rating";
 import { READER_IDS, type ReaderId } from "./readers";
 
 const [FIRST, SECOND, THIRD, FOURTH, FIFTH] = READER_IDS;
@@ -37,10 +37,10 @@ describe("ratings", () => {
     }
   });
 
-  it("walks a reader up to five stars when she keeps winning and the last one down to one", () => {
+  it("walks a reader to the top of the scale when she keeps winning and the last one to the bottom", () => {
     const table = ratings(always(CLOSEST_FIRST, 60));
-    expect(table.find((entry) => entry.reader === FIRST)).toMatchObject({ stars: 5, wins: 1, verdicts: 60 });
-    expect(table.find((entry) => entry.reader === FIFTH)?.stars).toBe(1);
+    expect(table.find((entry) => entry.reader === FIRST)).toMatchObject({ stars: 4.5, wins: 1, verdicts: 60 });
+    expect(table.find((entry) => entry.reader === FIFTH)?.stars).toBe(1.5);
   });
 
   it("lets a rating fall back: yesterday's wins fade as new readings land", () => {
@@ -66,13 +66,24 @@ describe("ratings", () => {
   });
 });
 
-describe("stars", () => {
-  it("puts the middle of the table on three stars", () => {
-    expect(stars(0)).toBe(3);
+describe("starsAcross", () => {
+  it("puts a table nobody has scored on three stars each", () => {
+    expect(starsAcross([0, 0, 0, 0, 0])).toEqual([3, 3, 3, 3, 3]);
   });
 
-  it("spends the whole scale between last place and first", () => {
-    expect(stars(-1)).toBe(1);
-    expect(stars(1)).toBe(5);
+  it("spreads an evenly ordered table across the scale in halves", () => {
+    expect(starsAcross([1, 0.5, 0, -0.5, -1])).toEqual([4.5, 3.5, 3, 2.5, 1.5]);
+  });
+
+  it("keeps the fifth star for a reader clear of the rest", () => {
+    expect(starsAcross([1, -0.25, -0.25, -0.25, -0.25])[0]).toBe(5);
+  });
+
+  it("never drops below one star", () => {
+    expect(starsAcross([-1, 0.25, 0.25, 0.25, 0.25])[0]).toBe(1);
+  });
+
+  it("reads the distances between readers, not their size", () => {
+    expect(starsAcross([0.02, 0.01, 0, -0.01, -0.02])).toEqual(starsAcross([2, 1, 0, -1, -2]));
   });
 });
