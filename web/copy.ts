@@ -29,6 +29,7 @@ export const copy = {
     telegramText: (asset: string, steps: number): string => `${asset} — расклад на ${String(steps)} дн.`,
   },
   paywall: { meditating: "Платёжный модуль ещё медитирует" },
+  fan: { hint: "Вытяните три карты", close: "закрыть" },
   reading: {
     notFound: "Расклад не найден",
     loadFailed: "Не удалось загрузить расклад",
