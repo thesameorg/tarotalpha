@@ -421,10 +421,40 @@ main {
   position: relative;
   flex: 1;
   min-height: 240px;
+  overflow: hidden;
 }
 .chart {
   position: absolute;
   inset: 0;
+}
+/* The open-reading button over the free days of the forecast zone; the page sets the left edge and the width. */
+.zone-cta {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  container-type: inline-size;
+}
+.zone-cta .draw {
+  pointer-events: auto;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px var(--shadow);
+}
+.zone-cta .short {
+  display: none;
+}
+/* Narrower than the longest full label (Italian, about 240px): the day alone. */
+@container (max-width: 250px) {
+  .zone-cta .full {
+    display: none;
+  }
+  .zone-cta .short {
+    display: inline;
+  }
 }
 .chart-state {
   position: absolute;

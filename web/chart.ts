@@ -22,7 +22,7 @@ import {
 } from "lightweight-charts";
 import type { Candle } from "../engine/atr";
 import { AnchorPulse } from "./anchor-pulse";
-import { ForecastZone } from "./forecast-zone";
+import { ForecastZone, type ZoneLayout } from "./forecast-zone";
 import { onLangChange, t } from "./i18n/index";
 import { localOffsetMs } from "./local-time-format";
 import { palette, type Palette } from "./palette";
@@ -47,6 +47,8 @@ export interface CandleChart {
   appendForecast(candle: Candle): void;
   setForecast(candles: readonly Candle[]): void;
   setActual(candles: readonly Candle[]): void;
+  /** Hears the forecast zone's pixel layout on every viewport change; the listener lives as long as the chart. */
+  onZoneLayout(listener: (layout: ZoneLayout | null) => void): void;
   remove(): void;
 }
 
@@ -259,11 +261,15 @@ export function createCandleChart(container: HTMLElement): CandleChart {
     },
     setForecast: seriesSetter(forecast),
     setActual: seriesSetter(actual),
+    onZoneLayout(listener) {
+      zone.onLayout(listener);
+    },
     remove() {
       generation++;
       unsubscribeTheme();
       unsubscribeLang();
       observer.disconnect();
+      zone.onLayout(null);
       real.detachPrimitive(pulse);
       real.detachPrimitive(zone);
       chart.remove();
