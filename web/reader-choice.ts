@@ -1,26 +1,24 @@
 /**
- * Which reader computes the forecast: chosen in the header, kept in localStorage, sent with a shared reading and
- * replayed from it. Portraits are cards of the deck, so the choice costs no new assets; names and methods stay
- * English in every interface language, like the tech panel, because they name a formula and not a feeling.
+ * Which reader computes the forecast: chosen under the chart, kept in localStorage, sent with a shared reading and
+ * replayed from it. Portraits are static files under web/public/readers, one per reader id, served from /readers;
+ * where they come from is docs/reference/reader-portraits.md. Names and methods stay English in every interface
+ * language, like the tech panel, because they name a formula and not a feeling.
  * What each mechanic does: docs/reference/forecast-mechanics.md.
  */
 import { DEFAULT_READER, isReaderId, type ReaderId } from "../engine/readers";
-import { cardImageUrl } from "./card-image";
 
 export interface ReaderFace {
   id: ReaderId;
   name: string;
   method: string;
-  /** The card whose scan stands in for a portrait until drawn ones exist. */
-  card: number;
 }
 
 export const READER_FACES: readonly ReaderFace[] = [
-  { id: "atr", name: "The Magician", method: "ATR noise", card: 1 },
-  { id: "reversion", name: "Temperance", method: "Mean reversion", card: 14 },
-  { id: "analogy", name: "The Wheel", method: "History echo", card: 10 },
-  { id: "garch", name: "The Moon", method: "Volatility bursts", card: 18 },
-  { id: "fractal", name: "The Hermit", method: "Fractal drift", card: 9 },
+  { id: "atr", name: "Madame Vera", method: "ATR noise" },
+  { id: "reversion", name: "Sister Anemone", method: "Mean reversion" },
+  { id: "analogy", name: "Elder Kofi", method: "History echo" },
+  { id: "garch", name: "Mama Ife", method: "Volatility bursts" },
+  { id: "fractal", name: "The Weaver", method: "Fractal drift" },
 ];
 
 const STORAGE_KEY = "ta.reader";
@@ -38,7 +36,7 @@ export function readerFace(id: ReaderId): ReaderFace {
 }
 
 export function readerAvatarUrl(id: ReaderId): string {
-  return cardImageUrl(readerFace(id).card);
+  return `/readers/${readerFace(id).id}.webp`;
 }
 
 export function initReader(): void {

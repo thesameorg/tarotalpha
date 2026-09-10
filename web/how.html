@@ -81,18 +81,18 @@
         </p>
         <ul>
           <li>
-            <code>atr</code> — The Magician. Noise in ATR units: drift, width and jumps are multiples of <code>A</code>.
+            <code>atr</code> — Madame Vera. Noise in ATR units: drift, width and jumps are multiples of <code>A</code>.
             Section 4 has the tables.
           </li>
           <li>
-            <code>reversion</code> — Temperance. The price is pulled back to the mean of the last 20 closes:
+            <code>reversion</code> — Sister Anemone. The price is pulled back to the mean of the last 20 closes:
             <code>close = o + pull × (mean + shove × A − o) + (r() − 0.5) × v × A</code>. The card sets
             <code>pull</code>, from 0.1 for the Fool to 0.7 for the Hanged Man, and where the mean itself goes: the
             Wheel moves it to the current price, Death reflects it to the far side, the Tower and the Sun shove past it
             for one candle. Character: swings in a corridor, almost no trend.
           </li>
           <li>
-            <code>analogy</code> — The Wheel. The last 12 returns are compared with every 12-candle stretch of the
+            <code>analogy</code> — Elder Kofi. The last 12 returns are compared with every 12-candle stretch of the
             snapshot by squared distance in NATR units; the card picks one of the 8 closest, and the eight returns that
             followed it are replayed on the current price, with their mean removed so a rising week does not tilt every
             forecast upwards, times the card's gain and sign. Character: a plausible shape, the market repeating itself.
