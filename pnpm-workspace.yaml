@@ -2,3 +2,7 @@
 allowBuilds:
   esbuild: true
   workerd: true
+# The 24h release-age guard stays on; Cloudflare types are published daily and DefinitelyTyped hourly, so they are exempt.
+minimumReleaseAgeExclude:
+  - "@cloudflare/*"
+  - "@types/*"
