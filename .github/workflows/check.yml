@@ -7,7 +7,9 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Проверки только на PR: в main попадает уже проверенная ветка, повторный прогон снят решением владельца — docs/adr/0004-checks-on-pr-only.md
   check:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -28,9 +30,8 @@ jobs:
       - run: python3 scripts/docs_lint.py
       - run: python3 scripts/test_docs_lint.py
 
-  # Раскатка на Cloudflare только после зелёных проверок и только с main. Почему так — docs/adr/0003-deploy-from-actions-on-main.md
+  # Раскатка на Cloudflare с main без повторных проверок — docs/adr/0004-checks-on-pr-only.md
   deploy:
-    needs: check
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     env:
