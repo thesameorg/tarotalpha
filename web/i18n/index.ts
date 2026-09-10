@@ -1,23 +1,28 @@
 /**
- * Two interface languages, one dictionary shape. The language is the viewer's stored choice, else the share link's
- * `lang`, else the browser's, else English. Switching is live: modules that hold text re-render on `onLangChange`,
- * static markup in index.html is relabelled through `data-i18n` keys ("path.to.text", or "path@attr" for an
- * attribute, several joined with ";").
+ * Ten interface languages, one dictionary shape. The language is the viewer's stored choice, else the share link's
+ * `lang`, else the first browser language we have, else English. Switching is live: modules that hold text
+ * re-render on `onLangChange`, static markup in index.html is relabelled through `data-i18n` keys ("path.to.text",
+ * or "path@attr" for an attribute, several joined with ";").
  */
+import { de } from "./de";
 import { en } from "./en";
+import { es } from "./es";
+import { fr } from "./fr";
+import { it } from "./it";
+import { ja } from "./ja";
+import { ko } from "./ko";
+import { isLang, LANGS, matchLang, type Lang } from "./langs";
+import { pt } from "./pt";
 import { ru } from "./ru";
+import { zh } from "./zh";
 
-export type Lang = "ru" | "en";
+export { isLang, LANGS, type Lang };
 export type Dictionary = typeof ru;
 
 const STORAGE_KEY = "ta.lang";
-const DICTIONARIES: Record<Lang, Dictionary> = { ru, en };
+export const DICTIONARIES: Record<Lang, Dictionary> = { en, es, pt, fr, it, de, ru, zh, ja, ko };
 const listeners = new Set<() => void>();
 let current: Lang = "en";
-
-export function isLang(value: unknown): value is Lang {
-  return value === "ru" || value === "en";
-}
 
 export function lang(): Lang {
   return current;
@@ -32,7 +37,7 @@ export function initLang(params: URLSearchParams): void {
   const param = params.get("lang");
   if (isLang(stored)) current = stored;
   else if (isLang(param)) current = param;
-  else current = navigator.language.toLowerCase().startsWith("ru") ? "ru" : "en";
+  else current = matchLang(navigator.languages) ?? "en";
   apply();
 }
 

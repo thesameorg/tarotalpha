@@ -102,7 +102,7 @@ export function createSpreadPanel(root: HTMLElement, eager: boolean): SpreadPane
         return `<p title="${line}">${line}</p>`;
       })
       .join("");
-    summary.innerHTML = `<p><b>${t().summaryTitle}.</b> ${daySummary(step)}</p><p class="disclaimer">${t().disclaimer}</p>`;
+    summary.innerHTML = `<p><b>${t().summaryTitle}</b> ${daySummary(step)}</p><p class="disclaimer">${t().disclaimer}</p>`;
     renderInfo();
   };
 

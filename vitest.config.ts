@@ -7,7 +7,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     projects: [
-      { test: { name: "node", include: ["engine/**/*.test.ts", "exchange/**/*.test.ts"] } },
+      { test: { name: "node", include: ["engine/**/*.test.ts", "exchange/**/*.test.ts", "web/i18n/**/*.test.ts"] } },
       {
         plugins: [
           cloudflareTest(async () => ({

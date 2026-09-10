@@ -152,7 +152,8 @@ header {
   border-radius: 3px;
   overflow: hidden;
 }
-.seg button {
+.seg button,
+.lang-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -167,12 +168,58 @@ header {
 .seg button:last-child {
   border-right: 0;
 }
-.seg button:hover {
+.seg button:hover,
+.lang-trigger:hover,
+.lang-trigger[aria-expanded="true"] {
   color: var(--paper);
 }
 .seg button[aria-pressed="true"] {
   color: var(--gold);
   background: var(--ink-3);
+}
+/* Language: the code is the trigger, the ten native names drop down under it, styled like the coin list. */
+.lang {
+  position: relative;
+}
+.lang-trigger {
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+.lang-trigger svg {
+  color: var(--paper-dim);
+}
+.lang-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 16;
+  min-width: 190px;
+  max-height: none;
+  margin-top: 0;
+  padding: 6px;
+  background: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: 0 10px 28px var(--shadow);
+  outline: none;
+}
+.lang-list li[aria-selected="true"] .ticker {
+  color: var(--gold);
+}
+/* Prose follows its own script: Arabic and Urdu paragraphs read right to left inside the left-to-right terminal. */
+p,
+li,
+h2,
+.note,
+.toast,
+.meta,
+.reveal-hint,
+.verdict-title,
+.verdict-sub,
+.verdict-steps,
+.tier .t {
+  unicode-bidi: plaintext;
 }
 .tech-toggle {
   font-size: 11px;
@@ -400,7 +447,8 @@ main {
   .header-controls {
     gap: 6px;
   }
-  .seg button {
+  .seg button,
+  .lang-trigger {
     min-width: 26px;
     padding: 0 5px;
   }

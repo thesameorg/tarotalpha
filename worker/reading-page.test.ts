@@ -35,10 +35,14 @@ it("writes the reading into the title and the og tags in the share link's langua
   expect(html).toContain(`<meta property="og:url" content="https://tarotalpha.test/r/${ID}" />`);
 });
 
-it("falls back to Accept-Language, then to English", async () => {
+it("knows all ten languages by the link and by Accept-Language, and falls back to English", async () => {
+  expect(await page(`/r/${ID}?lang=zh`)).toContain(`<title>TarotAlpha · ETHUSDT · 牌阵 ${ID}</title>`);
   const russian = await page(`/r/${ID}`, { "accept-language": "ru-RU,ru;q=0.9,en;q=0.8" });
   expect(russian).toContain(`<title>TarotAlpha · ETHUSDT · расклад ${ID}</title>`);
-  const english = await page(`/r/${ID}`);
+  const brazilian = await page(`/r/${ID}`, { "accept-language": "nl-NL,pt-BR;q=0.8,en;q=0.5" });
+  expect(brazilian).toContain('<html lang="pt">');
+  expect(brazilian).toContain(`<title>TarotAlpha · ETHUSDT · leitura ${ID}</title>`);
+  const english = await page(`/r/${ID}`, { "accept-language": "nl-NL,nl;q=0.9" });
   expect(english).toContain('<html lang="en">');
   expect(english).toContain(`<title>TarotAlpha · ETHUSDT · reading ${ID}</title>`);
   expect(english).toContain(

@@ -235,7 +235,7 @@ export const ru = {
         ? `день ${String(day)}: ещё не наступил`
         : `день ${String(day)}: ${String(pct)} % (${String(hits)}/${String(compared)})`,
   },
-  summaryTitle: "Итог дня",
+  summaryTitle: "Итог дня.",
   cardName: (card: Card): string =>
     card.arcana === "major" ? (MAJORS[card.index] ?? "") : `${RANKS[card.rank - 1] ?? ""} ${SUITS[card.suit]}`,
   meaning: (cardId: number, reversed: boolean): string => {
