@@ -1,8 +1,10 @@
 /** Simplified Chinese interface text, the same shape as ru.ts. Content, not code. */
 import type { CardEffect } from "../../engine/card-effect";
 import { DECK, type Card } from "../../engine/deck";
+import type { ReaderId } from "../../engine/readers";
 import type { Dictionary } from "./index";
 import { MEANINGS_ZH } from "./meanings-zh";
+import { READERS_ZH } from "./readers-zh";
 import { pick, type SummaryFacts } from "./summary-facts";
 
 const MAJORS = [
@@ -170,6 +172,14 @@ export const zh: Dictionary = {
     ],
   },
   fan: { hint: "抽三张牌", close: "关闭" },
+  reader: {
+    unscored: "尚无评分",
+    rated: (stars: number, of: number): string => `评分 ${String(stars)} 分，共 ${String(of)} 分`,
+    wins: (pct: number): string => `在 ${String(pct)} % 的牌阵里，五位中她最贴近市场`,
+    others: "牌桌上的所有人",
+    current: "正在解读你的蜡烛",
+    choose: (name: string): string => `让${name}来占卜`,
+  },
   reading: {
     notFound: "找不到牌阵",
     loadFailed: "无法加载牌阵",
@@ -206,6 +216,8 @@ export const zh: Dictionary = {
     if (meaning === undefined) throw new RangeError(`card id ${String(cardId)} has no meaning`);
     return reversed ? meaning[1] : meaning[0];
   },
+  readerName: (id: ReaderId): string => READERS_ZH[id].name,
+  readerBlurb: (id: ReaderId): string => READERS_ZH[id].blurb,
   summary: (f: SummaryFacts): string => {
     const rev = f.rulingReversed ? "（逆位）" : "";
     const when = ["0–8 时", "8–16 时", "16–24 时"][f.rulingPosition] ?? "";

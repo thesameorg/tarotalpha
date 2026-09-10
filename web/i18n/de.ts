@@ -1,8 +1,10 @@
 /** German interface text, the same shape as ru.ts. Content, not code. */
 import type { CardEffect } from "../../engine/card-effect";
 import { DECK, type Card } from "../../engine/deck";
+import type { ReaderId } from "../../engine/readers";
 import type { Dictionary } from "./index";
 import { MEANINGS_DE } from "./meanings-de";
+import { READERS_DE } from "./readers-de";
 import { pick, type SummaryFacts } from "./summary-facts";
 
 const MAJORS = [
@@ -206,6 +208,14 @@ export const de: Dictionary = {
     ],
   },
   fan: { hint: "Zieh drei Karten", close: "schließen" },
+  reader: {
+    unscored: "Noch ohne Bewertung",
+    rated: (stars: number, of: number): string => `mit ${String(stars)} von ${String(of)} bewertet`,
+    wins: (pct: number): string => `Von den fünf am nächsten dran in ${String(pct)} % der Legungen`,
+    others: "Alle am Tisch",
+    current: "Liest gerade deine Kerzen",
+    choose: (name: string): string => `${name} soll lesen`,
+  },
   reading: {
     notFound: "Legung nicht gefunden",
     loadFailed: "Legung konnte nicht geladen werden",
@@ -243,6 +253,8 @@ export const de: Dictionary = {
     if (meaning === undefined) throw new RangeError(`card id ${String(cardId)} has no meaning`);
     return reversed ? meaning[1] : meaning[0];
   },
+  readerName: (id: ReaderId): string => READERS_DE[id].name,
+  readerBlurb: (id: ReaderId): string => READERS_DE[id].blurb,
   summary: (f: SummaryFacts): string => {
     const rev = f.rulingReversed ? " in umgekehrter Lage" : "";
     const when = ["Stunden 0–8", "Stunden 8–16", "Stunden 16–24"][f.rulingPosition] ?? "";

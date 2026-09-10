@@ -1,8 +1,10 @@
 /** French interface text, the same shape as ru.ts. Content, not code. */
 import type { CardEffect } from "../../engine/card-effect";
 import { DECK, type Card } from "../../engine/deck";
+import type { ReaderId } from "../../engine/readers";
 import type { Dictionary } from "./index";
 import { MEANINGS_FR } from "./meanings-fr";
+import { READERS_FR } from "./readers-fr";
 import { pick, type SummaryFacts } from "./summary-facts";
 
 const MAJORS = [
@@ -210,6 +212,14 @@ export const fr: Dictionary = {
     ],
   },
   fan: { hint: "Tirez trois cartes", close: "fermer" },
+  reader: {
+    unscored: "Pas encore notée",
+    rated: (stars: number, of: number): string => `note ${String(stars)} sur ${String(of)}`,
+    wins: (pct: number): string => `La prédiction la plus proche des cinq dans ${String(pct)} % des tirages`,
+    others: "Tout le monde à la table",
+    current: "Lit vos bougies en ce moment",
+    choose: (name: string): string => `Que ${name} tire les cartes`,
+  },
   reading: {
     notFound: "Tirage introuvable",
     loadFailed: "Impossible de charger le tirage",
@@ -247,6 +257,8 @@ export const fr: Dictionary = {
     if (meaning === undefined) throw new RangeError(`card id ${String(cardId)} has no meaning`);
     return reversed ? meaning[1] : meaning[0];
   },
+  readerName: (id: ReaderId): string => READERS_FR[id].name,
+  readerBlurb: (id: ReaderId): string => READERS_FR[id].blurb,
   summary: (f: SummaryFacts): string => {
     const rev = f.rulingReversed ? " en position renversée" : "";
     const when = ["heures 0–8", "heures 8–16", "heures 16–24"][f.rulingPosition] ?? "";

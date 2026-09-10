@@ -20,7 +20,6 @@ import { fetchAfter, HOUR_MS } from "../exchange/closed-candles";
 import { ApiError, fetchReading, postEvent, type ReadingRecord } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
 import { createCoinPicker } from "./coin-picker";
-import { readerFace } from "./reader-choice";
 import { required } from "./dom-lookup";
 import { showExchangeLogo } from "./exchange-logo";
 import { lang, onLangChange, t } from "./i18n/index";
@@ -377,7 +376,7 @@ class ReadingPage {
     );
     this.setProphecy(el, {
       kind: "verdict",
-      verdict: { overall, perStep, total, reader: readerFace(record.reader).name, deviation: gap.deviation },
+      verdict: { overall, perStep, total, reader: t().readerName(record.reader), deviation: gap.deviation },
     });
   }
 

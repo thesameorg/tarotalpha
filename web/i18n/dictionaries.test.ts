@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CardEffect } from "../../engine/card-effect";
 import { DECK } from "../../engine/deck";
+import { READER_IDS } from "../../engine/readers";
 import type { Direction } from "../../engine/step-digest";
 import { DICTIONARIES, LANGS } from "./index";
 import type { SummaryFacts } from "./summary-facts";
@@ -38,6 +39,16 @@ describe.each(LANGS.map((entry) => entry.code))("dictionary %s", (code) => {
       expect(reversed.trim()).not.toBe("");
       expect(upright).not.toBe(reversed);
     }
+  });
+
+  it("names every reader, each name once", () => {
+    const names = READER_IDS.map((id) => d.readerName(id));
+    expect(new Set(names).size).toBe(READER_IDS.length);
+    for (const name of names) expect(name.trim()).not.toBe("");
+  });
+
+  it("writes a paragraph about every reader", () => {
+    for (const id of READER_IDS) expect(d.readerBlurb(id).trim()).not.toBe("");
   });
 
   it("labels the link to the method page", () => {

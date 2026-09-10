@@ -1,8 +1,10 @@
 /** Japanese interface text, the same shape as ru.ts. Content, not code. */
 import type { CardEffect } from "../../engine/card-effect";
 import { DECK, type Card } from "../../engine/deck";
+import type { ReaderId } from "../../engine/readers";
 import type { Dictionary } from "./index";
 import { MEANINGS_JA } from "./meanings-ja";
+import { READERS_JA } from "./readers-ja";
 import { pick, type SummaryFacts } from "./summary-facts";
 
 const MAJORS = [
@@ -190,6 +192,14 @@ export const ja: Dictionary = {
     ],
   },
   fan: { hint: "3枚引いてください", close: "閉じる" },
+  reader: {
+    unscored: "まだ評価なし",
+    rated: (stars: number, of: number): string => `評価 ${String(of)} 段階中 ${String(stars)}`,
+    wins: (pct: number): string => `リーディングの ${String(pct)} % で五人のうち最も相場に近い`,
+    others: "卓にいる全員",
+    current: "あなたのローソク足を読んでいます",
+    choose: (name: string): string => `${name}に占ってもらう`,
+  },
   reading: {
     notFound: "リーディングが見つかりません",
     loadFailed: "リーディングを読み込めません",
@@ -226,6 +236,8 @@ export const ja: Dictionary = {
     if (meaning === undefined) throw new RangeError(`card id ${String(cardId)} has no meaning`);
     return reversed ? meaning[1] : meaning[0];
   },
+  readerName: (id: ReaderId): string => READERS_JA[id].name,
+  readerBlurb: (id: ReaderId): string => READERS_JA[id].blurb,
   summary: (f: SummaryFacts): string => {
     const rev = f.rulingReversed ? "（逆位置）" : "";
     const when = ["0–8時", "8–16時", "16–24時"][f.rulingPosition] ?? "";
