@@ -1,10 +1,9 @@
 /**
  * The landing: the chart of the instrument picked in its header loads by itself (the URL's `asset`, the last one
- * used, or BTCUSDT), each step pays its day's mana and opens with the fullscreen reveal, a short tank opens the
- * paywall, and the horizon ends the row of days. Candles come
- * straight from the exchange and steps from the engine in this browser. The first open step writes the reading
- * through the API in the background and the next step extends it, so "Share" only hands out the link with the
- * author's language; the id lands in "my readings" beside the step marks. Every label is a function of the
+ * used, or BTCUSDT); each day costs its mana and opens with the fullscreen reveal, a short tank opens the paywall.
+ * Candles come straight from the exchange and steps from the engine in this browser. The first open step writes the
+ * reading through the API in the background and the next step extends it, so "Share" only hands out the link with
+ * the author's language; the id lands in "my readings" beside the step marks. Every label is a function of the
  * dictionary, so a language switch relabels the page without touching its state. The only buttons are the row over
  * the free days of the forecast zone: the next day and, once a day is open, share; on a wide screen the row rides
  * with the chart and shortens to the day alone when the free part is narrow, on a phone it stands at the right.
