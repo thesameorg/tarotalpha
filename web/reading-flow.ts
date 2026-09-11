@@ -397,7 +397,8 @@ class LandingPage {
     this.el.share.disabled = true;
     const pulled = await playReveal(cardsOf(result));
     if (this.gone()) return;
-    if (!pulled) {
+    // Another instrument loaded under the reveal: this day belongs to nothing on screen, so it is neither paid nor kept.
+    if (!pulled || this.loaded !== loaded) {
       this.busy = false;
       if (this.loaded === loaded) {
         this.enableDraw(true);
