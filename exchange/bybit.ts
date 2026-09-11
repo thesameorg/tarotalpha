@@ -1,6 +1,6 @@
 /** Bybit spot klines, the fallback when Binance is blocked or down. Format and limits: docs/reference/bybit-kline.md */
 import type { Candle } from "../engine/atr";
-import { ExchangeError, type KlineWindow, type Provider } from "./provider";
+import { DEADLINE_MS, ExchangeError, type KlineWindow, type Provider } from "./provider";
 
 const KLINE_URL = "https://api.bybit.com/v5/market/kline";
 const PARAMS_ERROR_CODE = 10001;
@@ -24,12 +24,13 @@ export const bybit: Provider = {
 
     let response: Response;
     try {
-      response = await fetch(url);
+      response = await fetch(url, { signal: AbortSignal.timeout(DEADLINE_MS) });
     } catch (error) {
       throw new ExchangeError("unavailable", "bybit", `network failure: ${String(error)}`);
     }
     if (!response.ok) throw new ExchangeError("unavailable", "bybit", `HTTP ${String(response.status)}`);
-    const body = (await response.json()) as KlineBody;
+    // A body that is not JSON, or one cut off by the deadline, reads as no retCode: unavailable, next provider.
+    const body = (await response.json().catch(() => ({}))) as KlineBody;
     if (body.retCode === PARAMS_ERROR_CODE)
       throw new ExchangeError("unknown_asset", "bybit", `unknown symbol ${asset}`);
     if (body.retCode !== 0)
