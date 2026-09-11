@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { computeSteps, ENGINE_VERSION } from "../engine/index";
+import { computeSteps, ENGINE_VERSION, MAX_STEPS } from "../engine/index";
 import { HOUR_MS, SNAPSHOT_LENGTH, lastClosedAnchor } from "../exchange/closed-candles";
 import { callApi, patch, post } from "./call-api";
 
@@ -120,10 +120,10 @@ describe("POST /api/readings then GET /api/readings/:id", () => {
 });
 
 describe("POST /api/readings validation", () => {
-  it("puts the third step behind the paywall", async () => {
-    const response = await share({ steps: 3 });
-    expect(response.status).toBe(402);
-    expect(await response.json()).toMatchObject({ error: "paywall", free_steps: 2 });
+  it("refuses a day past the horizon", async () => {
+    const response = await share({ steps: MAX_STEPS + 1 });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: "bad_request" });
   });
 
   it("rejects an asset outside the symbol mask", async () => {
@@ -206,10 +206,12 @@ describe("PATCH /api/readings/:id", () => {
     expect(body.reader).toBe("fractal");
   });
 
-  it("puts the third step behind the paywall", async () => {
-    const id = await opened(1);
-    const response = await callApi(`/api/readings/${id}`, patch({ steps: 3, reader: "atr" }));
-    expect(response.status).toBe(402);
+  it("grows past the second day up to the horizon, and no further", async () => {
+    const id = await opened(2);
+    const longest = await callApi(`/api/readings/${id}`, patch({ steps: MAX_STEPS, reader: "atr" }));
+    expect(await longest.json()).toMatchObject({ steps: MAX_STEPS });
+    const past = await callApi(`/api/readings/${id}`, patch({ steps: MAX_STEPS + 1, reader: "atr" }));
+    expect(past.status).toBe(400);
   });
 
   it("answers an unknown id with 404", async () => {

@@ -149,7 +149,7 @@ export const fr: Dictionary = {
   day: (n: number): string => `jour ${String(n)}`,
   now: "maintenant",
   drawStep: (n: number): string => `Ouvrir le tirage · jour ${String(n)}`,
-  lockedStep: "deux jours gratuits, le troisième derrière le paywall",
+  mana: "Mana",
   close: "Fermer",
   picker: { choose: "Choisir un instrument", placeholder: "Ticker ou nom" },
   badAsset: "Un instrument fait 2 à 20 caractères : lettres latines et chiffres",
@@ -175,41 +175,10 @@ export const fr: Dictionary = {
   },
   paywall: {
     meditating: "Le module de paiement médite encore",
-    title: "Au-delà, les cartes se taisent",
-    lead: "L'accès gratuit couvre deux jours. Le troisième jour et l'horizon plus lointain s'ouvrent avec le statut d'initié.",
+    title: "Plus de mana",
+    lead: "Chaque jour du tirage coûte du mana, et plus il est lointain, plus il coûte : l'avenir se voit moins bien. Le mana revient peu à peu chaque heure et se remplit entièrement avec un nouveau jour.",
+    buy: "Acheter",
     back: "Retour au tirage",
-    tiers: [
-      {
-        name: "Initié",
-        price: "$4.99",
-        period: "/mois",
-        features: [
-          "jusqu'à 7 jours à l'avance",
-          "historique des tirages",
-          "sans publicité (il n'y en a pas de toute façon)",
-        ],
-        cta: "Choisir",
-      },
-      {
-        name: "Arcane majeur",
-        price: "$19.99",
-        period: "/mois",
-        features: [
-          "tout ce qu'a l'Initié",
-          "jeux premium",
-          "un second avis d'un autre jeu",
-          "feu d'artifice à la révélation",
-        ],
-        cta: "Choisir",
-      },
-      {
-        name: "Institutionnel",
-        price: "$999",
-        period: "/mois",
-        features: ["accès API", "rapport PDF avec sceau", "gestionnaire personnel"],
-        cta: "Demander",
-      },
-    ],
   },
   fan: { hint: "Tirez trois cartes", close: "fermer" },
   reader: {

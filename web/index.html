@@ -74,51 +74,12 @@
     <div class="modal" id="paywall">
       <div class="box">
         <button class="icon-btn modal-close" id="closePayCorner" type="button"></button>
-        <h2 data-i18n="paywall.title">Карты дальше молчат</h2>
+        <h2 data-i18n="paywall.title">Мана кончилась</h2>
         <p class="lead" data-i18n="paywall.lead">
-          Бесплатный доступ покрывает два дня вперёд. Третий день и более дальний горизонт открывает статус
-          посвящённого.
+          Каждый день расклада стоит маны, и чем он дальше, тем дороже: будущее видно хуже. Мана понемногу возвращается
+          каждый час, а с новым днём — целиком.
         </p>
-        <div class="tiers">
-          <div class="tier">
-            <div class="t" data-i18n="paywall.tiers.0.name">Посвящённый</div>
-            <div class="p">
-              <span data-i18n="paywall.tiers.0.price">$4.99</span><small data-i18n="paywall.tiers.0.period">/мес</small>
-            </div>
-            <ul>
-              <li data-i18n="paywall.tiers.0.features.0">до 7 дней вперёд</li>
-              <li data-i18n="paywall.tiers.0.features.1">история раскладов</li>
-              <li data-i18n="paywall.tiers.0.features.2">без рекламы (её и так нет)</li>
-            </ul>
-            <button data-i18n="paywall.tiers.0.cta">Выбрать</button>
-          </div>
-          <div class="tier hi">
-            <div class="t" data-i18n="paywall.tiers.1.name">Старший аркан</div>
-            <div class="p">
-              <span data-i18n="paywall.tiers.1.price">$19.99</span
-              ><small data-i18n="paywall.tiers.1.period">/мес</small>
-            </div>
-            <ul>
-              <li data-i18n="paywall.tiers.1.features.0">всё из «Посвящённого»</li>
-              <li data-i18n="paywall.tiers.1.features.1">премиум-колоды</li>
-              <li data-i18n="paywall.tiers.1.features.2">второе мнение другой колодой</li>
-              <li data-i18n="paywall.tiers.1.features.3">фейерверк при открытии</li>
-            </ul>
-            <button data-i18n="paywall.tiers.1.cta">Выбрать</button>
-          </div>
-          <div class="tier">
-            <div class="t" data-i18n="paywall.tiers.2.name">Институциональный</div>
-            <div class="p">
-              <span data-i18n="paywall.tiers.2.price">$999</span><small data-i18n="paywall.tiers.2.period">/мес</small>
-            </div>
-            <ul>
-              <li data-i18n="paywall.tiers.2.features.0">API-доступ</li>
-              <li data-i18n="paywall.tiers.2.features.1">PDF-отчёт с печатью</li>
-              <li data-i18n="paywall.tiers.2.features.2">персональный менеджер</li>
-            </ul>
-            <button data-i18n="paywall.tiers.2.cta">Запросить</button>
-          </div>
-        </div>
+        <div class="tiers" id="mana-packs"></div>
         <button class="close" id="closePay" data-i18n="paywall.back">Вернуться к раскладу</button>
       </div>
     </div>

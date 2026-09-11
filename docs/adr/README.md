@@ -16,3 +16,4 @@ ADR пишется в момент принятия решения, а не по
 | [`0006-readers-are-parallel-formulas.md`](0006-readers-are-parallel-formulas.md) | почему несколько формул прогноза живут одновременно и это не возвращённое версионирование |
 | [`0007-reader-rating-by-places.md`](0007-reader-rating-by-places.md) | почему рейтинг гадалки — место за столом на созревшем раскладе, а пишет его крон, а не просмотр ссылки |
 | [`0008-my-readings-are-ids-in-the-browser.md`](0008-my-readings-are-ids-in-the-browser.md) | почему «мои расклады» — айдишники в браузере (в Telegram — в CloudStorage), а расклад пишется в D1 при первом шаге, а не по «Поделиться» |
+| [`0009-mana-lives-in-the-browser.md`](0009-mana-lives-in-the-browser.md) | почему мана — счётчик в localStorage без проверки на сервере, а воркер держит только горизонт в семь дней |

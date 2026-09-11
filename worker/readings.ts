@@ -9,6 +9,7 @@ import {
   computeSteps,
   ENGINE_VERSION,
   isReaderId,
+  MAX_STEPS,
   READER_IDS,
   type Candle,
   type ReaderId,
@@ -27,7 +28,6 @@ import { recordEvent } from "./events";
 import { ApiError, readJsonBody } from "./json-api";
 import { ID_PATTERN, shortId } from "./short-id";
 
-export const FREE_STEPS = 2;
 const ID_ATTEMPTS = 3;
 const EXCHANGE_STATUS = { unknown_asset: 400, too_old: 422, unavailable: 502 } as const;
 
@@ -155,10 +155,7 @@ async function parseCreateBody(request: Request): Promise<CreateBody> {
   if (typeof asset !== "string" || !ASSET_PATTERN.test(asset)) throw bad("asset must match ^[A-Z0-9]{2,20}$");
   if (typeof anchorTs !== "number" || !isHourAligned(anchorTs)) throw bad("anchor_ts must be an hour-aligned ms UTC");
   if (anchorTs > lastClosedAnchor(Date.now())) throw bad("anchor_ts must be an already closed candle");
-  if (typeof steps !== "number" || !Number.isInteger(steps) || steps < 1) throw bad("steps must be an integer >= 1");
-  if (steps > FREE_STEPS) {
-    throw new ApiError(402, "paywall", `only ${String(FREE_STEPS)} steps are free`, { free_steps: FREE_STEPS });
-  }
+  if (!isStepCount(steps)) throw bad(`steps must be an integer from 1 to ${String(MAX_STEPS)}`);
   if (!isSource(source)) throw bad(`source must be one of ${SOURCES.join(", ")}`);
   if (!isReaderId(reader)) throw bad(`reader must be one of ${READER_IDS.join(", ")}`);
   // A stale tab with an older bundle would have shown cards this engine no longer draws; refuse rather than mislabel.
@@ -172,10 +169,7 @@ async function parseCreateBody(request: Request): Promise<CreateBody> {
 
 async function parseExtendBody(request: Request): Promise<{ steps: number; reader: ReaderId }> {
   const { steps, reader } = await readJsonBody(request);
-  if (typeof steps !== "number" || !Number.isInteger(steps) || steps < 1) throw bad("steps must be an integer >= 1");
-  if (steps > FREE_STEPS) {
-    throw new ApiError(402, "paywall", `only ${String(FREE_STEPS)} steps are free`, { free_steps: FREE_STEPS });
-  }
+  if (!isStepCount(steps)) throw bad(`steps must be an integer from 1 to ${String(MAX_STEPS)}`);
   if (!isReaderId(reader)) throw bad(`reader must be one of ${READER_IDS.join(", ")}`);
   return { steps, reader };
 }
@@ -236,6 +230,11 @@ export async function insertReading(
 
 function isIdCollision(error: unknown): boolean {
   return error instanceof Error && error.message.includes("UNIQUE constraint failed: readings.id");
+}
+
+// Mana is paid in the viewer's browser and never checked here (docs/adr/0009-mana-lives-in-the-browser.md).
+function isStepCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= MAX_STEPS;
 }
 
 function isSource(value: unknown): value is Source {

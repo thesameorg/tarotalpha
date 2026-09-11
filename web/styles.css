@@ -372,17 +372,13 @@ main {
 }
 .steps {
   display: flex;
-  gap: 6px;
+  gap: 4px;
 }
 .steps span {
-  width: 34px;
+  width: 14px;
   height: 6px;
   border-radius: 3px;
   background: var(--ink-3);
-}
-.steps span.locked {
-  background: transparent;
-  border: 1px dashed var(--line);
 }
 .steps span.done {
   background: var(--gold);
@@ -431,6 +427,11 @@ main {
 }
 .zone-cta.compact .short {
   display: inline;
+}
+.draw .cost {
+  margin-left: 8px;
+  font-family: var(--mono);
+  opacity: 0.75;
 }
 .zone-cta.edge {
   justify-content: flex-end;
@@ -1247,11 +1248,6 @@ main {
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
-@media (max-width: 640px) {
-  .tiers {
-    grid-template-columns: 1fr;
-  }
-}
 .tier {
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -1260,35 +1256,18 @@ main {
   flex-direction: column;
   gap: 6px;
 }
-.tier.hi {
-  border-color: var(--gold);
-}
 .tier .t {
   font-family: var(--serif);
-  font-size: 17px;
-}
-.tier .p {
-  font-size: 20px;
-}
-.tier ul {
-  list-style: none;
-  color: var(--paper-dim);
-  font-size: 12px;
-  flex: 1;
-}
-.tier li::before {
-  content: "— ";
+  font-size: 24px;
+  text-align: center;
 }
 .tier button {
   margin-top: 8px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--gold);
   border-radius: 4px;
   padding: 8px;
-}
-.tier.hi button {
   background: var(--gold);
   color: var(--on-gold);
-  border-color: var(--gold);
 }
 .box .close {
   margin-top: 16px;
@@ -1682,6 +1661,32 @@ footer {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+/* The mana left, beside the step marks; the bolt is mana everywhere: here, on the day's price and in the packs. */
+.mana {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--paper-dim);
+  white-space: nowrap;
+}
+.mana-glyph {
+  display: inline-flex;
+  vertical-align: -1px;
+  margin-right: 2px;
+  color: var(--gold);
+}
+.mana-glyph svg {
+  fill: currentColor;
+}
+.draw .mana-glyph {
+  color: inherit;
+}
+.tier .mana-glyph {
+  vertical-align: 0;
+}
+.tier .mana-glyph svg {
+  width: 18px;
+  height: 18px;
 }
 .mine {
   position: relative;

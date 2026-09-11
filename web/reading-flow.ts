@@ -1,14 +1,21 @@
 /**
  * The landing: the chart of the instrument picked in its header loads by itself (the URL's `asset`, the last one
- * used, or BTCUSDT), two free steps open with the fullscreen reveal, the third hits the paywall. Candles come
- * straight from the exchange and steps from the engine in this browser. The first open step writes the reading
- * through the API in the background and the next step extends it, so "Share" only hands out the link with the
- * author's language; the id lands in "my readings" beside the step marks. Every label is a function of the
+ * used, or BTCUSDT); each day costs its mana and opens with the fullscreen reveal, a short tank opens the paywall.
+ * Candles come straight from the exchange and steps from the engine in this browser. The first open step writes the
+ * reading through the API in the background and the next step extends it, so "Share" only hands out the link with
+ * the author's language; the id lands in "my readings" beside the step marks. Every label is a function of the
  * dictionary, so a language switch relabels the page without touching its state. The only buttons are the row over
  * the free days of the forecast zone: the next day and, once a day is open, share; on a wide screen the row rides
  * with the chart and shortens to the day alone when the free part is narrow, on a phone it stands at the right.
  */
-import { computeSteps, ENGINE_VERSION, forecastFromCards, type Candle, type StepResult } from "../engine/index";
+import {
+  computeSteps,
+  ENGINE_VERSION,
+  forecastFromCards,
+  MAX_STEPS,
+  type Candle,
+  type StepResult,
+} from "../engine/index";
 import { ASSET_PATTERN, fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
 import { ExchangeError, type Source } from "../exchange/provider";
 import { ApiError, createReading, extendReading, postEvent } from "./api";
@@ -19,7 +26,9 @@ import { showExchangeLogo } from "./exchange-logo";
 import type { ZoneLayout } from "./forecast-zone";
 import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
-import { findMyReading, rememberReading } from "./my-readings";
+import { dayCost, manaLeft, spendMana } from "./mana";
+import { mountManaMeter } from "./mana-meter";
+import { findMyReading, myReadingsNow, rememberReading } from "./my-readings";
 import { mountMyReadings } from "./my-readings-list";
 import { openPaywall } from "./paywall-modal";
 import { formatChange, formatPrice } from "./price-format";
@@ -32,7 +41,6 @@ import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
 import { toast } from "./toast";
 
-const FREE_STEPS = 2;
 const FLOW_MS_PER_CANDLE = 45;
 const CHANGE_LOOKBACK = 24;
 const DEFAULT_ASSET = "BTCUSDT";
@@ -61,6 +69,7 @@ interface Elements {
   last: HTMLElement;
   chg: HTMLElement;
   steps: HTMLElement;
+  mana: HTMLElement;
   mine: HTMLElement;
   chart: HTMLElement;
   chartState: HTMLElement;
@@ -70,6 +79,7 @@ interface Elements {
   row: HTMLElement;
   ctaFull: HTMLElement;
   ctaShort: HTMLElement;
+  ctaCost: HTMLElement;
   draw: HTMLButtonElement;
   share: HTMLButtonElement;
   panel: HTMLElement;
@@ -97,7 +107,8 @@ function landingMarkup(): string {
   <div class="stage-top">
     <div class="px"><div id="picker"></div><img class="src-logo" id="src-logo" alt="" hidden><span id="last">—</span><span class="chg" id="chg"></span></div>
     <div class="stage-side">
-      <div class="steps" id="steps"><span></span><span></span><span class="locked"></span></div>
+      <div class="steps" id="steps">${"<span></span>".repeat(MAX_STEPS)}</div>
+      <div id="mana"></div>
       <div id="mine" hidden></div>
     </div>
   </div>
@@ -105,7 +116,7 @@ function landingMarkup(): string {
     <div class="chart" id="chart"></div>
     <div class="zone-cta" id="zone-cta" hidden>
       <div class="row">
-        <button class="draw" id="draw" type="button" disabled><span class="full"></span><span class="short"></span></button>
+        <button class="draw" id="draw" type="button" disabled><span class="full"></span><span class="short"></span><span class="cost"></span></button>
         <button class="icon-btn" id="share" type="button" disabled hidden>${icons.share}</button>
       </div>
     </div>
@@ -128,6 +139,7 @@ function lookup(root: HTMLElement): Elements {
     last: required(root, "#last", HTMLElement),
     chg: required(root, "#chg", HTMLElement),
     steps: required(root, "#steps", HTMLElement),
+    mana: required(root, "#mana", HTMLElement),
     mine: required(root, "#mine", HTMLElement),
     chart: required(root, "#chart", HTMLElement),
     chartState: required(root, "#chart-state", HTMLElement),
@@ -137,6 +149,7 @@ function lookup(root: HTMLElement): Elements {
     row: required(root, "#zone-cta .row", HTMLElement),
     ctaFull: required(root, "#zone-cta .full", HTMLElement),
     ctaShort: required(root, "#zone-cta .short", HTMLElement),
+    ctaCost: required(root, "#zone-cta .cost", HTMLElement),
     draw: required(root, "#draw", HTMLButtonElement),
     share: required(root, "#share", HTMLButtonElement),
     panel: required(root, "#panel", HTMLElement),
@@ -186,6 +199,7 @@ class LandingPage {
     });
     initReaderPicker(this.el.readers);
     const unmountMine = mountMyReadings(this.el.mine, navigate);
+    const unmountMana = mountManaMeter(this.el.mana);
     const relabel = onLangChange(() => {
       this.relabel();
     });
@@ -196,6 +210,7 @@ class LandingPage {
       relabel();
       rereads();
       unmountMine();
+      unmountMana();
     };
 
     const preset = (params.get("asset") ?? "").trim().toUpperCase();
@@ -267,19 +282,31 @@ class LandingPage {
     this.labelDraw();
     this.el.share.setAttribute("aria-label", t().share.button);
     this.el.share.title = t().share.button;
-    this.el.steps.title = t().lockedStep;
     this.showPrice();
   }
 
   private labelDraw(): void {
     const next = (this.loaded?.steps.length ?? 0) + 1;
+    if (next > MAX_STEPS) return;
+    const cost = this.nextCost();
     this.el.ctaFull.textContent = t().drawStep(next);
     this.el.ctaShort.textContent = t().day(next);
-    this.el.draw.setAttribute("aria-label", t().drawStep(next));
+    this.el.ctaCost.innerHTML = cost === 0 ? "" : `<span class="mana-glyph">${icons.bolt}</span>${String(cost)}`;
+    const price = cost === 0 ? "" : ` · ${t().mana}: ${String(cost)}`;
+    this.el.draw.setAttribute("aria-label", `${t().drawStep(next)}${price}`);
+  }
+
+  // Days this browser opened in this window before a reload are in "my readings": they are not paid for twice.
+  private nextCost(): number {
+    const loaded = this.loaded;
+    if (loaded === null) return dayCost(1);
+    const paid = myReadingsNow().find((entry) => entry.asset === loaded.asset && entry.anchor_ts === loaded.anchorTs);
+    return dayCost(loaded.steps.length + 1, paid?.steps ?? 0);
   }
 
   private enableDraw(on: boolean): void {
     this.el.draw.disabled = !on;
+    if (on) this.labelDraw();
     this.placeCta();
   }
 
@@ -291,7 +318,9 @@ class LandingPage {
       this.el.cta.hidden = true;
       return;
     }
-    this.el.share.hidden = (this.loaded?.steps.length ?? 0) === 0;
+    const open = this.loaded?.steps.length ?? 0;
+    this.el.share.hidden = open === 0;
+    this.el.draw.hidden = open >= MAX_STEPS;
     const inFree = !narrow.matches && this.fit(Math.max(0, freeFrom(zone)), zone.width);
     const fits = inFree || this.fit(0, zone.width);
     this.el.cta.classList.toggle("edge", !inFree);
@@ -389,13 +418,14 @@ class LandingPage {
 
   private async openStep(): Promise<void> {
     const loaded = this.loaded;
-    if (this.busy || loaded === null) return;
-    if (loaded.steps.length >= FREE_STEPS) {
+    if (this.busy || loaded === null || loaded.steps.length >= MAX_STEPS) return;
+    const step = loaded.steps.length + 1;
+    const cost = this.nextCost();
+    if (manaLeft() < cost) {
       openPaywall();
-      postEvent({ type: "paywall_hit", asset: loaded.asset, step: FREE_STEPS + 1 });
+      postEvent({ type: "paywall_hit", asset: loaded.asset, step });
       return;
     }
-    const step = loaded.steps.length + 1;
     const input = {
       asset: loaded.asset,
       anchorTs: loaded.anchorTs,
@@ -419,6 +449,8 @@ class LandingPage {
       }
       return;
     }
+    // Paid once the third card is out: a reveal closed before that opened nothing and costs nothing.
+    spendMana(cost);
     loaded.steps.push(result);
     void this.persist(loaded, step);
     this.panel.setSteps(loaded.steps, step - 1);
@@ -437,7 +469,6 @@ class LandingPage {
     if (this.loaded !== loaded) return;
     if (this.readerPending) this.applyReader();
     this.el.share.disabled = false;
-    this.labelDraw();
     this.enableDraw(true);
     postEvent({ type: "step_opened", asset: loaded.asset, step });
   }
