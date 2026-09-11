@@ -131,8 +131,8 @@ pnpm run dev            # клиент и воркер с локальной D1,
 pnpm run test           # движок, биржевые адаптеры, воркер
 pnpm run deploy         # сборка и выкатка на workers.dev, docs/runbooks/deploy-workers-dev.md
 
-pnpm run check          # политика документирования на изменённом
-pnpm run check:all      # аудит всего репозитория
+pnpm run check          # политика документирования по всему репозиторию плюс доки, отставшие от PR
+pnpm run check:all      # то же без сверки с PR — ровно то, что гоняет CI
 pnpm run related        # что перечитать на противоречия перед PR
 pnpm run test:lint      # тесты самого линтера
 

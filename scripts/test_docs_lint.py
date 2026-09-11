@@ -78,18 +78,6 @@ assert (
 assert codes(body("# a\n# b\n# c\n# d\nkey: 1"), "h") == ["CMT001"]
 assert codes("# ---------\n# a\nkey: 1", "h") == []
 
-# --- парсер git-ханков
-sample = "@@ -1,0 +5,3 @@\n@@ -20 +21 @@\n@@ -30,2 +40,0 @@\n"
-assert L.parse_hunks(sample) == [(1, 0, 5, 3), (20, 1, 21, 1), (30, 2, 40, 0)]
-
-# --- строка базы после диффа: сдвиг, удаление, пустые ханки по обе стороны
-split = L.parse_hunks("@@ -3 +3,2 @@")  # третья строка переписана двумя
-assert [L.head_line(split, i) for i in (2, 3, 4, 10)] == [2, None, 5, 11]
-assert [L.head_line(L.parse_hunks("@@ -4,0 +5,3 @@"), i) for i in (4, 5)] == [4, 8]
-assert [L.head_line(L.parse_hunks("@@ -30,2 +29,0 @@"), i) for i in (29, 30, 31, 32)] == [29, None, None, 30]
-assert [L.head_line(L.parse_hunks("@@ -0,0 +1,2 @@"), i) for i in (1, 5)] == [3, 7]
-assert [L.head_line(L.parse_hunks("@@ -1,2 +0,0 @@"), i) for i in (1, 3)] == [None, 1]
-
 # --- строка статуса дока
 assert L.DOC_HEADER.match("> актуально · 2026-08-24 · рендерер ходит в Payload только через readFetch")
 assert L.DOC_HEADER.match("> **реализовано** — 2026-01-02 — вердикт")
@@ -156,36 +144,6 @@ assert not L.BANNER.match("# a - b - c")
 print("ok")
 
 
-# --- фильтр «блок написан этим PR», и что он вообще подключён
-import inspect  # noqa: E402
-
-assert "authored(f, added, debt)" in inspect.getsource(L.main), "authored определён, но не вызывается"
-
-long_block = L.Finding("a.py", 191, "CMT002", L.SEVERITY_FAIL, "", 205)
-old_debt = {"a.py": set(range(191, 206))}  # в базе блок уже был за лимитом
-assert not L.authored(long_block, {"a.py": {191}}, old_debt)  # правка одной строки в чужом долге — не наш долг
-assert L.authored(long_block, {"a.py": set(range(191, 199))}, old_debt)  # переписали половину — наш
-assert L.authored(long_block, {"a.py": None}, {})  # файл целиком новый
-assert L.authored(long_block, {"a.py": {191}}, {"a.py": set()})  # в базе укладывался в лимит — вывел за лимит PR
-merged = L.Finding("a.ts", 2, "CMT001", L.SEVERITY_FAIL, "", 7)  # долг 2–5 слипся с чистым 6–7: код между ними удалён
-assert L.authored(merged, {"a.ts": set()}, {"a.ts": {2, 3, 4, 5}})
-one_liner = L.Finding("a.py", 5, "MD004", L.SEVERITY_FAIL, "")
-assert L.authored(one_liner, {"a.py": {5}}, {})
-assert not L.authored(one_liner, {"a.py": {6}}, {})
-
-# --- у длинных блоков end обязан быть заполнен, иначе фильтр вырождается
-for f in L.check_comments("x", ('"""a\n' + "b\n" * 10 + '"""').split("\n"), "py"):
-    assert f.end > f.line, f
-for f in L.check_comments("x", body("# a\n# b\n# c\n# d\nx = 1").split("\n"), "py"):
-    assert f.end == f.line + 3, f
-
-# --- новый файл обозначается None, а не множеством из десяти миллионов чисел:
-# на 39 новых файлах это съедало 26 ГБ и раннер убивал процесс
-src = inspect.getsource(L)
-assert "range(1, 10**" not in src, "новый файл снова обозначен гигантским range"
-assert "None  # None = файл целиком новый" in src
-
-
 # --- хук не лезет за пределы чекаута: все наши доки внутри репозитория, и политика
 # описывает только его
 import docs_lint_hook as H  # noqa: E402
@@ -195,6 +153,16 @@ assert H.outside_repo("..")
 assert not H.outside_repo("docs/flows/customer-email.md")
 assert not H.outside_repo(".claude/agents/critic.md")
 assert not H.outside_repo("appsite/src/lib/notifications/policy.ts")
+
+# --- pre-commit гоняет ту же команду, что CI, на каждом коммите: иначе CI снова узнаёт первым
+_top = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+with open(os.path.join(_top, ".pre-commit-config.yaml"), encoding="utf-8") as fh:
+    _hook = fh.read().split("id: docs-lint", 1)[1].split("- repo:", 1)[0]
+with open(os.path.join(_top, ".github/workflows/check.yml"), encoding="utf-8") as fh:
+    _ci = fh.read()
+_entry = next(ln.split("entry:", 1)[1].strip() for ln in _hook.splitlines() if "entry:" in ln)
+assert f"- run: {_entry}\n" in _ci, f"pre-commit гоняет `{_entry}`, а CI — что-то другое"
+assert "pass_filenames: false" in _hook and "always_run: true" in _hook, _hook
 
 print("все проверки прошли")
 
@@ -238,8 +206,8 @@ with tempfile.TemporaryDirectory() as _root:
 
 print("ok")
 
-# --- правка, выводящая шапку за лимит, краснеет в хуке, в pre-commit и в режиме PR, а не впервые
-# в полном аудите CI. Правка строки внутри блока, который и в базе был за лимитом, — по-прежнему не наш долг.
+# --- долга нет, поэтому не прощается ничего: хук ругается на всё в записанном файле, а режим PR
+# смотрит весь репозиторий — ссылка из нетронутого дока на переименованный файл краснеет и там.
 import subprocess  # noqa: E402
 
 
@@ -255,43 +223,32 @@ def lint(cwd: str, *args: str) -> tuple[int, str]:
     return res.returncode, res.stdout
 
 
-def put(repo: str, lines: list[str]) -> None:
-    with open(os.path.join(repo, "a.ts"), "w") as fh:
-        fh.write("\n".join(lines + [""]))
-
-
 with tempfile.TemporaryDirectory() as _repo:
+
+    def put(path: str, text: str) -> None:
+        os.makedirs(os.path.dirname(os.path.join(_repo, path)), exist_ok=True)
+        with open(os.path.join(_repo, path), "w", encoding="utf-8") as fh:
+            fh.write(text)
+
     head = ["/**"] + [f" * line {i}" for i in range(8)] + [" */"]  # шапка ровно в 10 строк
-    legacy = ["// a", "// b", "// c", "// d", "// e"]  # блок в теле, за лимитом уже в базе
-    put(_repo, head + ["let x = 1", ""] + legacy + ["let y = 2"])
+    put("web/a.ts", "\n".join(head + ["let x = 1", ""]))
+    put("web/candles.ts", "export const y = 2\n")
+    put("docs/README.md", "# Docs\n\n- `flow.md` — поток\n")
+    put("docs/flow.md", "# Поток\n\n> актуально · 2026-09-12 · поток.\n\nКод — `web/candles.ts`.\n")
     git(_repo, "init", "-q", "-b", "main")
     git(_repo, "add", ".")
     git(_repo, "commit", "-q", "-m", "base")
+    assert lint(_repo) == (0, ""), lint(_repo)
 
-    legacy[2] = "// c, renamed"
-    put(_repo, head + ["let x = 1", ""] + legacy + ["let y = 2"])
-    assert lint(_repo, "--worktree", "a.ts") == (0, ""), "строка в чужом долге снова стала нашей"
+    head[3:4] = [" * line 3 grew", " * into two"]  # правка одной строки, а шапка уже 11 строк
+    put("web/a.ts", "\n".join(head + ["let x = 1", ""]))
+    code, out = lint(_repo, "web/a.ts")  # PostToolUse-хук
+    assert code == 1 and "web/a.ts:1: [CMT001] комментарий 11 строк" in out, out
+    git(_repo, "checkout", "--", "web/a.ts")
 
-    head[3:4] = [" * line 3 grew", " * into two"]
-    put(_repo, head + ["let x = 1", ""] + legacy + ["let y = 2"])
-    code, out = lint(_repo, "--worktree", "a.ts")  # PostToolUse-хук
-    assert code == 1 and out.count("ERROR") == 1 and "a.ts:1: [CMT001] комментарий 11 строк" in out, out
-    git(_repo, "add", "a.ts")
-    code, out = lint(_repo, "a.ts")  # pre-commit: застейдженное против HEAD
-    assert code == 1 and out.count("ERROR") == 1 and "a.ts:1: [CMT001]" in out, out
-    git(_repo, "commit", "-q", "-m", "grow")
+    git(_repo, "mv", "web/candles.ts", "web/klines.ts")  # док со ссылкой на старое имя PR не трогал
+    git(_repo, "commit", "-q", "-m", "rename")
     code, out = lint(_repo, "--base", "main~1")  # pnpm run check
-    assert code == 1 and out.count("ERROR") == 1 and "a.ts:1: [CMT001]" in out, out
-
-# Удалили строку кода между чужим долгом и чистым блоком — слипшийся блок за лимит вывел дифф.
-with tempfile.TemporaryDirectory() as _repo:
-    src = ["let x = 1", "// a", "// b", "// c", "// d", "log()", "// e", "// f", "let y = 2"]
-    put(_repo, src)
-    git(_repo, "init", "-q", "-b", "main")
-    git(_repo, "add", ".")
-    git(_repo, "commit", "-q", "-m", "base")
-    put(_repo, src[:5] + src[6:])
-    code, out = lint(_repo, "--worktree", "a.ts")
-    assert code == 1 and "a.ts:2: [CMT001] комментарий 6 строк" in out, out
+    assert code == 1 and "docs/flow.md:5: [MD004]" in out, out
 
 print("ok")

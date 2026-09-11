@@ -33,7 +33,7 @@ def main() -> int:
 
     # S603: фиксированная программа, путь едет отдельным argv, шелла нет.
     res = subprocess.run(  # noqa: S603
-        [sys.executable, os.path.join(HERE, "docs_lint.py"), "--worktree", path],
+        [sys.executable, os.path.join(HERE, "docs_lint.py"), path],
         capture_output=True,
         text=True,
         cwd=root,

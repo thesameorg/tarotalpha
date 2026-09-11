@@ -7,11 +7,9 @@ import argparse
 import ast
 import os
 import re
-import shutil
 import subprocess
 import sys
-import tempfile
-from collections import Counter, defaultdict
+from collections import defaultdict
 from dataclasses import dataclass
 
 # ---------------------------------------------------------------- конфигурация
@@ -161,7 +159,6 @@ class Finding:
     code: str
     severity: str
     msg: str
-    end: int = 0  # последняя строка блока; 0 = находка в одну строку
 
     def __str__(self) -> str:
         tag = "ERROR" if self.severity == SEVERITY_FAIL else "warn "
@@ -189,40 +186,6 @@ def tracked(root: str) -> list[str]:
     if not files:  # не репозиторий — обходим руками
         files = [os.path.relpath(os.path.join(d, f), root) for d, _, fs in os.walk(root) for f in fs]
     return [p for p in files if not any(s.search(p) for s in SKIP)]
-
-
-def parse_hunks(diff: str) -> list[tuple[int, int, int, int]]:
-    """Ханки `-U0`: (старое начало, старых строк, новое начало, новых строк)."""
-    found = re.findall(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@", diff, re.M)
-    return [(int(a), int(b or 1), int(c), int(d or 1)) for a, b, c, d in found]
-
-
-def head_line(hunks: list[tuple[int, int, int, int]], line: int) -> int | None:
-    """Где строка базы стоит после диффа; None — дифф её удалил или переписал."""
-    shift = 0
-    for a, b, c, d in hunks:
-        if a <= line < a + b:
-            return None
-        if line >= a + max(b, 1):  # пустой ханк стоит после строки a, а не на ней
-            shift = c + max(d, 1) - a - max(b, 1)
-    return line + shift
-
-
-def skip_formatting_commits(base: str, root: str) -> str:
-    """Двигает базу диффа за форматирующий коммит: переклейка строк — не авторство."""
-
-    # Такие коммиты уже перечислены в `.git-blame-ignore-revs` ради `git blame` —
-    # один источник правды на две задачи.
-    listed = read(root, ".git-blame-ignore-revs")
-    if not listed:
-        return base
-    revs = {ln.strip() for ln in listed if ln.strip() and not ln.startswith("#")}
-    in_range = sh("git", "rev-list", f"{base}..HEAD", cwd=root).split()
-    hit = [r for r in in_range if r in revs]  # rev-list идёт от свежих к старым
-    if not hit:
-        return base
-    print(f"дифф считаем от {hit[0][:9]} — форматирующий коммит из .git-blame-ignore-revs")
-    return hit[0]
 
 
 def changed_files(base: str, root: str) -> list[str]:
@@ -326,7 +289,7 @@ class _CommentRuns:
         n = end - start + 1
         if n > limit and not any(ESCAPE.search(x) for x in self.lines[start - 1 : end]):
             msg = f"{what} {n} строк (лимит {limit}) — {OVER_LIMIT}"
-            self.out.append(Finding(self.path, start, code, SEVERITY_FAIL, msg, end))
+            self.out.append(Finding(self.path, start, code, SEVERITY_FAIL, msg))
 
     def flush(self) -> None:
         if self.run_len:
@@ -666,32 +629,6 @@ def related_docs(root: str, index: list[str], files: list[str], top: int = 6) ->
 # ---------------------------------------------------------------------- сборка
 
 
-def inherited(root: str, ref: str, path: str, hunks: list[tuple[int, int, int, int]]) -> set[int]:
-    """Строки, которые и на ref стояли в блоке за лимитом, — долг, доставшийся диффу готовым."""
-    kind = CODE_EXT.get(os.path.splitext(path)[1])
-    if not kind:
-        return set()
-    was = sh("git", "show", f"{ref}:{path}", cwd=root).split("\n")
-    spans = [range(f.line, f.end + 1) for f in check_comments(path, was, kind)]
-    return {n for span in spans for i in span if (n := head_line(hunks, i)) is not None}
-
-
-def authored(f: Finding, added: dict[str, set[int] | None], debt: dict[str, set[int]]) -> bool:
-    """Блок под правилом, если PR его писал или вывел за лимит, а не задел строку в чужом долге."""
-
-    # Переименование пути в чужом 40-строчном докстринге — не новый долг. Новый комментарий
-    # на 8 строк, шапка, выросшая с 10 строк до 11, чистый блок, прилипший к чужому долгу, — долг.
-    new = added.get(f.path)
-    if new is None:  # None = файл целиком новый, писали его в этом PR
-        return True
-    if not f.end:
-        return f.line in new
-    span = range(f.line, f.end + 1)
-    if any(i not in new and i not in debt[f.path] for i in span):  # старая строка была в лимите
-        return True
-    return sum(1 for i in span if i in new) >= max(2, len(span) // 2)
-
-
 def _collect_md(root: str, path: str, lines: list[str], index: list[str]) -> tuple[list[Finding], set[str]]:
     """MD-файл: базовые правила плюс живые ссылки. Скиллы — инструкции, мёртвые ссылки не считаем."""
     findings = check_naming(path) + check_md_location(path) + check_md_header(path, lines) + check_md_index(root, path)
@@ -755,21 +692,6 @@ def collect(root: str, files: list[str], touched: set[str], index: list[str]) ->
     return findings
 
 
-def counts_at(root: str, ref: str) -> Counter:
-    """Счётчики нарушений на состоянии ref — ратчет без файла-бейзлайна."""
-    tmp = tempfile.mkdtemp(prefix="docs-lint-")
-    work = os.path.join(tmp, "tree")
-    sh("git", "worktree", "add", "--detach", "--quiet", work, ref, cwd=root)
-    try:
-        if not os.path.isdir(os.path.join(work, ".git")) and not os.path.exists(os.path.join(work, ".git")):
-            return Counter()
-        idx = tracked(work)
-        return Counter(f.code for f in collect(work, idx, set(), idx))
-    finally:
-        sh("git", "worktree", "remove", "--force", work, cwd=root)
-        shutil.rmtree(tmp, ignore_errors=True)
-
-
 # ------------------------------------------------------------------------- CLI
 
 
@@ -784,12 +706,8 @@ def summary(text: str) -> None:
 
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="линтер политики документирования")
-    ap.add_argument("files", nargs="*", help="файлы (режим pre-commit: новые строки и блоки, выведенные за лимит)")
-    ap.add_argument(
-        "--worktree", action="store_true", help="новые строки считать против HEAD, а не против индекса (режим хука)"
-    )
-    ap.add_argument("--base", help="дифф против ref (режим PR)")
-    ap.add_argument("--ratchet-vs", metavar="REF", help="счётчики сейчас против счётчиков на REF")
+    ap.add_argument("files", nargs="*", help="только эти файлы (режим хука); без них — весь репозиторий")
+    ap.add_argument("--base", help="весь репозиторий плюс доки, отставшие от диффа против ref (режим PR)")
     ap.add_argument("--related", action="store_true", help="какие доки перечитать на противоречия")
     ap.add_argument("--only", help="только этот код проверки")
     ap.add_argument("--summary", action="store_true", help="только сводка по кодам")
@@ -797,60 +715,16 @@ def parse_args() -> argparse.Namespace:
     return ap.parse_args()
 
 
-def run_ratchet(root: str, index: list[str], ref: str) -> int:
-    """Ратчет: сравнивает два состояния целиком."""
-    now = Counter(f.code for f in collect(root, index, set(), index))
-    was = counts_at(root, ref)
-    grown = {c: (was.get(c, 0), now[c]) for c in now if now[c] > was.get(c, 0)}
-    width = max([len(c) for c in set(now) | set(was)] + [5])
-    rows = []
-    for c in sorted(set(now) | set(was)):
-        a, b = was.get(c, 0), now.get(c, 0)
-        mark = "хуже" if b > a else ("лучше" if b < a else "—")
-        print(f"{c:<{width}} {a:>6} → {b:<6} {mark if mark != '—' else ''}")
-        rows.append(f"| `{c}` | {a} | {b} | {mark} |")
-    summary(f"### Ratchet vs `{ref}`\n\n| код | было | стало | |\n|---|---:|---:|---|\n" + "\n".join(rows))
-    if grown:
-        print(f"\nратчет: долг вырос против {ref}", file=sys.stderr)
-        for c, (a, b) in grown.items():
-            print(f"  {c}: {a} → {b}", file=sys.stderr)
-        return 1
-    print("\nратчет: долг не вырос")
-    return 0
+def select_files(args: argparse.Namespace, root: str, index: list[str]) -> tuple[list[str], set[str]]:
+    """Какие файлы смотрим и какие из них тронул PR."""
 
-
-def select_files(
-    args: argparse.Namespace, root: str, index: list[str]
-) -> tuple[list[str], dict[str, set[int] | None], dict[str, set[int]], set[str]]:
-    """Какие файлы смотрим, какие строки считаем «новыми» и какие — чужим долгом."""
-    added: dict[str, set[int] | None] = {}
-    debt: dict[str, set[int]] = {}
-    touched: set[str] = set()
-
+    # Долга нет и не копится: всё, что видно, — ошибка. Поэтому режим PR смотрит весь
+    # репозиторий, а не только дифф: переименование ломает ссылку в нетронутом файле.
     if args.files:
-        files = [f for f in args.files if not any(s.search(f) for s in SKIP)]
-        # Хук зовут до `git add`, поэтому индекс ему не годится: он смотрит рабочее
-        # дерево против HEAD. Файл, которого git ещё не знает, проверяем целиком.
-        diff = ["diff", "HEAD"] if args.worktree else ["diff", "--cached"]
-        ref, fresh = "HEAD", set(files) - set(index)
-    elif args.base:
-        args.base = skip_formatting_commits(args.base, root)
-        files = changed_files(args.base, root)
-        touched = set(files)  # MD005 включается только здесь
-        diff = ["diff", f"{args.base}...HEAD"]
-        ref = sh("git", "merge-base", args.base, "HEAD", cwd=root).strip()
-        fresh = set(sh("git", "diff", "--name-only", "--diff-filter=A", f"{args.base}...HEAD").splitlines())
-    else:
-        return index, added, debt, touched
-
-    for f in files:
-        if f in fresh:
-            added[f] = None  # None = файл целиком новый; множество строк тут строить незачем
-            continue
-        hunks = parse_hunks(sh("git", *diff, "-U0", "--no-color", "--", f, cwd=root))
-        added[f] = {n for _, _, c, d in hunks for n in range(c, c + d)}
-        debt[f] = inherited(root, ref, f, hunks)
-    return files, added, debt, touched
+        return [f for f in args.files if not any(s.search(f) for s in SKIP)], set()
+    if args.base:
+        return index, set(changed_files(args.base, root))  # MD005 включается только здесь
+    return index, set()
 
 
 def print_related(root: str, index: list[str], files: list[str]) -> int:
@@ -866,7 +740,7 @@ def print_related(root: str, index: list[str], files: list[str]) -> int:
     return 0
 
 
-def print_findings(findings: list[Finding], args: argparse.Namespace, files: list[str]) -> int:
+def print_findings(findings: list[Finding], args: argparse.Namespace, touched: set[str]) -> int:
     """Печатает находки в выбранном формате и возвращает код возврата процесса."""
     if args.summary:
         counts: dict[str, int] = defaultdict(int)
@@ -887,7 +761,7 @@ def print_findings(findings: list[Finding], args: argparse.Namespace, files: lis
     if args.base:
         head = "нарушений нет" if not findings else f"{errors} ошибок, {len(findings) - errors} предупреждений"
         body = "\n".join(f"- `{f.code}` {f.path}:{f.line} — {f.msg}" for f in findings[:40])
-        summary(f"### Docs policy\n\nБаза `{args.base}`, файлов {len(files)}. {head}.\n\n{body}")
+        summary(f"### Docs policy\n\nБаза `{args.base}`, файлов в диффе {len(touched)}. {head}.\n\n{body}")
     return 1 if errors else 0
 
 
@@ -898,27 +772,22 @@ def main() -> int:
     os.chdir(root)
     index = tracked(root)
 
-    if args.ratchet_vs:
-        return run_ratchet(root, index, args.ratchet_vs)
-
-    files, added, debt, touched = select_files(args, root, index)
+    files, touched = select_files(args, root, index)
 
     if args.related:
-        return print_related(root, index, files)
+        return print_related(root, index, sorted(touched) or files)
 
     if args.base:
         head = sh("git", "rev-parse", "--short", "HEAD").strip()
         ref = sh("git", "rev-parse", "--short", args.base).strip()
-        print(f"дифф: {args.base} ({ref}) ... HEAD ({head}) — файлов {len(files)}")
+        print(f"дифф: {args.base} ({ref}) ... HEAD ({head}) — файлов {len(touched)}")
 
     findings = collect(root, files, touched, index)
 
-    if added:
-        findings = [f for f in findings if f.code.startswith("MD") or authored(f, added, debt)]
     if args.only:
         findings = [f for f in findings if f.code == args.only]
 
-    return print_findings(findings, args, files)
+    return print_findings(findings, args, touched)
 
 
 if __name__ == "__main__":

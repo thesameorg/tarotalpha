@@ -45,7 +45,7 @@
 ## Проверка
 
 ```bash
-pnpm run check       # только изменённые строки
+pnpm run check       # весь репозиторий плюс доки, отставшие от PR
 pnpm run related     # противоречия перед PR
-pnpm run check:all   # весь репозиторий
+pnpm run check:all   # весь репозиторий, ровно как CI
 ```
