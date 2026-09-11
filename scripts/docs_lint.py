@@ -679,15 +679,15 @@ def inherited(root: str, ref: str, path: str, hunks: list[tuple[int, int, int, i
 def authored(f: Finding, added: dict[str, set[int] | None], debt: dict[str, set[int]]) -> bool:
     """Блок под правилом, если PR его писал или вывел за лимит, а не задел строку в чужом долге."""
 
-    # Переименование пути в чужом 40-строчном докстринге — не новый долг.
-    # Новый комментарий на 8 строк или шапка, выросшая с 10 строк до 11, — долг.
+    # Переименование пути в чужом 40-строчном докстринге — не новый долг. Новый комментарий
+    # на 8 строк, шапка, выросшая с 10 строк до 11, чистый блок, прилипший к чужому долгу, — долг.
     new = added.get(f.path)
     if new is None:  # None = файл целиком новый, писали его в этом PR
         return True
     if not f.end:
         return f.line in new
     span = range(f.line, f.end + 1)
-    if not debt[f.path].intersection(span):  # в базе блок укладывался в лимит — вывел его за лимит дифф
+    if any(i not in new and i not in debt[f.path] for i in span):  # старая строка была в лимите
         return True
     return sum(1 for i in span if i in new) >= max(2, len(span) // 2)
 

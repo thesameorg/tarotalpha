@@ -167,6 +167,8 @@ assert not L.authored(long_block, {"a.py": {191}}, old_debt)  # правка о�
 assert L.authored(long_block, {"a.py": set(range(191, 199))}, old_debt)  # переписали половину — наш
 assert L.authored(long_block, {"a.py": None}, {})  # файл целиком новый
 assert L.authored(long_block, {"a.py": {191}}, {"a.py": set()})  # в базе укладывался в лимит — вывел за лимит PR
+merged = L.Finding("a.ts", 2, "CMT001", L.SEVERITY_FAIL, "", 7)  # долг 2–5 слипся с чистым 6–7: код между ними удалён
+assert L.authored(merged, {"a.ts": set()}, {"a.ts": {2, 3, 4, 5}})
 one_liner = L.Finding("a.py", 5, "MD004", L.SEVERITY_FAIL, "")
 assert L.authored(one_liner, {"a.py": {5}}, {})
 assert not L.authored(one_liner, {"a.py": {6}}, {})
@@ -253,25 +255,25 @@ def lint(cwd: str, *args: str) -> tuple[int, str]:
     return res.returncode, res.stdout
 
 
+def put(repo: str, lines: list[str]) -> None:
+    with open(os.path.join(repo, "a.ts"), "w") as fh:
+        fh.write("\n".join(lines + [""]))
+
+
 with tempfile.TemporaryDirectory() as _repo:
     head = ["/**"] + [f" * line {i}" for i in range(8)] + [" */"]  # шапка ровно в 10 строк
     legacy = ["// a", "// b", "// c", "// d", "// e"]  # блок в теле, за лимитом уже в базе
-
-    def write() -> None:
-        with open(os.path.join(_repo, "a.ts"), "w") as fh:
-            fh.write("\n".join(head + ["let x = 1", ""] + legacy + ["let y = 2", ""]))
-
-    write()
+    put(_repo, head + ["let x = 1", ""] + legacy + ["let y = 2"])
     git(_repo, "init", "-q", "-b", "main")
     git(_repo, "add", ".")
     git(_repo, "commit", "-q", "-m", "base")
 
     legacy[2] = "// c, renamed"
-    write()
+    put(_repo, head + ["let x = 1", ""] + legacy + ["let y = 2"])
     assert lint(_repo, "--worktree", "a.ts") == (0, ""), "строка в чужом долге снова стала нашей"
 
     head[3:4] = [" * line 3 grew", " * into two"]
-    write()
+    put(_repo, head + ["let x = 1", ""] + legacy + ["let y = 2"])
     code, out = lint(_repo, "--worktree", "a.ts")  # PostToolUse-хук
     assert code == 1 and out.count("ERROR") == 1 and "a.ts:1: [CMT001] комментарий 11 строк" in out, out
     git(_repo, "add", "a.ts")
@@ -280,5 +282,16 @@ with tempfile.TemporaryDirectory() as _repo:
     git(_repo, "commit", "-q", "-m", "grow")
     code, out = lint(_repo, "--base", "main~1")  # pnpm run check
     assert code == 1 and out.count("ERROR") == 1 and "a.ts:1: [CMT001]" in out, out
+
+# Удалили строку кода между чужим долгом и чистым блоком — слипшийся блок за лимит вывел дифф.
+with tempfile.TemporaryDirectory() as _repo:
+    src = ["let x = 1", "// a", "// b", "// c", "// d", "log()", "// e", "// f", "let y = 2"]
+    put(_repo, src)
+    git(_repo, "init", "-q", "-b", "main")
+    git(_repo, "add", ".")
+    git(_repo, "commit", "-q", "-m", "base")
+    put(_repo, src[:5] + src[6:])
+    code, out = lint(_repo, "--worktree", "a.ts")
+    assert code == 1 and "a.ts:2: [CMT001] комментарий 6 строк" in out, out
 
 print("ok")
