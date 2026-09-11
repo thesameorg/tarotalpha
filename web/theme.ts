@@ -1,7 +1,8 @@
 /**
  * Light, dark or the system's, chosen in the header and kept in localStorage. The choice lands as `data-theme` on
  * <html> before the first paint (the inline script in index.html) and again here on every switch; CSS does the
- * rest, and the chart re-reads its colours on `onThemeChange`.
+ * rest, and the chart re-reads its colours on `onThemeChange`. "The system's" is the browser's media query, or the
+ * Telegram client's scheme once `bindSystemScheme` points here at it.
  */
 export type Theme = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
@@ -9,6 +10,7 @@ export type ResolvedTheme = "light" | "dark";
 const STORAGE_KEY = "ta.theme";
 const listeners = new Set<() => void>();
 const dark = window.matchMedia("(prefers-color-scheme: dark)");
+let systemScheme = (): ResolvedTheme => (dark.matches ? "dark" : "light");
 let choice: Theme = "system";
 
 export function isTheme(value: unknown): value is Theme {
@@ -20,8 +22,15 @@ export function theme(): Theme {
 }
 
 export function resolvedTheme(): ResolvedTheme {
-  if (choice === "system") return dark.matches ? "dark" : "light";
-  return choice;
+  return choice === "system" ? systemScheme() : choice;
+}
+
+/** Another reading of the system's scheme with its own change signal; "system" follows it from now on. */
+export function bindSystemScheme(read: () => ResolvedTheme, onChange: (listener: () => void) => void): void {
+  systemScheme = read;
+  onChange(() => {
+    if (choice === "system") apply();
+  });
 }
 
 export function initTheme(): void {

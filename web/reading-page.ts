@@ -28,7 +28,7 @@ import { localDateTime, localTime } from "./local-time-format";
 import { formatChange, formatPrice } from "./price-format";
 import { playReveal } from "./reveal-overlay";
 import type { Navigate, View } from "./router";
-import { openShareModal } from "./share-modal";
+import { shareLink } from "./share-modal";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
 
@@ -159,7 +159,7 @@ class ReadingPage {
     private readonly id: string,
     private readonly navigate: Navigate,
   ) {
-    this.root.innerHTML = `<div class="stage"><div class="chart-box"><div class="chart-state"><p>${t().reading.loading}</p></div></div></div>`;
+    this.root.innerHTML = `<div class="stage"><div class="chart-box"><div class="chart-state busy"><p>${t().reading.loading}</p></div></div></div>`;
     this.unsubscribe = onLangChange(() => {
       this.relabel();
     });
@@ -243,7 +243,7 @@ class ReadingPage {
     el.share.addEventListener("click", () => {
       const url = new URL(window.location.href);
       url.searchParams.set("lang", lang());
-      openShareModal(url.href);
+      shareLink(url.href);
     });
     this.relabel();
 

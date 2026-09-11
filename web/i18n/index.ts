@@ -1,6 +1,7 @@
 /**
  * Eleven interface languages, one dictionary shape. The language is the viewer's stored choice, else the share link's
- * `lang`, else the first browser language we have, else English. Switching is live: modules that hold text
+ * `lang`, else the first we have of the host's languages (Telegram's) and then the browser's, else English.
+ * Switching is live: modules that hold text
  * re-render on `onLangChange`, static markup in index.html is relabelled through `data-i18n` keys ("path.to.text",
  * or "path@attr" for an attribute, several joined with ";").
  */
@@ -33,12 +34,12 @@ export function t(): Dictionary {
   return DICTIONARIES[current];
 }
 
-export function initLang(params: URLSearchParams): void {
+export function initLang(params: URLSearchParams, hostLangs: readonly string[] = []): void {
   const stored = read();
   const param = params.get("lang");
   if (isLang(stored)) current = stored;
   else if (isLang(param)) current = param;
-  else current = matchLang(navigator.languages) ?? "en";
+  else current = matchLang([...hostLangs, ...navigator.languages]) ?? "en";
   apply();
 }
 

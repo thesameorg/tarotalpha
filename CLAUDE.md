@@ -13,7 +13,7 @@ TarotAlpha: сайт с внешностью финтех-терминала, в
 | `.claude/` | скилы, агенты, команды, хуки |
 | `engine/` | движок прогноза: чистые формулы, правятся на месте; гадалок несколько, и каждая считает свои свечи по общим картам |
 | `exchange/` | свечи с биржи: один код для браузера и воркера, без кэша |
-| `web/` | клиент: Vite, vanilla TypeScript, Lightweight Charts; словари одиннадцати языков в `web/i18n/`; метод по-английски — `web/how.html` |
+| `web/` | клиент: Vite, vanilla TypeScript, Lightweight Charts; словари одиннадцати языков в `web/i18n/`; метод по-английски — `web/how.html`; внутри Telegram тот же сайт как мини-апп через `web/telegram.ts` |
 | `worker/` | Cloudflare Worker: `/api/*`, мета-теги на `/r/:id`, статика; крон ведёт трек счёта и сверяет созревшее |
 | `migrations/` | SQL для D1 |
 
@@ -30,6 +30,7 @@ TarotAlpha: сайт с внешностью финтех-терминала, в
 | почему решили именно так | `docs/adr/` |
 | как сделать руками | `docs/runbooks/` |
 | сверить факт, версию, лимит провайдера | `docs/reference/` |
+| как сайт живёт внутри Telegram и как это проверить | `docs/reference/telegram-mini-app.md`, `docs/runbooks/test-in-telegram.md` |
 | что сейчас в работе | `gh issue list`, открытые PR |
 | как здесь документируют | `.claude/skills/documenting/SKILL.md` |
 | с чего начинать задачу | `.claude/agents/recon.md` |
