@@ -9,7 +9,7 @@
 - Адрес мини-аппа задаётся в BotFather (Main Mini App). Клиент открывает его с хэшем `#tgWebAppData=<initData>&tgWebAppVersion=<Bot API>&tgWebAppPlatform=<ios|android|weba|webk|tdesktop|macos>&tgWebAppThemeParams=<json>[&tgWebAppStartParam=<startapp>]`. На web.telegram.org страница живёт в iframe и в DevTools видна целиком.
 - Скрипт `https://telegram.org/js/telegram-web-app.js` читает хэш при загрузке и кладёт параметры в `sessionStorage` (`__telegram__initParams`); после перезагрузки без хэша берёт их оттуда. Хэш он не стирает, а `tgWebAppData` — это initData с подписью и `user`: в ссылке, собранной из `location.href`, он утечёт.
 - Пока приложение не вызвало `ready()`, клиент держит заглушку (иконка и цвета — BotFather → Configure Mini App); без вызова заглушка уходит по `load` страницы.
-- `t.me/<бот>?startapp=<x>` открывает Main Mini App; `x` приходит как `tgWebAppStartParam` в хэше и `initDataUnsafe.start_param`. `t.me/<бот>/<апп>?startapp=<x>&mode=compact` — прямая ссылка на именованное приложение, `compact` — полэкрана.
+- `t.me/<бот>?startapp=<x>` открывает Main Mini App; `x` приходит как `start_param` внутри initData всегда, а как `tgWebAppStartParam` в хэше — не у всех клиентов: web.telegram.org/k кладёт его только в initData (проверено 2026-09-11). Перед открытием по ссылке клиент спрашивает «To launch this web app, you will connect to its website». `t.me/<бот>/<апп>?startapp=<x>&mode=compact` — прямая ссылка на именованное приложение, `compact` — полэкрана.
 - Вне клиента (страница с подставным хэшем) скрипт работает: вызовы к клиенту уходят в пустоту без ошибок; без `tgWebAppVersion` версия считается 6.0, и методы новее её пишут warn в консоль и не делают ничего.
 
 ## Что даёт клиент и с какой версии

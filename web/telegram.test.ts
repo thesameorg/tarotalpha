@@ -28,12 +28,21 @@ describe("launchedByTelegram", () => {
 });
 
 describe("startReadingOf", () => {
-  it("takes the reading id from startapp", () => {
-    expect(startReadingOf(`${LAUNCH}&tgWebAppStartParam=Ab3_-9xZ`)).toBe("Ab3_-9xZ");
+  it("takes the reading id from the launch hash", () => {
+    expect(startReadingOf(`${LAUNCH}&tgWebAppStartParam=Ab3_-9xZ`, undefined)).toBe("Ab3_-9xZ");
+  });
+
+  it("takes it from initData when the client puts it only there", () => {
+    expect(startReadingOf(LAUNCH, "Ab3_-9xZ")).toBe("Ab3_-9xZ");
   });
 
   it("ignores anything that is not a reading id", () => {
-    expect(startReadingOf(`${LAUNCH}&tgWebAppStartParam=..%2Fx`)).toBeNull();
-    expect(startReadingOf(LAUNCH)).toBeNull();
+    expect(startReadingOf(`${LAUNCH}&tgWebAppStartParam=..%2Fx`, undefined)).toBeNull();
+    expect(startReadingOf(LAUNCH, "../x")).toBeNull();
+    expect(startReadingOf(LAUNCH, undefined)).toBeNull();
+  });
+
+  it("does not replay the parameter on a reload, when the launch hash is gone", () => {
+    expect(startReadingOf("", "Ab3_-9xZ")).toBeNull();
   });
 });

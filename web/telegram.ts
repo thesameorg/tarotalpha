@@ -37,10 +37,13 @@ export function launchedByTelegram(hash: string, remembered: string | null): boo
   return params.has("tgWebAppPlatform") && (params.get("tgWebAppData") ?? "") !== "";
 }
 
-/** The reading id a `t.me/<bot>?startapp=<id>` link carries; only the launch itself, a reload does not replay it. */
-export function startReadingOf(hash: string): string | null {
-  const param = launchParams(hash).get("tgWebAppStartParam");
-  return param !== null && READING_ID.test(param) ? param : null;
+// The id from `t.me/<bot>?startapp=<id>`: in the hash on some clients, only inside initData on web.telegram.org, and
+// only on the launch itself — a reload keeps initData and must not replay it.
+export function startReadingOf(hash: string, initDataStartParam: string | undefined): string | null {
+  const params = launchParams(hash);
+  if (!params.has("tgWebAppData")) return null;
+  const param = params.get("tgWebAppStartParam") ?? initDataStartParam;
+  return param !== undefined && READING_ID.test(param) ? param : null;
 }
 
 function launchParams(hash: string): URLSearchParams {
@@ -51,10 +54,10 @@ export async function initTelegram(): Promise<void> {
   const hash = window.location.hash;
   if (!launchedByTelegram(hash, remembered())) return;
   remember();
-  startParam = startReadingOf(hash);
   const loaded = await loadScript();
   if (loaded === null) return;
   app = loaded;
+  startParam = startReadingOf(hash, loaded.initDataUnsafe.start_param);
   // The launch hash carries initData, the viewer's signed identity: strip it before any link is built from the URL.
   window.history.replaceState(null, "", window.location.pathname + window.location.search);
   loaded.expand();
