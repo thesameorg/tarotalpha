@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { Candle } from "./atr";
-import { computeSteps, deviation, forecastFromCards, MAX_STEPS, natr, READER_IDS } from "./index";
+import { atr, computeSteps, deviation, forecastFromCards, MAX_STEPS, READER_IDS } from "./index";
 import { makeRng } from "./seed";
 
 interface CpuUsage {
@@ -65,7 +65,7 @@ it("scores one reading for all five readers in under 5 ms of CPU", () => {
   for (let i = 0; i < 20; i++) {
     const before = node.cpuUsage();
     const parsed = JSON.parse(JSON.stringify(snapshot)) as Candle[];
-    const unit = natr(parsed);
+    const unit = atr(parsed);
     for (const reader of READER_IDS) {
       const forecast = forecastFromCards({ asset: "BTCUSDT", anchorTs, snapshot: parsed, reader, cards }).flatMap(
         (step) => step.candles,

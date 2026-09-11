@@ -5,11 +5,11 @@
  * no view triggers or changes any of this. When it runs and what it writes: ../docs/reading-lifecycle.md
  */
 import {
+  atr,
   CANDLES_PER_STEP,
   deviation,
   ENGINE_VERSION,
   forecastFromCards,
-  natr,
   READER_IDS,
   type Candle,
   type Drifts,
@@ -83,7 +83,8 @@ async function driftsOf(row: MaturedRow, nowMs: number): Promise<Drifts | null> 
   const horizon = cards.length * CANDLES_PER_STEP;
   const real = await realCandles(row, horizon, nowMs);
   if (real.length < horizon) return null;
-  const unit = natr(snapshot);
+  // ATR in price, as the link divides: NATR is a fraction of price and would scale every drift by the last close.
+  const unit = atr(snapshot);
   const drifts: Drifts = {};
   for (const reader of READER_IDS) {
     const forecast = forecastFromCards({
