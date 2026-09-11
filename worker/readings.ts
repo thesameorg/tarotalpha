@@ -64,6 +64,7 @@ type SnapshotRow = [t: number, o: number, h: number, l: number, c: number];
 interface ExtendRow {
   asset: string;
   anchor_ts: number;
+  reader: string;
   seed_nonce: string | null;
   steps: string;
   candles_snapshot: string;
@@ -87,18 +88,20 @@ export async function createReading(request: Request, env: Env): Promise<Respons
   return Response.json({ id, url: `/r/${id}`, steps: body.steps }, { status: 201 });
 }
 
-/** The next open step: the cards are redrawn from the stored snapshot, so no exchange call and no new row. */
+/** The next open step, redrawn from the stored snapshot; the reader stays the one the row was written with. */
 export async function extendReading(id: string, request: Request, env: Env): Promise<Response> {
   const { steps, reader } = await parseExtendBody(request);
   const row = ID_PATTERN.test(id)
     ? await env.DB.prepare(
-        "SELECT asset, anchor_ts, seed_nonce, steps, candles_snapshot FROM readings WHERE id = ?1 AND origin = 'share'",
+        "SELECT asset, anchor_ts, reader, seed_nonce, steps, candles_snapshot FROM readings" +
+          " WHERE id = ?1 AND origin = 'share'",
       )
         .bind(id)
         .first<ExtendRow>()
     : null;
   if (row === null) throw new ApiError(404, "not_found", `no reading ${id}`);
-  // A reading never loses a day: a reopen of the same window that asks for fewer steps only moves the reader.
+  if (row.reader !== reader) throw new ApiError(409, "reader_locked", `reading ${id} is read by ${row.reader}`);
+  // A reading never loses a day: a reopen of the same window that asks for fewer steps keeps every one of them.
   const count = Math.max(steps, (JSON.parse(row.steps) as unknown[]).length);
   const snapshot: Candle[] = (JSON.parse(row.candles_snapshot) as SnapshotRow[]).map(([t, o, h, l, c]) => ({
     t,
@@ -115,8 +118,8 @@ export async function extendReading(id: string, request: Request, env: Env): Pro
     nonce: row.seed_nonce,
     steps: count,
   }).map((result) => result.cards);
-  await env.DB.prepare("UPDATE readings SET steps = ?2, reader = ?3, engine_version = ?4 WHERE id = ?1")
-    .bind(id, JSON.stringify(cards), reader, ENGINE_VERSION)
+  await env.DB.prepare("UPDATE readings SET steps = ?2, engine_version = ?3 WHERE id = ?1")
+    .bind(id, JSON.stringify(cards), ENGINE_VERSION)
     .run();
   return Response.json({ id, url: `/r/${id}`, steps: count });
 }
