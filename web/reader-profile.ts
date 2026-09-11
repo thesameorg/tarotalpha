@@ -1,14 +1,15 @@
 /**
- * The profile card of a reader: portrait, name, stars, a paragraph about her and the row of the other readers.
- * Clicking another one only previews her card; nothing changes until the choose button is pressed. The stars come
- * from the Worker and arrive after the card is already open, so opening repaints it. The paragraphs are still
+ * The profile card of a reader: portrait, name, stars, a paragraph about her and the row of every reader with her
+ * stars. Clicking another one only previews her card; nothing changes until the choose button is pressed. The stars
+ * come from the Worker and arrive after the card is already open, so opening repaints it. The paragraphs are still
  * placeholders. How the formulas work is one link on the page itself, not here.
  */
 import { isReaderId, READER_IDS, type ReaderId } from "../engine/readers";
 import { icons } from "./icons";
 import { onLangChange, t } from "./i18n/index";
+import type { ReaderStanding } from "./api";
 import { loadReaderTable, readerStanding } from "./reader-rating";
-import { reader, readerAvatarUrl, setReader } from "./reader-choice";
+import { reader, readerAvatarUrl, readerLocked, setReader } from "./reader-choice";
 
 const STARS = 5;
 
@@ -27,29 +28,32 @@ function starMarkup(filled: number): string {
   return `<span class="star half">${icons.star}<span class="star-lit">${icons.star}</span></span>`;
 }
 
+function starRow(standing: ReaderStanding): string {
+  const stars = Array.from({ length: STARS }, (_, i) => starMarkup(standing.stars - i)).join("");
+  return `<div class="stars" role="img" aria-label="${t().reader.rated(standing.stars, STARS)}">${stars}</div>`;
+}
+
 function starsMarkup(id: ReaderId): string {
   const standing = readerStanding(id);
   if (standing === null) return `<div class="profile-unscored">${t().reader.unscored}</div>`;
-  const stars = Array.from({ length: STARS }, (_, i) => starMarkup(standing.stars - i)).join("");
   const wins = Math.round(standing.wins * 100);
-  return (
-    `<div class="stars" role="img" aria-label="${t().reader.rated(standing.stars, STARS)}">${stars}</div>` +
-    `<div class="profile-score">${t().reader.wins(wins)}</div>` +
-    `<p class="disclaimer">${t().disclaimer}</p>`
-  );
+  return starRow(standing) + `<div class="profile-score">${t().reader.wins(wins)}</div>`;
 }
 
 /** Everyone, always in the same order and the same place: a row that reshuffles under the cursor is a trap. */
 function othersMarkup(current: ReaderId): string {
-  const options = READER_IDS.map(
-    (id) =>
-      `<button class="other${id === current ? " shown" : ""}" type="button" data-reader-show="${id}"><img src="${readerAvatarUrl(id)}" alt=""><span>${t().readerName(id)}</span></button>`,
-  ).join("");
+  const options = READER_IDS.map((id) => {
+    const standing = readerStanding(id);
+    const stars = standing === null ? "" : starRow(standing);
+    return `<button class="other${id === current ? " shown" : ""}" type="button" data-reader-show="${id}"><img src="${readerAvatarUrl(id)}" alt=""><span class="other-text"><b>${t().readerName(id)}</b>${stars}</span></button>`;
+  }).join("");
   return `<div class="others"><div class="others-title">${t().reader.others}</div><div class="others-row">${options}</div></div>`;
 }
 
+// Once a day is open the forecast is hers to the end: the other readers can still be looked at, not chosen.
 function chooseMarkup(id: ReaderId): string {
   if (id === reader()) return `<div class="profile-current">${t().reader.current}</div>`;
+  if (readerLocked()) return `<div class="profile-current">${t().reader.locked(t().readerName(reader()))}</div>`;
   return `<button class="draw profile-choose" type="button" data-reader-pick="${id}">${t().reader.choose(t().readerName(id))}</button>`;
 }
 

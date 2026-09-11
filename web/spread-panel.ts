@@ -1,9 +1,9 @@
 /**
- * The cards block under the chart, one for both pages: day tabs, the three cards of the chosen day with their
- * names and one esoteric line under each, and the day's summary with its disclaimer. A name printed over the
- * picture would sit on the one the card itself carries, so in this row the caption is hidden and the name stands
- * under the card; the fullscreen reveal keeps its caption. The link to the method page is the footer's one.
- * Everything here is text, so the block re-renders itself when the language switches.
+ * The cards block under the chart, one for both pages: the reader who reads them and the day tabs in one row, the
+ * three cards of the chosen day with their names and one esoteric line under each, and the day's summary. A name
+ * printed over the picture would sit on the one the card itself carries, so in this row the caption is hidden and
+ * the name stands under the card; the fullscreen reveal keeps its caption. The disclaimer and the link to the method
+ * page are the footer's. Everything here is text, so the block re-renders itself when the language switches.
  */
 import { cardById } from "../engine/deck";
 import type { StepResult } from "../engine/index";
@@ -34,9 +34,11 @@ function tabMarkup(index: number, active: boolean): string {
   return `<button type="button" role="tab" aria-selected="${String(active)}" data-index="${String(index)}">${t().day(index + 1)}</button>`;
 }
 
-export function createSpreadPanel(root: HTMLElement, eager: boolean): SpreadPanel {
+/** `reader`, when given, is moved to the head of the tabs row: she reads the days that follow her. */
+export function createSpreadPanel(root: HTMLElement, eager: boolean, reader?: HTMLElement): SpreadPanel {
   root.classList.add("panel");
   root.innerHTML = markup();
+  if (reader !== undefined) required(root, ".tabs", HTMLElement).prepend(reader);
   const tablist = required(root, ".tablist", HTMLElement);
   const spread = required(root, ".spread", HTMLElement);
   const meanings = required(root, ".meanings", HTMLElement);
@@ -52,7 +54,7 @@ export function createSpreadPanel(root: HTMLElement, eager: boolean): SpreadPane
     summary.hidden = step === undefined;
     if (step === undefined) {
       // No card slots before a step: how many cards a reader draws is its own business, and one may throw bones.
-      spread.innerHTML = `<div class="cloth" aria-hidden="true"></div>`;
+      spread.innerHTML = `<div class="cloth"><p>${t().cloth}</p></div>`;
       meanings.replaceChildren();
       summary.replaceChildren();
       return;
@@ -71,7 +73,7 @@ export function createSpreadPanel(root: HTMLElement, eager: boolean): SpreadPane
         return `<div class="meaning"><div class="card-name">${t().cardName(c.card)}${reversedTag}</div><p>${line}</p></div>`;
       })
       .join("");
-    summary.innerHTML = `<p><b>${t().summaryTitle}</b> ${daySummary(step)}</p><p class="disclaimer">${t().disclaimer}</p>`;
+    summary.innerHTML = `<p><b>${t().summaryTitle}</b> ${daySummary(step)}</p>`;
   };
 
   const select = (index: number): void => {

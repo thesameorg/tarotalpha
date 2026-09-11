@@ -82,11 +82,12 @@ describe("my readings", () => {
     expect(JSON.parse(store.values.get("bcdfghjk") ?? "")).toMatchObject({ steps: 2 });
   });
 
-  it("finds the reading of a window this browser opened before", async () => {
+  it("finds the reading of a window this browser opened before, and only the same reader's", async () => {
     await rememberReading(BASE);
-    expect((await findMyReading("BTCUSDT", ANCHOR))?.id).toBe("bcdfghjk");
-    expect(await findMyReading("BTCUSDT", ANCHOR + HOUR_MS)).toBeUndefined();
-    expect(await findMyReading("ETHUSDT", ANCHOR)).toBeUndefined();
+    expect((await findMyReading("BTCUSDT", ANCHOR, BASE.reader))?.id).toBe("bcdfghjk");
+    expect(await findMyReading("BTCUSDT", ANCHOR + HOUR_MS, BASE.reader)).toBeUndefined();
+    expect(await findMyReading("ETHUSDT", ANCHOR, BASE.reader)).toBeUndefined();
+    expect(await findMyReading("BTCUSDT", ANCHOR, "garch")).toBeUndefined();
   });
 
   it("marks a reading checked once and writes it through", async () => {

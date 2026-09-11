@@ -1,10 +1,10 @@
 /**
  * A saved reading at /r/:id: the stored snapshot and cards, the forecast recomputed by the current engine, and the
  * prophecy check against candles this browser fetches from the same exchange. The first paint is static: every
- * candle, real and forecast, is on the chart at once. Days are tabs under the chart; replay alone animates, running
- * the fullscreen reveal for each day and flowing its candles in. The API answers only the reading itself; 404 and
- * network failures render as text, never as an empty chart. Labels are functions of the dictionary, so a language
- * switch relabels the page in place.
+ * candle, real and forecast, is on the chart at once. The instrument and the day marks are in the header, price and
+ * the date of the reading on the chart. Days are tabs under the chart; replay alone animates, running the reveal for
+ * each day and flowing its candles in. The API answers only the reading itself; 404 and network failures render as
+ * text, never as an empty chart. Labels are functions of the dictionary, so a language switch relabels in place.
  */
 import {
   accuracy,
@@ -25,7 +25,7 @@ import { required } from "./dom-lookup";
 import { showExchangeLogo } from "./exchange-logo";
 import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
-import { localDateTime, localTime } from "./local-time-format";
+import { localDateTime, localTime, zoneLabel } from "./local-time-format";
 import { formatChange, formatPrice } from "./price-format";
 import { playReveal } from "./reveal-overlay";
 import type { Navigate, View } from "./router";
@@ -78,15 +78,17 @@ function messageMarkup(message: string, buttonId: string, buttonText: string): s
 </div>`;
 }
 
+function toolbarMarkup(): string {
+  return `<div id="picker"></div><div class="steps" id="steps">${"<span></span>".repeat(MAX_STEPS)}</div>`;
+}
+
 function readingMarkup(): string {
   return `
 <div class="stage" id="stage">
-  <div class="stage-top">
-    <div class="px"><div id="picker"></div><img class="src-logo" id="src-logo" alt="" hidden><span id="last"></span><span class="chg" id="chg"></span></div>
-    <span class="meta" id="meta"></span>
-    <div class="steps" id="steps">${"<span></span>".repeat(MAX_STEPS)}</div>
+  <div class="chart-box">
+    <div class="chart" id="chart"></div>
+    <div class="legend"><div><img class="src-logo" id="src-logo" alt="" hidden><span>1H · ${zoneLabel(Date.now())}</span></div><div><span class="last" id="last"></span><span class="chg" id="chg"></span></div><div class="meta" id="meta"></div></div>
   </div>
-  <div class="chart-box"><div class="chart" id="chart"></div></div>
   <div class="prophecy" id="prophecy"></div>
   <div id="panel"></div>
   <div class="actions">
@@ -100,15 +102,15 @@ function readingMarkup(): string {
 </div>`;
 }
 
-function lookup(root: HTMLElement): Elements {
+function lookup(root: HTMLElement, toolbar: HTMLElement): Elements {
   return {
     stage: required(root, "#stage", HTMLElement),
-    picker: required(root, "#picker", HTMLElement),
+    picker: required(toolbar, "#picker", HTMLElement),
     srcLogo: required(root, "#src-logo", HTMLImageElement),
     last: required(root, "#last", HTMLElement),
     chg: required(root, "#chg", HTMLElement),
     meta: required(root, "#meta", HTMLElement),
-    steps: required(root, "#steps", HTMLElement),
+    steps: required(toolbar, "#steps", HTMLElement),
     chart: required(root, "#chart", HTMLElement),
     prophecy: required(root, "#prophecy", HTMLElement),
     panel: required(root, "#panel", HTMLElement),
@@ -134,7 +136,6 @@ function verdictMarkup({ overall, perStep, total, reader, deviation }: Verdict):
   <div class="verdict-title">${title}</div>
   <div class="verdict-sub">${status}${word}</div>
   <div class="verdict-steps">${lines}</div>
-  <p class="disclaimer">${t().disclaimer}</p>
 </div>`;
 }
 
@@ -144,6 +145,7 @@ function pendingMarkup(text: string, retry: boolean): string {
 }
 
 class ReadingPage {
+  private readonly toolbar = required(document, "#toolbar", HTMLElement);
   private alive = true;
   private busy = false;
   private el: Elements | null = null;
@@ -170,6 +172,7 @@ class ReadingPage {
   dispose(): void {
     this.alive = false;
     this.unsubscribe();
+    this.toolbar.replaceChildren();
     this.panel?.dispose();
     this.panel = null;
     this.chart?.remove();
@@ -218,7 +221,8 @@ class ReadingPage {
     });
     this.record = record;
     this.root.innerHTML = readingMarkup();
-    const el = lookup(this.root);
+    this.toolbar.innerHTML = toolbarMarkup();
+    const el = lookup(this.root, this.toolbar);
     this.el = el;
     showExchangeLogo(el.srcLogo, record.source);
     createCoinPicker(el.picker, record.asset, (symbol) => {

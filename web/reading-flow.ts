@@ -1,21 +1,14 @@
 /**
- * The landing: the chart of the instrument picked in its header loads by itself (the URL's `asset`, the last one
- * used, or BTCUSDT); each day costs its mana and opens with the fullscreen reveal, a short tank opens the paywall.
- * Candles come straight from the exchange and steps from the engine in this browser. The first open step writes the
- * reading through the API in the background and the next step extends it, so "Share" only hands out the link with
- * the author's language; the id lands in "my readings" beside the step marks. Every label is a function of the
- * dictionary, so a language switch relabels the page without touching its state. The only buttons are the row over
- * the free days of the forecast zone: the next day and, once a day is open, share; on a wide screen the row rides
- * with the chart and shortens to the day alone when the free part is narrow, on a phone it stands at the right.
+ * The landing: the chart of the instrument picked in the header loads by itself (the URL's `asset`, the last one
+ * used, or BTCUSDT); price, exchange and timeframe sit on the chart itself. Each day costs its mana and opens with the
+ * fullscreen reveal, a short tank opens the paywall. Candles come straight from the exchange and steps from the
+ * engine in this browser. The first open step writes the reading through the API in the background and locks the
+ * reader until a reload, another instrument or leaving the page drops the reading; the next step extends it, so
+ * "Share" only hands out the link; the id lands in "my readings". Labels are functions of the dictionary, so a
+ * language switch relabels in place. The only buttons are the row over the free days of the forecast zone: the next
+ * day and, once a day is open, share; on a wide screen the row rides with the chart and shortens to the day alone.
  */
-import {
-  computeSteps,
-  ENGINE_VERSION,
-  forecastFromCards,
-  MAX_STEPS,
-  type Candle,
-  type StepResult,
-} from "../engine/index";
+import { computeSteps, ENGINE_VERSION, MAX_STEPS, type Candle, type StepResult } from "../engine/index";
 import { ASSET_PATTERN, fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
 import { ExchangeError, type Source } from "../exchange/provider";
 import { ApiError, createReading, extendReading, postEvent } from "./api";
@@ -26,16 +19,15 @@ import { showExchangeLogo } from "./exchange-logo";
 import type { ZoneLayout } from "./forecast-zone";
 import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
+import { zoneLabel } from "./local-time-format";
 import { dayCost, manaLeft, spendMana } from "./mana";
-import { mountManaMeter } from "./mana-meter";
 import { findMyReading, myReadingsNow, rememberReading } from "./my-readings";
-import { mountMyReadings } from "./my-readings-list";
 import { openPaywall } from "./paywall-modal";
 import { formatChange, formatPrice } from "./price-format";
-import { onReaderChange, reader } from "./reader-choice";
+import { lockReader, onReaderChange, reader } from "./reader-choice";
 import { initReaderPicker } from "./reader-picker";
 import { playReveal } from "./reveal-overlay";
-import type { Navigate, View } from "./router";
+import type { View } from "./router";
 import { shareLink } from "./share-modal";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
@@ -68,9 +60,6 @@ interface Elements {
   srcLogo: HTMLImageElement;
   last: HTMLElement;
   chg: HTMLElement;
-  steps: HTMLElement;
-  mana: HTMLElement;
-  mine: HTMLElement;
   chart: HTMLElement;
   chartState: HTMLElement;
   chartMessage: HTMLElement;
@@ -101,19 +90,16 @@ function storeAsset(asset: string): void {
   }
 }
 
+function toolbarMarkup(): string {
+  return `<div id="picker"></div>`;
+}
+
 function landingMarkup(): string {
   return `
 <div class="stage" id="stage">
-  <div class="stage-top">
-    <div class="px"><div id="picker"></div><img class="src-logo" id="src-logo" alt="" hidden><span id="last">—</span><span class="chg" id="chg"></span></div>
-    <div class="stage-side">
-      <div class="steps" id="steps">${"<span></span>".repeat(MAX_STEPS)}</div>
-      <div id="mana"></div>
-      <div id="mine" hidden></div>
-    </div>
-  </div>
   <div class="chart-box">
     <div class="chart" id="chart"></div>
+    <div class="legend"><div><img class="src-logo" id="src-logo" alt="" hidden><span>1H · ${zoneLabel(Date.now())}</span></div><div><span class="last" id="last">—</span><span class="chg" id="chg"></span></div></div>
     <div class="zone-cta" id="zone-cta" hidden>
       <div class="row">
         <button class="draw" id="draw" type="button" disabled><span class="full"></span><span class="short"></span><span class="cost"></span></button>
@@ -130,17 +116,14 @@ function landingMarkup(): string {
 </div>`;
 }
 
-function lookup(root: HTMLElement): Elements {
+function lookup(root: HTMLElement, toolbar: HTMLElement): Elements {
   return {
-    picker: required(root, "#picker", HTMLElement),
+    picker: required(toolbar, "#picker", HTMLElement),
     readers: required(root, "#readers", HTMLElement),
     stage: required(root, "#stage", HTMLElement),
     srcLogo: required(root, "#src-logo", HTMLImageElement),
     last: required(root, "#last", HTMLElement),
     chg: required(root, "#chg", HTMLElement),
-    steps: required(root, "#steps", HTMLElement),
-    mana: required(root, "#mana", HTMLElement),
-    mine: required(root, "#mine", HTMLElement),
     chart: required(root, "#chart", HTMLElement),
     chartState: required(root, "#chart-state", HTMLElement),
     chartMessage: required(root, "#chart-message", HTMLElement),
@@ -172,6 +155,7 @@ const sameZone = (a: ZoneLayout | null, b: ZoneLayout | null): boolean =>
   a === b || (a !== null && b !== null && a.start === b.start && a.width === b.width && freeFrom(a) === freeFrom(b));
 
 class LandingPage {
+  private readonly toolbar = required(document, "#toolbar", HTMLElement);
   private readonly el: Elements;
   private readonly chart: CandleChart;
   private readonly picker: CoinPicker;
@@ -182,35 +166,33 @@ class LandingPage {
   private loadSeq = 0;
   private loaded: Loaded | null = null;
   private zone: ZoneLayout | null = null;
-  private readerPending = false;
   private stateText: Text | null = null;
   private stateRetry = false;
   private stateBusy = false;
 
-  constructor(root: HTMLElement, params: URLSearchParams, navigate: Navigate) {
+  constructor(root: HTMLElement, params: URLSearchParams) {
     root.innerHTML = landingMarkup();
-    this.el = lookup(root);
-    this.panel = createSpreadPanel(this.el.panel, true);
+    this.toolbar.innerHTML = toolbarMarkup();
+    this.el = lookup(root, this.toolbar);
+    this.panel = createSpreadPanel(this.el.panel, true, this.el.readers);
     this.chart = createCandleChart(this.el.chart);
     this.chart.onZoneLayout((layout) => {
       if (sameZone(layout, this.zone)) return;
       this.zone = layout;
       this.placeCta();
     });
-    initReaderPicker(this.el.readers);
-    const unmountMine = mountMyReadings(this.el.mine, navigate);
-    const unmountMana = mountManaMeter(this.el.mana);
+    const unmountReader = initReaderPicker(this.el.readers);
     const relabel = onLangChange(() => {
       this.relabel();
     });
-    const rereads = onReaderChange(() => {
-      this.applyReader();
+    // The next day's price follows the reader: a day she already opened in this window is free.
+    const reprice = onReaderChange(() => {
+      this.labelDraw();
     });
     this.unsubscribe = (): void => {
+      unmountReader();
       relabel();
-      rereads();
-      unmountMine();
-      unmountMana();
+      reprice();
     };
 
     const preset = (params.get("asset") ?? "").trim().toUpperCase();
@@ -233,32 +215,11 @@ class LandingPage {
 
   dispose(): void {
     this.alive = false;
+    lockReader(false);
     this.unsubscribe();
+    this.toolbar.replaceChildren();
     this.panel.dispose();
     this.chart.remove();
-  }
-
-  // Same cards, another reader's candles. A switch during the reveal waits for it: the flow is mid-animation.
-  private applyReader(): void {
-    const loaded = this.loaded;
-    if (loaded === null) return;
-    if (this.busy) {
-      this.readerPending = true;
-      return;
-    }
-    this.readerPending = false;
-    if (loaded.steps.length === 0) return;
-    loaded.steps = forecastFromCards({
-      asset: loaded.asset,
-      anchorTs: loaded.anchorTs,
-      snapshot: loaded.snapshot,
-      reader: reader(),
-      cards: loaded.steps.map((s) => s.cards),
-    });
-    this.panel.setSteps(loaded.steps, loaded.steps.length - 1);
-    this.chart.setForecast(loaded.steps.flatMap((s) => s.candles));
-    // The row follows the screen: a link shared after the switch must show the reader the author was looking at.
-    void this.persist(loaded, loaded.steps.length);
   }
 
   // Read through a method: an `if (!this.alive)` guard would narrow the field to `true` for the rest of the flow.
@@ -296,11 +257,13 @@ class LandingPage {
     this.el.draw.setAttribute("aria-label", `${t().drawStep(next)}${price}`);
   }
 
-  // Days this browser opened in this window before a reload are in "my readings": they are not paid for twice.
+  // Days this reader opened in this window before a reload are in "my readings": they are not paid for twice.
   private nextCost(): number {
     const loaded = this.loaded;
     if (loaded === null) return dayCost(1);
-    const paid = myReadingsNow().find((entry) => entry.asset === loaded.asset && entry.anchor_ts === loaded.anchorTs);
+    const paid = myReadingsNow().find(
+      (entry) => entry.asset === loaded.asset && entry.anchor_ts === loaded.anchorTs && entry.reader === reader(),
+    );
     return dayCost(loaded.steps.length + 1, paid?.steps ?? 0);
   }
 
@@ -355,12 +318,6 @@ class LandingPage {
     this.el.chg.style.color = change >= 0 ? "var(--up)" : "var(--down)";
   }
 
-  private setStepsBar(done: number): void {
-    [...this.el.steps.children].forEach((mark, index) => {
-      mark.classList.toggle("done", index < done);
-    });
-  }
-
   // A newer pick wins: every await checks that this load is still the latest and the page is still mounted.
   private async load(asset: string): Promise<void> {
     const seq = ++this.loadSeq;
@@ -371,6 +328,7 @@ class LandingPage {
       return;
     }
     this.loaded = null;
+    lockReader(false);
     this.enableDraw(false);
     this.el.share.disabled = true;
     showExchangeLogo(this.el.srcLogo, null);
@@ -378,7 +336,6 @@ class LandingPage {
     this.chartState(() => t().loading, false, true);
     this.relabel();
     this.panel.clear();
-    this.setStepsBar(0);
 
     const anchorTs = lastClosedAnchor(Date.now());
     let snapshot;
@@ -441,7 +398,8 @@ class LandingPage {
     this.el.share.disabled = true;
     const pulled = await playReveal(cardsOf(result));
     if (this.gone()) return;
-    if (!pulled) {
+    // Another instrument loaded under the reveal: this day belongs to nothing on screen, so it is neither paid nor kept.
+    if (!pulled || this.loaded !== loaded) {
       this.busy = false;
       if (this.loaded === loaded) {
         this.enableDraw(true);
@@ -451,11 +409,11 @@ class LandingPage {
     }
     // Paid once the third card is out: a reveal closed before that opened nothing and costs nothing.
     spendMana(cost);
+    lockReader(true);
     loaded.steps.push(result);
     void this.persist(loaded, step);
     this.panel.setSteps(loaded.steps, step - 1);
     this.chart.setSteps(step);
-    this.setStepsBar(step);
     // Another instrument picked while the candles flow in: that load owns the chart now, this step stops.
     for (const candle of result.candles) {
       if (this.gone() || this.loaded !== loaded) {
@@ -467,7 +425,6 @@ class LandingPage {
     }
     this.busy = false;
     if (this.loaded !== loaded) return;
-    if (this.readerPending) this.applyReader();
     this.el.share.disabled = false;
     this.enableDraw(true);
     postEvent({ type: "step_opened", asset: loaded.asset, step });
@@ -477,8 +434,8 @@ class LandingPage {
   // in "my readings" follows. A failed write leaves null behind, and "Share" then writes afresh and shows why.
   private persist(loaded: Loaded, steps: number): Promise<string> {
     const saving = loaded.saved.then(async (stored) => {
-      // The same window this browser opened before has the same cards: its row is extended, not written twice.
-      const id = stored ?? (await findMyReading(loaded.asset, loaded.anchorTs))?.id ?? null;
+      // The same window this reader opened here before is her row: it is extended, not written twice.
+      const id = stored ?? (await findMyReading(loaded.asset, loaded.anchorTs, reader()))?.id ?? null;
       const body = { steps, reader: reader() };
       const saved =
         id === null
@@ -522,11 +479,11 @@ class LandingPage {
   }
 }
 
-export function landingView(params: URLSearchParams, navigate: Navigate): View {
+export function landingView(params: URLSearchParams): View {
   let page: LandingPage | null = null;
   return {
     mount(root) {
-      page = new LandingPage(root, params, navigate);
+      page = new LandingPage(root, params);
     },
     unmount() {
       page?.dispose();

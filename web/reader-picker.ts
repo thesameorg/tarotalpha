@@ -1,22 +1,28 @@
 /**
- * The reader under the chart: one portrait and one name, and a click opens the profile card, where the paragraph
- * about her, the stars and the other readers live. Her name follows the interface language, so the row repaints
- * on a language switch as well as on a new choice.
+ * The reader at the head of the day tabs: one portrait, her name and who she reads for, and a click opens the
+ * profile card, where the paragraph about her, the stars and the other readers live. Once a day of the forecast is
+ * open she wears a lock: the forecast is hers to the end. The row repaints on a language switch and on a new choice.
  */
+import { icons } from "./icons";
 import { t, onLangChange } from "./i18n/index";
-import { onReaderChange, reader, readerAvatarUrl } from "./reader-choice";
+import { onReaderChange, reader, readerAvatarUrl, readerLocked } from "./reader-choice";
 import { openReaderProfile } from "./reader-profile";
 
-export function initReaderPicker(root: HTMLElement): void {
+/** The returned function drops the subscriptions when the landing unmounts. */
+export function initReaderPicker(root: HTMLElement): () => void {
   const paint = (): void => {
     const id = reader();
     const name = t().readerName(id);
-    root.innerHTML = `<button class="reader" type="button" aria-haspopup="dialog" title="${name}"><img src="${readerAvatarUrl(id)}" alt=""><span class="reader-text"><b>${name}</b></span></button>`;
+    const locked = readerLocked();
+    const title = locked ? t().reader.locked(name) : name;
+    root.innerHTML = `<button class="reader${locked ? " locked" : ""}" type="button" aria-haspopup="dialog" title="${title}"><img src="${readerAvatarUrl(id)}" alt=""><span class="reader-text"><b>${name}</b><span>${t().reader.current}</span></span>${locked ? icons.lock : ""}</button>`;
   };
   root.addEventListener("click", (event) => {
     if (event.target instanceof Element && event.target.closest(".reader") !== null) openReaderProfile();
   });
-  onReaderChange(paint);
-  onLangChange(paint);
+  const unsubscribe = [onReaderChange(paint), onLangChange(paint)];
   paint();
+  return () => {
+    for (const off of unsubscribe) off();
+  };
 }

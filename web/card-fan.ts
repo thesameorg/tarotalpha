@@ -1,9 +1,10 @@
 /**
- * The whole deck of backs fanned along the bottom of the reveal, one per card. Each back sits on an arc around a
- * pivot below the screen, so neighbours overlap like cards held in a hand, and the fan closes the gap when one leaves. Pointer
- * Events give mouse and touch one path: pressing lifts a back, dragging it up past the threshold pulls it, a release
- * short of that — and a plain tap — snaps it back, so nothing is pulled by accident; arrows move a highlight, Enter
- * or Space pull it. Which back is taken never matters: the caller maps the i-th pull to card i.
+ * The deck of backs fanned along the bottom of the reveal: all of it on a wide screen, and on a narrow one only as
+ * many as keep a sliver of each back in sight, so a phone holds a hand instead of a solid band. Each back sits on an
+ * arc around a pivot below the screen, and the fan closes the gap when one leaves. Pointer Events give mouse and
+ * touch one path: a click or a tap pulls the back at once, pressing and dragging it up past the threshold pulls it
+ * too, a drag released short of that snaps back; arrows move a highlight, Enter or Space pull it. Which back is
+ * taken never matters: the caller maps the i-th pull to card i.
  */
 import { DECK } from "../engine/deck";
 import { reducedMotion, sleep } from "./stage-effects";
@@ -36,8 +37,8 @@ interface Drag {
   moved: boolean;
 }
 
-const BACKS = DECK.length;
 const SPREAD_RAD = (50 * Math.PI) / 180;
+const MIN_STEP_PX = 10;
 const MAX_ARC_WIDTH = 900;
 const EDGE_PAD = 12;
 const TOP_PAD = 4;
@@ -51,11 +52,18 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+const arcWidth = (width: number, cardW: number): number => Math.min(width - 2 * EDGE_PAD, MAX_ARC_WIDTH) - cardW;
+
+// The whole deck while every back keeps MIN_STEP_PX of itself in view, fewer on a screen too narrow for that.
+function handSize(width: number, cardW: number): number {
+  return Math.max(2, Math.min(DECK.length, Math.floor(arcWidth(width, cardW) / MIN_STEP_PX) + 1));
+}
+
 // Spacing comes from the full hand, so a fan with fewer backs re-centres instead of stretching.
-function layout(width: number, cardW: number, count: number): Rest[] {
+function layout(width: number, cardW: number, hand: number, count: number): Rest[] {
   const cardH = (cardW * 8) / 5;
-  const spacing = (Math.min(width - 2 * EDGE_PAD, MAX_ARC_WIDTH) - cardW) / (BACKS - 1);
-  const step = SPREAD_RAD / (BACKS - 1);
+  const spacing = arcWidth(width, cardW) / (hand - 1);
+  const step = SPREAD_RAD / (hand - 1);
   const radius = spacing / step;
   const pivotY = TOP_PAD + cardH / 2 + radius;
   return Array.from({ length: count }, (_, i) => {
@@ -75,6 +83,7 @@ export function createCardFan(root: HTMLElement, limit: number, onPull: (from: P
   let backs: HTMLElement[] = [];
   let rests: Rest[] = [];
   let cardW = 0;
+  let hand = DECK.length;
   let pulls = 0;
   let drag: Drag | null = null;
   let focused = -1;
@@ -93,7 +102,7 @@ export function createCardFan(root: HTMLElement, limit: number, onPull: (from: P
     if (el !== undefined && rest !== undefined) place(el, rest, 0, 0, 1);
   };
   const relayout = (): void => {
-    rests = layout(root.clientWidth, cardW, backs.length);
+    rests = layout(root.clientWidth, cardW, hand, backs.length);
     for (let i = 0; i < backs.length; i++) settle(i);
   };
   const highlight = (): void => {
@@ -153,7 +162,7 @@ export function createCardFan(root: HTMLElement, limit: number, onPull: (from: P
     if (index < 0) return;
     const lift = startY - event.clientY;
     const aboveFan = event.clientY < root.getBoundingClientRect().top;
-    const pulled = event.type === "pointerup" && moved && (lift >= PULL_THRESHOLD_PX || aboveFan);
+    const pulled = event.type === "pointerup" && (!moved || lift >= PULL_THRESHOLD_PX || aboveFan);
     if (pulled && !locked()) pull(index);
     else settle(index);
   };
@@ -180,15 +189,17 @@ export function createCardFan(root: HTMLElement, limit: number, onPull: (from: P
 
   return {
     async spread() {
-      root.innerHTML = BACK_MARKUP.repeat(BACKS);
+      root.innerHTML = BACK_MARKUP;
+      cardW = root.firstElementChild instanceof HTMLElement ? root.firstElementChild.offsetWidth : 0;
+      hand = handSize(root.clientWidth, cardW);
+      root.innerHTML = BACK_MARKUP.repeat(hand);
       backs = [...root.children].filter((el): el is HTMLElement => el instanceof HTMLElement);
-      cardW = backs[0]?.offsetWidth ?? 0;
       root.classList.add("still");
       if (reducedMotion()) {
         relayout();
         return;
       }
-      const stacked = layout(root.clientWidth, cardW, 1)[0];
+      const stacked = layout(root.clientWidth, cardW, hand, 1)[0];
       if (stacked !== undefined) for (const el of backs) place(el, stacked, 0, 0, 1);
       root.getBoundingClientRect();
       root.classList.remove("still");

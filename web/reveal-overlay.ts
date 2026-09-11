@@ -27,9 +27,9 @@ const HOLD_MS = 500;
 const FADE_OUT_MS = 400;
 const REDUCED_FADE_MS = 150;
 const REDUCED_HOLD_MS = 900;
-const BURST_COUNT = 460;
-const FLIP_BURST = 140;
-const LEGENDARY_BURST = 260;
+const BURST_COUNT = 220;
+const FLIP_BURST = 70;
+const LEGENDARY_BURST = 130;
 const DECK_SIZE = 6;
 
 let sparkles: Sparkles | null = null;

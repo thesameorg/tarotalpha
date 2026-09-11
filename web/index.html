@@ -30,14 +30,11 @@
   <body>
     <div class="app">
       <header>
-        <a class="brand" href="/"
-          >TarotAlpha
-          <small
-            ><span class="brand-tag" data-i18n="tagline">расклад по свечам · </span>1H ·
-            <span id="zone">UTC</span></small
-          ></a
-        >
+        <a class="brand" href="/">TarotAlpha <small data-i18n="tagline">расклад по свечам</small></a>
+        <div class="toolbar" id="toolbar"></div>
         <div class="header-controls">
+          <div id="mana"></div>
+          <div id="mine" hidden></div>
           <div id="header-controls" class="switches"></div>
         </div>
       </header>
@@ -95,6 +92,14 @@
           <input id="sharelink" readonly spellcheck="false" />
           <button class="icon-btn" id="copy" type="button"></button>
         </div>
+      </div>
+    </div>
+
+    <div class="modal" id="my-readings">
+      <div class="box mine-box">
+        <button class="icon-btn modal-close" id="closeMine" type="button"></button>
+        <h2 data-i18n="mine.button">Мои расклады</h2>
+        <ul class="mine-cards"></ul>
       </div>
     </div>
 

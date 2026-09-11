@@ -184,26 +184,35 @@ describe("PATCH /api/readings/:id", () => {
   it("adds the next day from the stored snapshot without asking the exchange again", async () => {
     const id = await opened(1);
     stubBinance(500, "down");
-    const extended = await callApi(`/api/readings/${id}`, patch({ steps: 2, reader: "garch" }));
+    const extended = await callApi(`/api/readings/${id}`, patch({ steps: 2, reader: "atr" }));
     expect(extended.status).toBe(200);
     expect(await extended.json()).toEqual({ id, url: `/r/${id}`, steps: 2 });
 
     const body = await (await callApi(`/api/readings/${id}`)).json<ReadingBody>();
     const snapshot = body.candles_snapshot.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
-    const expected = computeSteps({ asset: "BTCUSDT", anchorTs: ANCHOR, snapshot, reader: "garch", steps: 2 }).map(
+    const expected = computeSteps({ asset: "BTCUSDT", anchorTs: ANCHOR, snapshot, reader: "atr", steps: 2 }).map(
       (step) => step.cards,
     );
-    expect(body.reader).toBe("garch");
+    expect(body.reader).toBe("atr");
     expect(body.steps).toEqual(expected);
   });
 
-  it("never drops a day: fewer steps only move the reader", async () => {
+  it("never drops a day: a reopen asking for fewer keeps them all", async () => {
     const id = await opened(2);
-    const extended = await callApi(`/api/readings/${id}`, patch({ steps: 1, reader: "fractal" }));
+    const extended = await callApi(`/api/readings/${id}`, patch({ steps: 1, reader: "atr" }));
     expect(await extended.json()).toMatchObject({ steps: 2 });
     const body = await (await callApi(`/api/readings/${id}`)).json<ReadingBody>();
     expect(body.steps).toHaveLength(2);
-    expect(body.reader).toBe("fractal");
+  });
+
+  it("refuses a day from another reader: the forecast stays with the one who opened it", async () => {
+    const id = await opened(1);
+    const response = await callApi(`/api/readings/${id}`, patch({ steps: 2, reader: "garch" }));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: "reader_locked" });
+    const body = await (await callApi(`/api/readings/${id}`)).json<ReadingBody>();
+    expect(body.reader).toBe("atr");
+    expect(body.steps).toHaveLength(1);
   });
 
   it("grows past the second day up to the horizon, and no further", async () => {

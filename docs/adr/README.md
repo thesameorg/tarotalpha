@@ -18,3 +18,4 @@ ADR пишется в момент принятия решения, а не по
 | [`0008-my-readings-are-ids-in-the-browser.md`](0008-my-readings-are-ids-in-the-browser.md) | почему «мои расклады» — айдишники в браузере (в Telegram — в CloudStorage), а расклад пишется в D1 при первом шаге, а не по «Поделиться» |
 | [`0009-mana-lives-in-the-browser.md`](0009-mana-lives-in-the-browser.md) | почему мана — счётчик в localStorage без проверки на сервере, а воркер держит только горизонт в семь дней |
 | [`0010-docs-lint-forgives-nothing.md`](0010-docs-lint-forgives-nothing.md) | почему линтер документации не прощает ничего, а `pre-commit` гоняет тот же полный аудит, что CI; отменяет ADR-0003 в строке про `pre-commit` |
+| [`0011-one-disclaimer-in-the-footer.md`](0011-one-disclaimer-in-the-footer.md) | почему дисклеймер один на экран и стоит в подвале, а не рядом с каждой цифрой |

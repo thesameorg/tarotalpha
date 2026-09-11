@@ -1,11 +1,13 @@
 /**
- * The switches in the header: theme (light, dark, system) as three icons, and, unless the page is English-only,
- * the language as its code that opens the list of native names. The list closes on a pick, a click outside or
- * Escape; arrows and Enter work too.
+ * The switches in the header: the theme as one button that flips light and dark, and, unless the page is
+ * English-only, the language as its code that opens the list of native names. The list closes on a pick, a click
+ * outside or Escape; arrows and Enter work too. The system's theme is the default until the first flip, and the
+ * three icons of light, dark and system stay on the settings screen inside Telegram.
  */
-import { applyStatic, isLang, lang, LANGS, onLangChange, setLang } from "./i18n/index";
-import { icons } from "./icons";
-import { isTheme, onThemeChange, setTheme, theme, type Theme } from "./theme";
+import { required } from "./dom-lookup";
+import { applyStatic, isLang, lang, LANGS, onLangChange, setLang, t } from "./i18n/index";
+import { icons, setIcon } from "./icons";
+import { isTheme, onThemeChange, resolvedTheme, setTheme, theme, type Theme } from "./theme";
 
 const THEMES: readonly Theme[] = ["light", "dark", "system"];
 const THEME_ICON: Record<Theme, string> = { light: icons.sun, dark: icons.moon, system: icons.monitor };
@@ -43,10 +45,26 @@ export function mountThemeSwitch(root: HTMLElement): void {
   press();
 }
 
+/** One button: its icon is the theme on screen, a click flips to the other one. */
+function mountThemeToggle(root: HTMLElement): void {
+  root.insertAdjacentHTML("beforeend", '<button class="theme-toggle" type="button"></button>');
+  const button = required(root, ".theme-toggle", HTMLButtonElement);
+  const paint = (): void => {
+    const shown = resolvedTheme();
+    setIcon(button, THEME_ICON[shown], t().theme[shown]);
+  };
+  button.addEventListener("click", () => {
+    setTheme(resolvedTheme() === "dark" ? "light" : "dark");
+  });
+  onThemeChange(paint);
+  onLangChange(paint);
+  paint();
+}
+
 export function initHeaderControls({ language }: { language: boolean } = { language: true }): void {
   const root = document.getElementById("header-controls");
   if (root === null) return;
-  mountThemeSwitch(root);
+  mountThemeToggle(root);
   if (!language) return;
   root.insertAdjacentHTML("beforeend", languageMarkup());
   applyStatic(root);
