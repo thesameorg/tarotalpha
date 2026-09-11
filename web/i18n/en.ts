@@ -226,6 +226,11 @@ export const en: Dictionary = {
     replay: "Replay the reading",
     own: "Your own reading for this instrument",
   },
+  mine: {
+    button: "My readings",
+    ripe: "ripe",
+    ripensIn: (hours: number): string => `ripens in ${String(hours)} h`,
+  },
   prophecy: {
     checking: "Checking the prophecy against the exchange's candles…",
     notYet: (closesAt: string): string =>

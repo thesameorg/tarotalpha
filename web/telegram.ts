@@ -5,7 +5,7 @@
  * Telegram `telegram()` is null and every helper is a no-op. What the client gives, from which version, and its
  * limits: docs/reference/telegram-mini-app.md.
  */
-import type { WebApp } from "@twa-dev/types";
+import type { CloudStorage, WebApp } from "@twa-dev/types";
 import { bindSystemScheme, onThemeChange } from "./theme";
 
 declare global {
@@ -27,6 +27,11 @@ let backHandler: (() => void) | null = null;
 
 export function telegram(): WebApp | null {
   return app;
+}
+
+/** The client's key-value store per user and bot (Bot API 6.9); null outside Telegram or on an older client. */
+export function telegramCloudStorage(): CloudStorage | null {
+  return app !== null && app.isVersionAtLeast("6.9") ? app.CloudStorage : null;
 }
 
 // The launch hash on the first load, the remembered flag on a reload. The platform alone is not enough: a hand-typed

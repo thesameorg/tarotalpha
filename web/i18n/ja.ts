@@ -210,6 +210,11 @@ export const ja: Dictionary = {
     replay: "リーディングを再生",
     own: "この銘柄で自分のリーディング",
   },
+  mine: {
+    button: "自分のリーディング",
+    ripe: "満期",
+    ripensIn: (hours: number): string => `${String(hours)}時間後に満期`,
+  },
   prophecy: {
     checking: "取引所のローソク足で予言を検証中…",
     notYet: (closesAt: string): string => `未来はまだ来ていません：検証する最初のローソク足は ${closesAt} に確定します`,

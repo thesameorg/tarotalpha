@@ -198,6 +198,11 @@ export const ko: Dictionary = {
     replay: "리딩 다시 보기",
     own: "이 종목으로 나만의 리딩",
   },
+  mine: {
+    button: "나의 리딩",
+    ripe: "만기",
+    ripensIn: (hours: number): string => `${String(hours)}시간 후 만기`,
+  },
   prophecy: {
     checking: "거래소 캔들로 예언을 검증하는 중…",
     notYet: (closesAt: string): string => `미래는 아직 오지 않았습니다: 검증할 첫 캔들은 ${closesAt}에 마감됩니다`,

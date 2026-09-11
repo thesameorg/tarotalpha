@@ -190,6 +190,11 @@ export const zh: Dictionary = {
     replay: "重演牌阵",
     own: "为这个标的开启自己的牌阵",
   },
+  mine: {
+    button: "我的牌阵",
+    ripe: "已成熟",
+    ripensIn: (hours: number): string => `${String(hours)} 小时后成熟`,
+  },
   prophecy: {
     checking: "正在用交易所的蜡烛图验证预言…",
     notYet: (closesAt: string): string => `未来尚未到来：第一根待验证的蜡烛将于 ${closesAt} 收盘`,

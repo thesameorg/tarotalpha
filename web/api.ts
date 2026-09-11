@@ -42,9 +42,16 @@ export interface CreateReadingBody {
   engine_version: string;
 }
 
+/** The next open step of a stored reading; the Worker never lets a reading lose a day, so `steps` may come back larger. */
+export interface ExtendReadingBody {
+  steps: number;
+  reader: ReaderId;
+}
+
 export interface CreatedReading {
   id: string;
   url: string;
+  steps: number;
 }
 
 export interface ReaderStanding {
@@ -59,7 +66,8 @@ export interface ReaderTable {
   readers: ReaderStanding[];
 }
 
-export type EventType = "chart_loaded" | "step_opened" | "paywall_hit" | "own_reading_clicked" | "replayed";
+export type EventType =
+  "chart_loaded" | "step_opened" | "paywall_hit" | "own_reading_clicked" | "replayed" | "shared" | "rechecked";
 
 export interface FunnelEvent {
   type: EventType;
@@ -74,20 +82,28 @@ async function requestJson(path: string, init?: RequestInit): Promise<unknown> {
   return response.json();
 }
 
-function postJson(path: string, body: unknown): Promise<unknown> {
+function sendJson(method: "POST" | "PATCH", path: string, body: unknown): Promise<unknown> {
   return requestJson(path, {
-    method: "POST",
+    method,
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
 }
 
-export async function createReading(body: CreateReadingBody): Promise<CreatedReading> {
-  const created = (await postJson("/api/readings", body)) as Partial<CreatedReading>;
-  if (typeof created.id !== "string" || typeof created.url !== "string") {
-    throw new ApiError(200, "readings: response without id and url");
+function asCreated(value: unknown): CreatedReading {
+  const created = value as Partial<CreatedReading>;
+  if (typeof created.id !== "string" || typeof created.url !== "string" || typeof created.steps !== "number") {
+    throw new ApiError(200, "readings: response without id, url and steps");
   }
-  return { id: created.id, url: created.url };
+  return { id: created.id, url: created.url, steps: created.steps };
+}
+
+export async function createReading(body: CreateReadingBody): Promise<CreatedReading> {
+  return asCreated(await sendJson("POST", "/api/readings", body));
+}
+
+export async function extendReading(id: string, body: ExtendReadingBody): Promise<CreatedReading> {
+  return asCreated(await sendJson("PATCH", `/api/readings/${encodeURIComponent(id)}`, body));
 }
 
 export async function fetchReading(id: string): Promise<ReadingRecord> {

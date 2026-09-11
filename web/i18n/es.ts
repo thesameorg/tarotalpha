@@ -226,6 +226,11 @@ export const es: Dictionary = {
     replay: "Repetir la tirada",
     own: "Tu propia tirada para este instrumento",
   },
+  mine: {
+    button: "Mis tiradas",
+    ripe: "lista",
+    ripensIn: (hours: number): string => `lista en ${String(hours)} h`,
+  },
   prophecy: {
     checking: "Verificando la profecía con las velas del exchange…",
     notYet: (closesAt: string): string =>

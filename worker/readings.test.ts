@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { computeSteps, ENGINE_VERSION } from "../engine/index";
 import { HOUR_MS, SNAPSHOT_LENGTH, lastClosedAnchor } from "../exchange/closed-candles";
-import { callApi, post } from "./call-api";
+import { callApi, patch, post } from "./call-api";
 
 const ANCHOR = lastClosedAnchor(Date.now()) - 24 * HOUR_MS;
 const CREATE = {
@@ -17,13 +17,15 @@ const CREATE = {
 interface Created {
   id: string;
   url: string;
+  steps: number;
 }
 
 interface ReadingBody {
   id: string;
   asset: string;
   anchor_ts: number;
-  steps: unknown;
+  reader: string;
+  steps: unknown[];
   candles_snapshot: [number, number, number, number, number][];
 }
 
@@ -86,14 +88,14 @@ afterEach(() => {
 });
 
 describe("POST /api/readings then GET /api/readings/:id", () => {
-  it("stores the snapshot the Worker fetched and the steps the engine computed", async () => {
+  it("stores the snapshot the Worker fetched and the steps the engine computed, and journals nothing", async () => {
     stubBinance(200, binanceRows(SNAPSHOT_LENGTH, ANCHOR));
     const mark = await eventMark();
     const created = await share();
     expect(created.status).toBe(201);
     const { id, url } = await created.json<Created>();
     expect(url).toBe(`/r/${id}`);
-    expect(await eventTypesAfter(mark)).toEqual(["shared"]);
+    expect(await eventTypesAfter(mark)).toEqual([]);
 
     const read = await callApi(`/api/readings/${id}`);
     expect(read.status).toBe(200);
@@ -107,7 +109,7 @@ describe("POST /api/readings then GET /api/readings/:id", () => {
       (step) => step.cards,
     );
     expect(body.steps).toEqual(expected);
-    expect(await eventTypesAfter(mark)).toEqual(["shared"]);
+    expect(await eventTypesAfter(mark)).toEqual([]);
   });
 
   it("answers an unknown id with 404", async () => {
@@ -168,5 +170,61 @@ describe("POST /api/readings when the exchange fails", () => {
     expect(response.status).toBe(502);
     expect(await response.json()).toMatchObject({ error: "unavailable" });
     expect(await eventTypesAfter(mark)).toEqual(["share_failed"]);
+  });
+});
+
+describe("PATCH /api/readings/:id", () => {
+  async function opened(steps: number): Promise<string> {
+    stubBinance(200, binanceRows(SNAPSHOT_LENGTH, ANCHOR));
+    const created = await share({ steps });
+    expect(created.status).toBe(201);
+    return (await created.json<Created>()).id;
+  }
+
+  it("adds the next day from the stored snapshot without asking the exchange again", async () => {
+    const id = await opened(1);
+    stubBinance(500, "down");
+    const extended = await callApi(`/api/readings/${id}`, patch({ steps: 2, reader: "garch" }));
+    expect(extended.status).toBe(200);
+    expect(await extended.json()).toEqual({ id, url: `/r/${id}`, steps: 2 });
+
+    const body = await (await callApi(`/api/readings/${id}`)).json<ReadingBody>();
+    const snapshot = body.candles_snapshot.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
+    const expected = computeSteps({ asset: "BTCUSDT", anchorTs: ANCHOR, snapshot, reader: "garch", steps: 2 }).map(
+      (step) => step.cards,
+    );
+    expect(body.reader).toBe("garch");
+    expect(body.steps).toEqual(expected);
+  });
+
+  it("never drops a day: fewer steps only move the reader", async () => {
+    const id = await opened(2);
+    const extended = await callApi(`/api/readings/${id}`, patch({ steps: 1, reader: "fractal" }));
+    expect(await extended.json()).toMatchObject({ steps: 2 });
+    const body = await (await callApi(`/api/readings/${id}`)).json<ReadingBody>();
+    expect(body.steps).toHaveLength(2);
+    expect(body.reader).toBe("fractal");
+  });
+
+  it("puts the third step behind the paywall", async () => {
+    const id = await opened(1);
+    const response = await callApi(`/api/readings/${id}`, patch({ steps: 3, reader: "atr" }));
+    expect(response.status).toBe(402);
+  });
+
+  it("answers an unknown id with 404", async () => {
+    const response = await callApi("/api/readings/zzzzzzzz", patch({ steps: 2, reader: "atr" }));
+    expect(response.status).toBe(404);
+  });
+
+  it("leaves the score's own readings alone", async () => {
+    await env.DB.prepare(
+      "INSERT INTO readings (id, asset, anchor_ts, source, engine_version, reader, steps, candles_snapshot," +
+        " created_at, origin) VALUES ('bbbbbbbb', 'BTCUSDT', ?1, 'binance', ?2, 'atr', '[]', '[]', ?3, 'beat')",
+    )
+      .bind(ANCHOR - 48 * HOUR_MS, ENGINE_VERSION, Date.now())
+      .run();
+    const response = await callApi("/api/readings/bbbbbbbb", patch({ steps: 2, reader: "atr" }));
+    expect(response.status).toBe(404);
   });
 });

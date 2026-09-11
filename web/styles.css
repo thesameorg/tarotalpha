@@ -1675,3 +1675,82 @@ footer {
   font-size: 12px;
   font-weight: 600;
 }
+
+/* My readings: a small button beside the step marks; the list drops down under it, styled like the coin list, one
+   reading per row with its status at the right. The dot on the button means a ripe reading is still unchecked. */
+.stage-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mine {
+  position: relative;
+}
+.mine-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--paper-dim);
+}
+.mine-trigger:hover,
+.mine-trigger[aria-expanded="true"] {
+  color: var(--paper);
+}
+.mine-trigger.due::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+.mine .mine-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 16;
+  min-width: 300px;
+  margin-top: 0;
+  padding: 6px;
+  background: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: 0 10px 28px var(--shadow);
+}
+.mine-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 14px;
+  row-gap: 2px;
+  align-items: baseline;
+}
+.mine-list li .status,
+.mine-list li .when,
+.mine-list li .who {
+  color: var(--paper-dim);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.mine-list li .status,
+.mine-list li .who {
+  justify-self: end;
+}
+.mine-list li.ripe .status {
+  color: var(--gold);
+}
+/* On a phone the step marks wrap under the price, so the list hangs from the whole header row, not from the button. */
+@media (max-width: 640px) {
+  .stage-top {
+    position: relative;
+  }
+  .mine {
+    position: static;
+  }
+}

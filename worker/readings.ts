@@ -1,9 +1,19 @@
 /**
- * Writing and reading a reading. The Worker never trusts the client's candles or cards: it snapshots the candles
- * itself, from the author's provider when the edge can reach it, and draws the cards with its own engine, whose
- * version label it stores next to them. What is stored and why: docs/flows/reading-lifecycle.md
+ * Writing, extending and reading a reading. The first open step writes the row, the next step extends it in place
+ * from the stored snapshot, so the exchange is asked once per reading. The Worker never trusts the client's candles
+ * or cards: it snapshots the candles itself, from the author's provider when the edge can reach it, and draws the
+ * cards with its own engine, whose version label it stores next to them. What is stored and why:
+ * docs/flows/reading-lifecycle.md
  */
-import { computeSteps, ENGINE_VERSION, isReaderId, READER_IDS, type ReaderId, type StepCards } from "../engine/index";
+import {
+  computeSteps,
+  ENGINE_VERSION,
+  isReaderId,
+  READER_IDS,
+  type Candle,
+  type ReaderId,
+  type StepCards,
+} from "../engine/index";
 import {
   ASSET_PATTERN,
   fetchSnapshot,
@@ -48,6 +58,17 @@ export interface ReadingMeta {
   steps: number;
 }
 
+/** The snapshot is stored a row per candle, not an object per candle: it is the widest column in the table. */
+type SnapshotRow = [t: number, o: number, h: number, l: number, c: number];
+
+interface ExtendRow {
+  asset: string;
+  anchor_ts: number;
+  seed_nonce: string | null;
+  steps: string;
+  candles_snapshot: string;
+}
+
 export async function createReading(request: Request, env: Env): Promise<Response> {
   const body = await parseCreateBody(request);
   // Nonce generation for SEED_ENTROPY=on is not built; refusing beats storing a reading that cannot be replayed.
@@ -63,8 +84,41 @@ export async function createReading(request: Request, env: Env): Promise<Respons
     steps: body.steps,
   }).map((result) => result.cards);
   const id = await insertReading(env.DB, body, steps, snapshot, "share");
-  await recordEvent(env.DB, request, { type: "shared", asset: body.asset, readingId: id, step: body.steps });
-  return Response.json({ id, url: `/r/${id}` }, { status: 201 });
+  return Response.json({ id, url: `/r/${id}`, steps: body.steps }, { status: 201 });
+}
+
+/** The next open step: the cards are redrawn from the stored snapshot, so no exchange call and no new row. */
+export async function extendReading(id: string, request: Request, env: Env): Promise<Response> {
+  const { steps, reader } = await parseExtendBody(request);
+  const row = ID_PATTERN.test(id)
+    ? await env.DB.prepare(
+        "SELECT asset, anchor_ts, seed_nonce, steps, candles_snapshot FROM readings WHERE id = ?1 AND origin = 'share'",
+      )
+        .bind(id)
+        .first<ExtendRow>()
+    : null;
+  if (row === null) throw new ApiError(404, "not_found", `no reading ${id}`);
+  // A reading never loses a day: a reopen of the same window that asks for fewer steps only moves the reader.
+  const count = Math.max(steps, (JSON.parse(row.steps) as unknown[]).length);
+  const snapshot: Candle[] = (JSON.parse(row.candles_snapshot) as SnapshotRow[]).map(([t, o, h, l, c]) => ({
+    t,
+    o,
+    h,
+    l,
+    c,
+  }));
+  const cards = computeSteps({
+    asset: row.asset,
+    anchorTs: row.anchor_ts,
+    snapshot,
+    reader,
+    nonce: row.seed_nonce,
+    steps: count,
+  }).map((result) => result.cards);
+  await env.DB.prepare("UPDATE readings SET steps = ?2, reader = ?3, engine_version = ?4 WHERE id = ?1")
+    .bind(id, JSON.stringify(cards), reader, ENGINE_VERSION)
+    .run();
+  return Response.json({ id, url: `/r/${id}`, steps: count });
 }
 
 export async function readReading(id: string, env: Env): Promise<Response> {
@@ -116,6 +170,16 @@ async function parseCreateBody(request: Request): Promise<CreateBody> {
   return { asset, anchorTs, steps, source, reader };
 }
 
+async function parseExtendBody(request: Request): Promise<{ steps: number; reader: ReaderId }> {
+  const { steps, reader } = await readJsonBody(request);
+  if (typeof steps !== "number" || !Number.isInteger(steps) || steps < 1) throw bad("steps must be an integer >= 1");
+  if (steps > FREE_STEPS) {
+    throw new ApiError(402, "paywall", `only ${String(FREE_STEPS)} steps are free`, { free_steps: FREE_STEPS });
+  }
+  if (!isReaderId(reader)) throw bad(`reader must be one of ${READER_IDS.join(", ")}`);
+  return { steps, reader };
+}
+
 async function snapshotOrFail(body: CreateBody, request: Request, db: D1Database): Promise<Snapshot> {
   try {
     // Author's provider first; Binance blocks the Cloudflare edge, so the next one beats no link at all.
@@ -130,10 +194,10 @@ async function snapshotOrFail(body: CreateBody, request: Request, db: D1Database
   }
 }
 
-/** Who drew it: `share` is a reading somebody made and can send, `beat` is one the score drew for itself. */
+/** Who drew it: `share` is a reading somebody opened and can send, `beat` is one the score drew for itself. */
 export type ReadingOrigin = "share" | "beat";
 
-/** The write itself, shared by "Share" and by the cron's own track; the funnel event stays the caller's business. */
+/** The write itself, shared by the first open step and by the cron's own track. */
 export async function insertReading(
   db: D1Database,
   body: CreateBody,

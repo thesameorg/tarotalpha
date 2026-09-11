@@ -17,12 +17,12 @@ describe("POST /api/events", () => {
     expect(await rows("step_opened")).toBe(before + 1);
   });
 
-  it("rejects event types only the server may write", async () => {
-    const before = await rows("shared");
-    const response = await callApi("/api/events", post({ type: "shared" }));
+  it("rejects the event type only the server may write", async () => {
+    const before = await rows("share_failed");
+    const response = await callApi("/api/events", post({ type: "share_failed" }));
     expect(response.status).toBe(400);
     expect(await response.json()).toMatchObject({ error: "bad_request" });
-    expect(await rows("shared")).toBe(before);
+    expect(await rows("share_failed")).toBe(before);
   });
 
   it("has no stats route any more", async () => {
