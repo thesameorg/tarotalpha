@@ -366,6 +366,10 @@ main {
   flex: none;
   opacity: 0.85;
 }
+/* The exchange marks are black glyphs in an <img>, where no text colour reaches: the dark theme turns them light. */
+:root[data-theme="dark"] .src-logo {
+  filter: invert(1);
+}
 .stage-top .meta {
   color: var(--paper-dim);
   font-size: 12px;
