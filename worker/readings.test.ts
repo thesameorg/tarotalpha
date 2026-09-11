@@ -215,6 +215,19 @@ describe("PATCH /api/readings/:id", () => {
     expect(body.steps).toHaveLength(1);
   });
 
+  it("never redraws a day already written: only the new one comes from this engine", async () => {
+    const id = await opened(1);
+    // As if the first day had been drawn by an engine whose shuffle differs from this one.
+    const written = "[[[0,1],[1,1],[2,1]]]";
+    await env.DB.prepare("UPDATE readings SET steps = ?2 WHERE id = ?1").bind(id, written).run();
+    await callApi(`/api/readings/${id}`, patch({ steps: 2, reader: "atr" }));
+
+    const body = await (await callApi(`/api/readings/${id}`)).json<ReadingBody>();
+    const snapshot = body.candles_snapshot.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
+    const fresh = computeSteps({ asset: "BTCUSDT", anchorTs: ANCHOR, snapshot, reader: "atr", steps: 2 });
+    expect(body.steps).toEqual([...(JSON.parse(written) as unknown[]), fresh[1]?.cards]);
+  });
+
   it("grows past the second day up to the horizon, and no further", async () => {
     const id = await opened(2);
     const longest = await callApi(`/api/readings/${id}`, patch({ steps: MAX_STEPS, reader: "atr" }));
