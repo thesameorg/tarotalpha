@@ -164,10 +164,6 @@ class Finding:
         tag = "ERROR" if self.severity == SEVERITY_FAIL else "warn "
         return f"{tag} {self.path}:{self.line}: [{self.code}] {self.msg}"
 
-    def annotation(self) -> str:
-        lvl = "error" if self.severity == SEVERITY_FAIL else "warning"
-        return f"::{lvl} file={self.path},line={self.line}::[{self.code}] {self.msg}"
-
 
 # ------------------------------------------------------------------- git-слой
 
@@ -649,17 +645,6 @@ def _collect_code(root: str, path: str, lines: list[str], ext: str, index: list[
     )
 
 
-def _update_doc_map(root: str, index: list[str], doc_map: dict[str, set[str]]) -> None:
-    """Доки, не тронутые в этом PR, тоже нужны для устаревания — их живые ссылки досчитываем здесь."""
-    for doc in index:
-        if doc.endswith(".md") and doc not in doc_map and doc.startswith(("docs/", "CLAUDE")):
-            lines = read(root, doc)
-            if lines:
-                _, alive = doc_targets(root, doc, lines, index)
-                if alive:
-                    doc_map[doc] = alive
-
-
 def collect(root: str, files: list[str], touched: set[str], index: list[str]) -> list[Finding]:
     # touched непусто только в режиме --base: устаревание — вопрос уровня PR.
     findings: list[Finding] = []
@@ -676,7 +661,8 @@ def collect(root: str, files: list[str], touched: set[str], index: list[str]) ->
                 continue
             md_findings, alive = _collect_md(root, path, lines, index)
             findings += md_findings
-            if alive:
+            # Отстать от PR может только живой док. ADR заморожен: его «сейчас» — статус в шапке.
+            if alive and path.startswith(("docs/", "CLAUDE")) and not path.startswith("docs/adr/"):
                 doc_map[path] = alive
 
         elif ext in CODE_EXT:
@@ -686,22 +672,12 @@ def collect(root: str, files: list[str], touched: set[str], index: list[str]) ->
             findings += _collect_code(root, path, lines, ext, index)
 
     if touched:
-        _update_doc_map(root, index, doc_map)
         findings += check_staleness(touched, doc_map)
 
     return findings
 
 
 # ------------------------------------------------------------------------- CLI
-
-
-def summary(text: str) -> None:
-    """Пишет блок в сводку прогона GitHub Actions; вне CI — молчит."""
-    path = os.environ.get("GITHUB_STEP_SUMMARY")
-    if not path:
-        return
-    with open(path, "a", encoding="utf-8") as fh:
-        fh.write(text + "\n\n")
 
 
 def parse_args() -> argparse.Namespace:
@@ -711,7 +687,6 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--related", action="store_true", help="какие доки перечитать на противоречия")
     ap.add_argument("--only", help="только этот код проверки")
     ap.add_argument("--summary", action="store_true", help="только сводка по кодам")
-    ap.add_argument("--annotate", action="store_true", help="формат аннотаций GitHub Actions")
     return ap.parse_args()
 
 
@@ -740,7 +715,7 @@ def print_related(root: str, index: list[str], files: list[str]) -> int:
     return 0
 
 
-def print_findings(findings: list[Finding], args: argparse.Namespace, touched: set[str]) -> int:
+def print_findings(findings: list[Finding], args: argparse.Namespace) -> int:
     """Печатает находки в выбранном формате и возвращает код возврата процесса."""
     if args.summary:
         counts: dict[str, int] = defaultdict(int)
@@ -753,15 +728,11 @@ def print_findings(findings: list[Finding], args: argparse.Namespace, touched: s
         return 0
 
     for f in sorted(findings, key=lambda x: (x.severity != SEVERITY_FAIL, x.path, x.line)):
-        print(f.annotation() if args.annotate else f)
+        print(f)
 
     errors = sum(1 for f in findings if f.severity == SEVERITY_FAIL)
     if findings:
         print(f"\n{errors} ошибок, {len(findings) - errors} предупреждений", file=sys.stderr)
-    if args.base:
-        head = "нарушений нет" if not findings else f"{errors} ошибок, {len(findings) - errors} предупреждений"
-        body = "\n".join(f"- `{f.code}` {f.path}:{f.line} — {f.msg}" for f in findings[:40])
-        summary(f"### Docs policy\n\nБаза `{args.base}`, файлов в диффе {len(touched)}. {head}.\n\n{body}")
     return 1 if errors else 0
 
 
@@ -787,7 +758,7 @@ def main() -> int:
     if args.only:
         findings = [f for f in findings if f.code == args.only]
 
-    return print_findings(findings, args, touched)
+    return print_findings(findings, args)
 
 
 if __name__ == "__main__":

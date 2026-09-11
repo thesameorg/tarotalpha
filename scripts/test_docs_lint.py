@@ -235,6 +235,9 @@ with tempfile.TemporaryDirectory() as _repo:
     put("web/candles.ts", "export const y = 2\n")
     put("docs/README.md", "# Docs\n\n- `flow.md` — поток\n")
     put("docs/flow.md", "# Поток\n\n> актуально · 2026-09-12 · поток.\n\nКод — `web/candles.ts`.\n")
+    put("docs/adr/README.md", "# ADR\n\n- `0001-candles.md` — свечи\n")
+    put("docs/adr/0001-candles.md", "# ADR-0001\n\n> реализовано · 2026-09-12 · свечи.\n\nКод — `web/candles.ts`.\n")
+    put("README.md", "# X\n\nСвечи — `web/candles.ts`.\n")
     git(_repo, "init", "-q", "-b", "main")
     git(_repo, "add", ".")
     git(_repo, "commit", "-q", "-m", "base")
@@ -245,6 +248,13 @@ with tempfile.TemporaryDirectory() as _repo:
     code, out = lint(_repo, "web/a.ts")  # PostToolUse-хук
     assert code == 1 and "web/a.ts:1: [CMT001] комментарий 11 строк" in out, out
     git(_repo, "checkout", "--", "web/a.ts")
+
+    # Отставшим от PR считается только живой док: ни замороженный ADR, ни корневой README.
+    put("web/candles.ts", "export const y = 3\n")
+    git(_repo, "commit", "-q", "-am", "touch candles")
+    code, out = lint(_repo, "--base", "main~1")
+    stale = [ln for ln in out.splitlines() if "[MD005]" in ln]
+    assert code == 0 and len(stale) == 1 and "docs/flow.md:1:" in stale[0], out
 
     git(_repo, "mv", "web/candles.ts", "web/klines.ts")  # док со ссылкой на старое имя PR не трогал
     git(_repo, "commit", "-q", "-m", "rename")
