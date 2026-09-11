@@ -41,6 +41,10 @@ def main() -> int:
     )
     if res.returncode == 0:
         return 0
+    # Находок нет, а код не ноль — упал сам линтер. Без stderr агент видел пустое «нарушена».
+    if not res.stdout.strip():
+        print("scripts/docs_lint.py упал:\n" + res.stderr.strip(), file=sys.stderr)
+        return 2
 
     print(
         "Политика документирования (.claude/skills/documenting/SKILL.md) нарушена:\n"
