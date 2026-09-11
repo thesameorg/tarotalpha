@@ -141,7 +141,7 @@ export const pt: Dictionary = {
   code: "pt",
   locale: "pt-BR",
   title: "TarotAlpha — previsão do mercado por leitura de tarô",
-  tagline: "leitura por candles · ",
+  tagline: "leitura por candles",
   theme: { label: "Tema", light: "Tema claro", dark: "Tema escuro", system: "Tema do sistema" },
   language: { label: "Idioma" },
   disclaimer: "não é aconselhamento financeiro; as cartas concordam",

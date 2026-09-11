@@ -141,7 +141,7 @@ export const de: Dictionary = {
   code: "de",
   locale: "de-DE",
   title: "TarotAlpha — Marktprognose aus dem Tarot",
-  tagline: "Legung nach Kerzen · ",
+  tagline: "Legung nach Kerzen",
   theme: { label: "Design", light: "Helles Design", dark: "Dunkles Design", system: "Systemdesign" },
   language: { label: "Sprache" },
   disclaimer: "keine Finanzberatung; die Karten sehen das genauso",

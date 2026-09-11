@@ -143,7 +143,7 @@ export const it: Dictionary = {
   code: "it",
   locale: "it-IT",
   title: "TarotAlpha — previsione di mercato con i tarocchi",
-  tagline: "lettura sulle candele · ",
+  tagline: "lettura sulle candele",
   theme: { label: "Tema", light: "Tema chiaro", dark: "Tema scuro", system: "Tema di sistema" },
   language: { label: "Lingua" },
   disclaimer: "non è un consiglio finanziario; le carte sono d'accordo",

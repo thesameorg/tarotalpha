@@ -110,7 +110,7 @@ export const zh: Dictionary = {
   code: "zh",
   locale: "zh-CN",
   title: "TarotAlpha — 塔罗牌阵市场预测",
-  tagline: "以蜡烛图占卜 · ",
+  tagline: "以蜡烛图占卜",
   theme: { label: "主题", light: "浅色主题", dark: "深色主题", system: "跟随系统" },
   language: { label: "语言" },
   disclaimer: "不构成投资建议；牌也这么认为",

@@ -1,12 +1,12 @@
 /**
- * The landing: the chart of the instrument picked in its header loads by itself (the URL's `asset`, the last one
- * used, or BTCUSDT); each day costs its mana and opens with the fullscreen reveal, a short tank opens the paywall.
- * Candles come straight from the exchange and steps from the engine in this browser. The first open step writes the
- * reading through the API in the background and the next step extends it, so "Share" only hands out the link with
- * the author's language; the id lands in "my readings" beside the step marks. Every label is a function of the
- * dictionary, so a language switch relabels the page without touching its state. The only buttons are the row over
- * the free days of the forecast zone: the next day and, once a day is open, share; on a wide screen the row rides
- * with the chart and shortens to the day alone when the free part is narrow, on a phone it stands at the right.
+ * The landing: the chart of the instrument picked in the header loads by itself (the URL's `asset`, the last one
+ * used, or BTCUSDT); price, exchange and timeframe sit on the chart itself. Each day costs its mana and opens with the
+ * fullscreen reveal, a short tank opens the paywall. Candles come straight from the exchange and steps from the
+ * engine in this browser. The first open step writes the reading through the API in the background and locks the
+ * reader until a reload, another instrument or leaving the page drops the reading; the next step extends it, so
+ * "Share" only hands out the link; the id lands in "my readings". Labels are functions of the dictionary, so a
+ * language switch relabels in place. The only buttons are the row over the free days of the forecast zone: the next
+ * day and, once a day is open, share; on a wide screen the row rides with the chart and shortens to the day alone.
  */
 import { computeSteps, ENGINE_VERSION, MAX_STEPS, type Candle, type StepResult } from "../engine/index";
 import { ASSET_PATTERN, fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
@@ -19,16 +19,15 @@ import { showExchangeLogo } from "./exchange-logo";
 import type { ZoneLayout } from "./forecast-zone";
 import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
+import { zoneLabel } from "./local-time-format";
 import { dayCost, manaLeft, spendMana } from "./mana";
-import { mountManaMeter } from "./mana-meter";
 import { findMyReading, myReadingsNow, rememberReading } from "./my-readings";
-import { mountMyReadings } from "./my-readings-list";
 import { openPaywall } from "./paywall-modal";
 import { formatChange, formatPrice } from "./price-format";
 import { lockReader, onReaderChange, reader } from "./reader-choice";
 import { initReaderPicker } from "./reader-picker";
 import { playReveal } from "./reveal-overlay";
-import type { Navigate, View } from "./router";
+import type { View } from "./router";
 import { shareLink } from "./share-modal";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
@@ -61,9 +60,6 @@ interface Elements {
   srcLogo: HTMLImageElement;
   last: HTMLElement;
   chg: HTMLElement;
-  steps: HTMLElement;
-  mana: HTMLElement;
-  mine: HTMLElement;
   chart: HTMLElement;
   chartState: HTMLElement;
   chartMessage: HTMLElement;
@@ -94,19 +90,16 @@ function storeAsset(asset: string): void {
   }
 }
 
+function toolbarMarkup(): string {
+  return `<div id="picker"></div>`;
+}
+
 function landingMarkup(): string {
   return `
 <div class="stage" id="stage">
-  <div class="stage-top">
-    <div class="px"><div id="picker"></div><img class="src-logo" id="src-logo" alt="" hidden><span id="last">—</span><span class="chg" id="chg"></span></div>
-    <div class="stage-side">
-      <div class="steps" id="steps">${"<span></span>".repeat(MAX_STEPS)}</div>
-      <div id="mana"></div>
-      <div id="mine" hidden></div>
-    </div>
-  </div>
   <div class="chart-box">
     <div class="chart" id="chart"></div>
+    <div class="legend"><div><img class="src-logo" id="src-logo" alt="" hidden><span>1H · ${zoneLabel(Date.now())}</span></div><div><span class="last" id="last">—</span><span class="chg" id="chg"></span></div></div>
     <div class="zone-cta" id="zone-cta" hidden>
       <div class="row">
         <button class="draw" id="draw" type="button" disabled><span class="full"></span><span class="short"></span><span class="cost"></span></button>
@@ -123,17 +116,14 @@ function landingMarkup(): string {
 </div>`;
 }
 
-function lookup(root: HTMLElement): Elements {
+function lookup(root: HTMLElement, toolbar: HTMLElement): Elements {
   return {
-    picker: required(root, "#picker", HTMLElement),
+    picker: required(toolbar, "#picker", HTMLElement),
     readers: required(root, "#readers", HTMLElement),
     stage: required(root, "#stage", HTMLElement),
     srcLogo: required(root, "#src-logo", HTMLImageElement),
     last: required(root, "#last", HTMLElement),
     chg: required(root, "#chg", HTMLElement),
-    steps: required(root, "#steps", HTMLElement),
-    mana: required(root, "#mana", HTMLElement),
-    mine: required(root, "#mine", HTMLElement),
     chart: required(root, "#chart", HTMLElement),
     chartState: required(root, "#chart-state", HTMLElement),
     chartMessage: required(root, "#chart-message", HTMLElement),
@@ -165,6 +155,7 @@ const sameZone = (a: ZoneLayout | null, b: ZoneLayout | null): boolean =>
   a === b || (a !== null && b !== null && a.start === b.start && a.width === b.width && freeFrom(a) === freeFrom(b));
 
 class LandingPage {
+  private readonly toolbar = required(document, "#toolbar", HTMLElement);
   private readonly el: Elements;
   private readonly chart: CandleChart;
   private readonly picker: CoinPicker;
@@ -179,9 +170,10 @@ class LandingPage {
   private stateRetry = false;
   private stateBusy = false;
 
-  constructor(root: HTMLElement, params: URLSearchParams, navigate: Navigate) {
+  constructor(root: HTMLElement, params: URLSearchParams) {
     root.innerHTML = landingMarkup();
-    this.el = lookup(root);
+    this.toolbar.innerHTML = toolbarMarkup();
+    this.el = lookup(root, this.toolbar);
     this.panel = createSpreadPanel(this.el.panel, true, this.el.readers);
     this.chart = createCandleChart(this.el.chart);
     this.chart.onZoneLayout((layout) => {
@@ -190,8 +182,6 @@ class LandingPage {
       this.placeCta();
     });
     initReaderPicker(this.el.readers);
-    const unmountMine = mountMyReadings(this.el.mine, navigate);
-    const unmountMana = mountManaMeter(this.el.mana);
     const relabel = onLangChange(() => {
       this.relabel();
     });
@@ -202,8 +192,6 @@ class LandingPage {
     this.unsubscribe = (): void => {
       relabel();
       reprice();
-      unmountMine();
-      unmountMana();
     };
 
     const preset = (params.get("asset") ?? "").trim().toUpperCase();
@@ -228,6 +216,7 @@ class LandingPage {
     this.alive = false;
     lockReader(false);
     this.unsubscribe();
+    this.toolbar.replaceChildren();
     this.panel.dispose();
     this.chart.remove();
   }
@@ -328,12 +317,6 @@ class LandingPage {
     this.el.chg.style.color = change >= 0 ? "var(--up)" : "var(--down)";
   }
 
-  private setStepsBar(done: number): void {
-    [...this.el.steps.children].forEach((mark, index) => {
-      mark.classList.toggle("done", index < done);
-    });
-  }
-
   // A newer pick wins: every await checks that this load is still the latest and the page is still mounted.
   private async load(asset: string): Promise<void> {
     const seq = ++this.loadSeq;
@@ -352,7 +335,6 @@ class LandingPage {
     this.chartState(() => t().loading, false, true);
     this.relabel();
     this.panel.clear();
-    this.setStepsBar(0);
 
     const anchorTs = lastClosedAnchor(Date.now());
     let snapshot;
@@ -430,7 +412,6 @@ class LandingPage {
     void this.persist(loaded, step);
     this.panel.setSteps(loaded.steps, step - 1);
     this.chart.setSteps(step);
-    this.setStepsBar(step);
     // Another instrument picked while the candles flow in: that load owns the chart now, this step stops.
     for (const candle of result.candles) {
       if (this.gone() || this.loaded !== loaded) {
@@ -496,11 +477,11 @@ class LandingPage {
   }
 }
 
-export function landingView(params: URLSearchParams, navigate: Navigate): View {
+export function landingView(params: URLSearchParams): View {
   let page: LandingPage | null = null;
   return {
     mount(root) {
-      page = new LandingPage(root, params, navigate);
+      page = new LandingPage(root, params);
     },
     unmount() {
       page?.dispose();

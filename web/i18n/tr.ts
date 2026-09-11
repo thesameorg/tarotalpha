@@ -128,7 +128,7 @@ export const tr: Dictionary = {
   code: "tr",
   locale: "tr-TR",
   title: "TarotAlpha — tarot açılımıyla piyasa tahmini",
-  tagline: "mumlarla açılım · ",
+  tagline: "mumlarla açılım",
   theme: { label: "Tema", light: "Açık tema", dark: "Koyu tema", system: "Sistem teması" },
   language: { label: "Dil" },
   disclaimer: "yatırım tavsiyesi değildir; kartlar da aynı fikirde",

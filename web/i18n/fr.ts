@@ -141,7 +141,7 @@ export const fr: Dictionary = {
   code: "fr",
   locale: "fr-FR",
   title: "TarotAlpha — prévision du marché par tirage de tarot",
-  tagline: "tirage par bougies · ",
+  tagline: "tirage par bougies",
   theme: { label: "Thème", light: "Thème clair", dark: "Thème sombre", system: "Thème du système" },
   language: { label: "Langue" },
   disclaimer: "ceci n'est pas un conseil financier ; les cartes sont du même avis",

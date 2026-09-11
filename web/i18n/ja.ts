@@ -130,7 +130,7 @@ export const ja: Dictionary = {
   code: "ja",
   locale: "ja-JP",
   title: "TarotAlpha — タロットで読む相場予測",
-  tagline: "ローソク足のリーディング · ",
+  tagline: "ローソク足のリーディング",
   theme: { label: "テーマ", light: "ライトテーマ", dark: "ダークテーマ", system: "システムに合わせる" },
   language: { label: "言語" },
   disclaimer: "投資助言ではありません。カードもそう言っています",

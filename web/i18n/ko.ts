@@ -118,7 +118,7 @@ export const ko: Dictionary = {
   code: "ko",
   locale: "ko-KR",
   title: "TarotAlpha — 타로로 읽는 시장 예측",
-  tagline: "캔들로 보는 리딩 · ",
+  tagline: "캔들로 보는 리딩",
   theme: { label: "테마", light: "라이트 테마", dark: "다크 테마", system: "시스템 테마" },
   language: { label: "언어" },
   disclaimer: "투자 조언이 아닙니다. 카드도 그렇게 생각합니다",

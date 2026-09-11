@@ -141,7 +141,7 @@ export const es: Dictionary = {
   code: "es",
   locale: "es-ES",
   title: "TarotAlpha — pronóstico del mercado por tirada de tarot",
-  tagline: "tirada por velas · ",
+  tagline: "tirada por velas",
   theme: { label: "Tema", light: "Tema claro", dark: "Tema oscuro", system: "Tema del sistema" },
   language: { label: "Idioma" },
   disclaimer: "no es asesoramiento financiero; las cartas opinan lo mismo",

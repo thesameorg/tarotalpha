@@ -141,7 +141,7 @@ export const en: Dictionary = {
   code: "en",
   locale: "en-US",
   title: "TarotAlpha — market forecast by tarot reading",
-  tagline: "reading by candles · ",
+  tagline: "reading by candles",
   theme: { label: "Theme", light: "Light theme", dark: "Dark theme", system: "System theme" },
   language: { label: "Language" },
   disclaimer: "not financial advice; the cards agree",

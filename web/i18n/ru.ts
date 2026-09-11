@@ -137,7 +137,7 @@ export const ru = {
   code: "ru",
   locale: "ru",
   title: "TarotAlpha — прогноз рынка по раскладу",
-  tagline: "расклад по свечам · ",
+  tagline: "расклад по свечам",
   theme: { label: "Тема", light: "Светлая тема", dark: "Тёмная тема", system: "Тема как в системе" },
   language: { label: "Язык" },
   disclaimer: "не является финансовой рекомендацией; карты тоже так считают",
