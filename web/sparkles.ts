@@ -17,7 +17,8 @@ interface Particle {
 
 const GRAVITY = 720;
 const DRAG = 0.985;
-const MAX_DPR = 2;
+// One canvas pixel per CSS pixel even on a retina screen: a glowing dot loses nothing, the frame costs a quarter.
+const MAX_DPR = 1;
 const PALETTES: Record<SparkColor, readonly string[]> = {
   gold: ["255,220,140", "214,178,90", "255,246,214"],
   red: ["255,120,120", "224,92,98", "255,205,180"],
