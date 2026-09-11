@@ -12,6 +12,8 @@ import { icons } from "./icons";
 export interface CoinPicker {
   value(): string;
   setValue(symbol: string): void;
+  /** Drops the language subscription; the page that mounted the picker calls it when it unmounts. */
+  dispose(): void;
 }
 
 const MAX_ITEMS = 8;
@@ -126,7 +128,7 @@ export function createCoinPicker(root: HTMLElement, initial: string, onPick: (sy
   });
 
   show(initial);
-  onLangChange(() => {
+  const dispose = onLangChange(() => {
     trigger.title = t().picker.choose;
     input.setAttribute("aria-label", t().picker.choose);
     input.placeholder = t().picker.placeholder;
@@ -135,5 +137,6 @@ export function createCoinPicker(root: HTMLElement, initial: string, onPick: (sy
   return {
     value: () => symbol,
     setValue: show,
+    dispose,
   };
 }

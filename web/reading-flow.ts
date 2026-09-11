@@ -217,6 +217,7 @@ class LandingPage {
     this.alive = false;
     lockReader(false);
     this.unsubscribe();
+    this.picker.dispose();
     this.toolbar.replaceChildren();
     this.panel.dispose();
     this.chart.remove();

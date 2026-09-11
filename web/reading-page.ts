@@ -21,7 +21,7 @@ import {
 import { fetchAfter, HOUR_MS } from "../exchange/closed-candles";
 import { ApiError, fetchReading, postEvent, type ReadingRecord } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
-import { createCoinPicker } from "./coin-picker";
+import { createCoinPicker, type CoinPicker } from "./coin-picker";
 import { required } from "./dom-lookup";
 import { showExchangeLogo } from "./exchange-logo";
 import { lang, onLangChange, t } from "./i18n/index";
@@ -152,6 +152,7 @@ class ReadingPage {
   private record: ReadingRecord | null = null;
   private chart: CandleChart | null = null;
   private panel: SpreadPanel | null = null;
+  private picker: CoinPicker | null = null;
   private actual: Candle[] | null = null;
   private prophecy: Prophecy = null;
   private noteText: Text | null = null;
@@ -172,6 +173,8 @@ class ReadingPage {
   dispose(): void {
     this.alive = false;
     this.unsubscribe();
+    this.picker?.dispose();
+    this.picker = null;
     this.toolbar.replaceChildren();
     this.panel?.dispose();
     this.panel = null;
@@ -225,7 +228,7 @@ class ReadingPage {
     const el = lookup(this.root, this.toolbar);
     this.el = el;
     showExchangeLogo(el.srcLogo, record.source);
-    createCoinPicker(el.picker, record.asset, (symbol) => {
+    this.picker = createCoinPicker(el.picker, record.asset, (symbol) => {
       postEvent({ type: "own_reading_clicked", asset: symbol, reading_id: record.id });
       this.navigate(`/?asset=${encodeURIComponent(symbol)}`);
     });
