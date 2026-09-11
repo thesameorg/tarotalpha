@@ -15,7 +15,14 @@ import { readingView } from "./reading-page";
 import { startRouter } from "./router";
 import { initSettingsModal } from "./settings-modal";
 import { initShareModal } from "./share-modal";
-import { initTelegram, telegramBack, telegramLanguages, telegramReady, telegramStartReading } from "./telegram";
+import {
+  initTelegram,
+  telegram,
+  telegramBack,
+  telegramLanguages,
+  telegramReady,
+  telegramStartReading,
+} from "./telegram";
 import { initTheme } from "./theme";
 
 const READING_PATH = /^\/r\/([A-Za-z0-9_-]+)\/?$/;
@@ -31,7 +38,8 @@ async function boot(): Promise<void> {
   initLang(new URL(window.location.href).searchParams, telegramLanguages());
   initTheme();
   initReader();
-  initHeaderControls();
+  // Inside Telegram the switches live on the settings screen behind the client's own menu item, not in the header.
+  if (telegram() === null) initHeaderControls();
   initReaderProfile();
   initPaywallModal();
   initShareModal();

@@ -1327,10 +1327,7 @@ main {
   height: auto;
   flex: none;
 }
-/* Inside Telegram the switches leave the header for the settings screen behind the client's own menu item. */
-:root[data-host="telegram"] .header-controls {
-  display: none;
-}
+/* The settings screen inside Telegram: the header's theme switch and the languages as a flat list. */
 .box.settings {
   max-width: 360px;
   display: flex;

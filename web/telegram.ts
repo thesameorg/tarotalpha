@@ -15,6 +15,7 @@ declare global {
 }
 
 const SCRIPT_URL = "https://telegram.org/js/telegram-web-app.js?63";
+const SCRIPT_TIMEOUT_MS = 5000;
 const HOST_KEY = "ta.host";
 const HOST = "telegram";
 const READING_ID = /^[A-Za-z0-9_-]{1,32}$/;
@@ -28,9 +29,12 @@ export function telegram(): WebApp | null {
   return app;
 }
 
-/** Whether Telegram launched this page: the launch hash on the first load, the remembered flag on a reload. */
+// The launch hash on the first load, the remembered flag on a reload. The platform alone is not enough: a hand-typed
+// hash would hide the header switches for that tab, so initData has to be there too.
 export function launchedByTelegram(hash: string, remembered: string | null): boolean {
-  return remembered === HOST || launchParams(hash).has("tgWebAppPlatform");
+  if (remembered === HOST) return true;
+  const params = launchParams(hash);
+  return params.has("tgWebAppPlatform") && (params.get("tgWebAppData") ?? "") !== "";
 }
 
 /** The reading id a `t.me/<bot>?startapp=<id>` link carries; only the launch itself, a reload does not replay it. */
@@ -51,7 +55,6 @@ export async function initTelegram(): Promise<void> {
   const loaded = await loadScript();
   if (loaded === null) return;
   app = loaded;
-  document.documentElement.dataset.host = HOST;
   // The launch hash carries initData, the viewer's signed identity: strip it before any link is built from the URL.
   window.history.replaceState(null, "", window.location.pathname + window.location.search);
   loaded.expand();
@@ -65,6 +68,7 @@ export async function initTelegram(): Promise<void> {
     paintChrome(loaded);
   });
   // A new tab is not a thing inside the client: such links go to the external browser through Telegram.
+  if (!loaded.isVersionAtLeast("6.4")) return;
   document.addEventListener("click", (event) => {
     const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>('a[target="_blank"]') : null;
     if (link === null) return;
@@ -109,6 +113,7 @@ export function telegramShare(link: string): boolean {
   return true;
 }
 
+/** Null when the script fails or is too slow: the boot waits on it, and the plain site beats a blank client. */
 function loadScript(): Promise<WebApp | null> {
   return new Promise((resolve) => {
     const script = document.createElement("script");
@@ -119,6 +124,9 @@ function loadScript(): Promise<WebApp | null> {
     script.onerror = () => {
       resolve(null);
     };
+    setTimeout(() => {
+      resolve(null);
+    }, SCRIPT_TIMEOUT_MS);
     document.head.append(script);
   });
 }

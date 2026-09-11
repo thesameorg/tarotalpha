@@ -20,6 +20,11 @@ describe("launchedByTelegram", () => {
     expect(launchedByTelegram("", null)).toBe(false);
     expect(launchedByTelegram("#section", null)).toBe(false);
   });
+
+  it("wants initData, not the platform alone", () => {
+    expect(launchedByTelegram("#tgWebAppPlatform=weba&tgWebAppVersion=9.0", null)).toBe(false);
+    expect(launchedByTelegram("#tgWebAppPlatform=weba&tgWebAppData=", null)).toBe(false);
+  });
 });
 
 describe("startReadingOf", () => {
