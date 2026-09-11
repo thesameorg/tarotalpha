@@ -8,7 +8,8 @@ import { t, onLangChange } from "./i18n/index";
 import { onReaderChange, reader, readerAvatarUrl, readerLocked } from "./reader-choice";
 import { openReaderProfile } from "./reader-profile";
 
-export function initReaderPicker(root: HTMLElement): void {
+/** The returned function drops the subscriptions when the landing unmounts. */
+export function initReaderPicker(root: HTMLElement): () => void {
   const paint = (): void => {
     const id = reader();
     const name = t().readerName(id);
@@ -19,7 +20,9 @@ export function initReaderPicker(root: HTMLElement): void {
   root.addEventListener("click", (event) => {
     if (event.target instanceof Element && event.target.closest(".reader") !== null) openReaderProfile();
   });
-  onReaderChange(paint);
-  onLangChange(paint);
+  const unsubscribe = [onReaderChange(paint), onLangChange(paint)];
   paint();
+  return () => {
+    for (const off of unsubscribe) off();
+  };
 }

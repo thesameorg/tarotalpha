@@ -181,7 +181,7 @@ class LandingPage {
       this.zone = layout;
       this.placeCta();
     });
-    initReaderPicker(this.el.readers);
+    const unmountReader = initReaderPicker(this.el.readers);
     const relabel = onLangChange(() => {
       this.relabel();
     });
@@ -190,6 +190,7 @@ class LandingPage {
       this.labelDraw();
     });
     this.unsubscribe = (): void => {
+      unmountReader();
       relabel();
       reprice();
     };
