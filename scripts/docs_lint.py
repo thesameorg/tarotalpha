@@ -66,8 +66,7 @@ DOC_HEADER = re.compile(
     re.IGNORECASE,
 )
 
-# lib/core/base/src/data убраны сознательно: это конвенция экосистем, а не безымянность.
-NAME_EXEMPT = re.compile(r"(?!)")
+# lib/core/base/src/data сюда не входят сознательно: это конвенция экосистем, а не безымянность.
 GENERIC_NAMES = {
     "utils",
     "util",
@@ -526,8 +525,6 @@ def doc_targets(root: str, path: str, lines: list[str], index: list[str]) -> tup
 def check_naming(path: str) -> list[Finding]:
     """NAM001 — имя файла или папки ничего не говорит о содержимом."""
     out = []
-    if NAME_EXEMPT.search(path):
-        return out
     parts = path.split("/")
     if os.path.splitext(parts[-1])[0].lower() in GENERIC_NAMES:
         out.append(
