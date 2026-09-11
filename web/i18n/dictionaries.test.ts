@@ -22,6 +22,29 @@ const FACTS: SummaryFacts = {
   variant: 3,
 };
 
+// Markup names its text by a path the type checker cannot follow: a renamed key would leave the element empty.
+const MARKUP: Record<string, string> = import.meta.glob(["../*.html", "../*.ts"], {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+const STATIC_KEYS = [
+  ...new Set(
+    Object.values(MARKUP).flatMap((source) =>
+      [...source.matchAll(/data-i18n="([^"]+)"/g)]
+        .flatMap((match) => (match[1] ?? "").split(";"))
+        .filter((spec) => !spec.includes("${"))
+        .map((spec) => spec.split("@")[0] ?? ""),
+    ),
+  ),
+];
+
+function textAt(dictionary: object, keyPath: string): unknown {
+  let node: unknown = dictionary;
+  for (const key of keyPath.split(".")) node = (node as Record<string, unknown> | undefined)?.[key];
+  return node;
+}
+
 describe.each(LANGS.map((entry) => entry.code))("dictionary %s", (code) => {
   const d = DICTIONARIES[code];
 
@@ -49,6 +72,14 @@ describe.each(LANGS.map((entry) => entry.code))("dictionary %s", (code) => {
 
   it("writes a paragraph about every reader", () => {
     for (const id of READER_IDS) expect(d.readerBlurb(id).trim()).not.toBe("");
+  });
+
+  it("has text for every data-i18n path in the markup", () => {
+    expect(STATIC_KEYS.length).toBeGreaterThan(10);
+    for (const key of STATIC_KEYS) {
+      const text = textAt(d, key);
+      expect(typeof text === "string" && text.trim() !== "", `${code}: ${key}`).toBe(true);
+    }
   });
 
   it("labels the link to the method page", () => {
