@@ -10,10 +10,11 @@ ADR пишется в момент принятия решения, а не по
 | --- | --- |
 | [`0001-cloudflare-worker-d1.md`](0001-cloudflare-worker-d1.md) | один Worker со статикой, D1 под расклады, свечи с биржи без кэша, Vite без воркспейсов; строка «воркер ходит в биржу при „Поделиться“» уточнена ADR-0008: при первом открытом шаге |
 | [`0002-ci-on-pr-deploy-from-local.md`](0002-ci-on-pr-deploy-from-local.md) | устарело: деплой руками с машины — отменён ADR-0003 |
-| [`0003-deploy-from-actions-on-main.md`](0003-deploy-from-actions-on-main.md) | деплой из Actions на пуш в `main`, один секрет с токеном Cloudflare, e2e нигде; строка про проверки на `main` отменена ADR-0004 |
+| [`0003-deploy-from-actions-on-main.md`](0003-deploy-from-actions-on-main.md) | деплой из Actions на пуш в `main`, один секрет с токеном Cloudflare, e2e нигде; строка про проверки на `main` отменена ADR-0004, строка про политику документирования в `pre-commit` — ADR-0010 |
 | [`0004-checks-on-pr-only.md`](0004-checks-on-pr-only.md) | проверки только на PR, деплой с `main` без повторного прогона |
 | [`0005-engine-edited-in-place.md`](0005-engine-edited-in-place.md) | движок один и правится на месте, старые ссылки пересчитываются новыми формулами; отменяет ADR-0001 в строке «версионированы папкой» |
 | [`0006-readers-are-parallel-formulas.md`](0006-readers-are-parallel-formulas.md) | почему несколько формул прогноза живут одновременно и это не возвращённое версионирование |
 | [`0007-reader-rating-by-places.md`](0007-reader-rating-by-places.md) | почему рейтинг гадалки — место за столом на созревшем раскладе, а пишет его крон, а не просмотр ссылки |
 | [`0008-my-readings-are-ids-in-the-browser.md`](0008-my-readings-are-ids-in-the-browser.md) | почему «мои расклады» — айдишники в браузере (в Telegram — в CloudStorage), а расклад пишется в D1 при первом шаге, а не по «Поделиться» |
 | [`0009-mana-lives-in-the-browser.md`](0009-mana-lives-in-the-browser.md) | почему мана — счётчик в localStorage без проверки на сервере, а воркер держит только горизонт в семь дней |
+| [`0010-docs-lint-forgives-nothing.md`](0010-docs-lint-forgives-nothing.md) | почему линтер документации не прощает ничего, а `pre-commit` гоняет тот же полный аудит, что CI; отменяет ADR-0003 в строке про `pre-commit` |

@@ -29,16 +29,16 @@ repos:
     hooks:
       - id: shellcheck
 
-  # Ругается только на строки, которые ты сейчас застейджил — легаси в том же
-  # файле молчит. Политика: .claude/skills/documenting/SKILL.md
+  # Тот же полный аудит, что в CI, на каждом коммите — даже на коммите из одного удаления.
+  # Почему не только застейдженное: docs/adr/0010-docs-lint-forgives-nothing.md
   - repo: local
     hooks:
       - id: docs-lint
         name: политика документирования
         entry: python3 scripts/docs_lint.py
         language: system
-        pass_filenames: true
-        types_or: [python, ts, tsx, javascript, shell, yaml, markdown]
+        pass_filenames: false
+        always_run: true
 
   # Тот же ESLint и tsc, что в CI: нарушение стиля и мёртвый импорт ловятся на коммите.
   - repo: local

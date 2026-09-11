@@ -2,7 +2,6 @@
 """Самопроверка парсеров docs_lint. Запуск: python3 scripts/test_docs_lint.py"""
 
 import os
-import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -79,14 +78,6 @@ assert (
 assert codes(body("# a\n# b\n# c\n# d\nkey: 1"), "h") == ["CMT001"]
 assert codes("# ---------\n# a\nkey: 1", "h") == []
 
-# --- парсер git-ханков
-sample = "@@ -1,0 +5,3 @@\n@@ -20 +21 @@\n@@ -30,2 +40,0 @@\n"
-got: set[int] = set()
-for m in re.finditer(r"^@@ -\S+ \+(\d+)(?:,(\d+))? @@", sample, re.M):
-    s, c = int(m.group(1)), int(m.group(2) or 1)
-    got.update(range(s, s + c))
-assert got == {5, 6, 7, 21}, got
-
 # --- строка статуса дока
 assert L.DOC_HEADER.match("> актуально · 2026-08-24 · рендерер ходит в Payload только через readFetch")
 assert L.DOC_HEADER.match("> **реализовано** — 2026-01-02 — вердикт")
@@ -153,32 +144,6 @@ assert not L.BANNER.match("# a - b - c")
 print("ok")
 
 
-# --- фильтр «блок написан этим PR», и что он вообще подключён
-import inspect  # noqa: E402
-
-assert "authored(f, added)" in inspect.getsource(L.main), "authored определён, но не вызывается"
-
-long_block = L.Finding("a.py", 191, "CMT002", L.SEVERITY_FAIL, "", 205)
-assert not L.authored(long_block, {"a.py": {191}})  # правка одной строки — не наш долг
-assert L.authored(long_block, {"a.py": set(range(191, 199))})  # переписали половину — наш
-assert L.authored(long_block, {"a.py": None})  # файл целиком новый
-one_liner = L.Finding("a.py", 5, "MD004", L.SEVERITY_FAIL, "")
-assert L.authored(one_liner, {"a.py": {5}})
-assert not L.authored(one_liner, {"a.py": {6}})
-
-# --- у длинных блоков end обязан быть заполнен, иначе фильтр вырождается
-for f in L.check_comments("x", ('"""a\n' + "b\n" * 10 + '"""').split("\n"), "py"):
-    assert f.end > f.line, f
-for f in L.check_comments("x", body("# a\n# b\n# c\n# d\nx = 1").split("\n"), "py"):
-    assert f.end == f.line + 3, f
-
-# --- новый файл обозначается None, а не множеством из десяти миллионов чисел:
-# на 39 новых файлах это съедало 26 ГБ и раннер убивал процесс
-src = inspect.getsource(L)
-assert "range(1, 10**" not in src, "новый файл снова обозначен гигантским range"
-assert "None  # None = файл целиком новый" in src
-
-
 # --- хук не лезет за пределы чекаута: все наши доки внутри репозитория, и политика
 # описывает только его
 import docs_lint_hook as H  # noqa: E402
@@ -188,6 +153,16 @@ assert H.outside_repo("..")
 assert not H.outside_repo("docs/flows/customer-email.md")
 assert not H.outside_repo(".claude/agents/critic.md")
 assert not H.outside_repo("appsite/src/lib/notifications/policy.ts")
+
+# --- pre-commit гоняет ту же команду, что CI, на каждом коммите: иначе CI снова узнаёт первым
+_top = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+with open(os.path.join(_top, ".pre-commit-config.yaml"), encoding="utf-8") as fh:
+    _hook = fh.read().split("id: docs-lint", 1)[1].split("- repo:", 1)[0]
+with open(os.path.join(_top, ".github/workflows/check.yml"), encoding="utf-8") as fh:
+    _ci = fh.read()
+_entry = next(ln.split("entry:", 1)[1].strip() for ln in _hook.splitlines() if "entry:" in ln)
+assert f"- run: {_entry}\n" in _ci, f"pre-commit гоняет `{_entry}`, а CI — что-то другое"
+assert "pass_filenames: false" in _hook and "always_run: true" in _hook, _hook
 
 print("все проверки прошли")
 
@@ -228,5 +203,62 @@ with tempfile.TemporaryDirectory() as _root:
     assert L.on_disk(_root, "real.py")
     assert not L.on_disk(_root, "appsite/node_modules/next/index.js")
     assert not L.on_disk(_root, "appsite/.next/x.json")
+
+print("ok")
+
+# --- долга нет, поэтому не прощается ничего: хук ругается на всё в записанном файле, а режим PR
+# смотрит весь репозиторий — ссылка из нетронутого дока на переименованный файл краснеет и там.
+import subprocess  # noqa: E402
+
+
+def git(cwd: str, *args: str) -> None:
+    env = ["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null"]
+    subprocess.run(["git", *env, *args], cwd=cwd, check=True, capture_output=True)  # noqa: S603
+
+
+def lint(cwd: str, *args: str) -> tuple[int, str]:
+    res = subprocess.run(  # noqa: S603
+        [sys.executable, os.path.abspath(L.__file__), *args], cwd=cwd, capture_output=True, text=True, check=False
+    )
+    return res.returncode, res.stdout
+
+
+with tempfile.TemporaryDirectory() as _repo:
+
+    def put(path: str, text: str) -> None:
+        os.makedirs(os.path.dirname(os.path.join(_repo, path)), exist_ok=True)
+        with open(os.path.join(_repo, path), "w", encoding="utf-8") as fh:
+            fh.write(text)
+
+    head = ["/**"] + [f" * line {i}" for i in range(8)] + [" */"]  # шапка ровно в 10 строк
+    put("web/a.ts", "\n".join(head + ["let x = 1", ""]))
+    put("web/candles.ts", "export const y = 2\n")
+    put("docs/README.md", "# Docs\n\n- `flow.md` — поток\n")
+    put("docs/flow.md", "# Поток\n\n> актуально · 2026-09-12 · поток.\n\nКод — `web/candles.ts`.\n")
+    put("docs/adr/README.md", "# ADR\n\n- `0001-candles.md` — свечи\n")
+    put("docs/adr/0001-candles.md", "# ADR-0001\n\n> реализовано · 2026-09-12 · свечи.\n\nКод — `web/candles.ts`.\n")
+    put("README.md", "# X\n\nСвечи — `web/candles.ts`.\n")
+    git(_repo, "init", "-q", "-b", "main")
+    git(_repo, "add", ".")
+    git(_repo, "commit", "-q", "-m", "base")
+    assert lint(_repo) == (0, ""), lint(_repo)
+
+    head[3:4] = [" * line 3 grew", " * into two"]  # правка одной строки, а шапка уже 11 строк
+    put("web/a.ts", "\n".join(head + ["let x = 1", ""]))
+    code, out = lint(_repo, "web/a.ts")  # PostToolUse-хук
+    assert code == 1 and "web/a.ts:1: [CMT001] комментарий 11 строк" in out, out
+    git(_repo, "checkout", "--", "web/a.ts")
+
+    # Отставшим от PR считается только живой док: ни замороженный ADR, ни корневой README.
+    put("web/candles.ts", "export const y = 3\n")
+    git(_repo, "commit", "-q", "-am", "touch candles")
+    code, out = lint(_repo, "--base", "main~1")
+    stale = [ln for ln in out.splitlines() if "[MD005]" in ln]
+    assert code == 0 and len(stale) == 1 and "docs/flow.md:1:" in stale[0], out
+
+    git(_repo, "mv", "web/candles.ts", "web/klines.ts")  # док со ссылкой на старое имя PR не трогал
+    git(_repo, "commit", "-q", "-m", "rename")
+    code, out = lint(_repo, "--base", "main~1")  # pnpm run check
+    assert code == 1 and "docs/flow.md:5: [MD004]" in out, out
 
 print("ok")
