@@ -9,6 +9,7 @@
 import {
   accuracy,
   atr,
+  CANDLES_PER_STEP,
   deviation,
   forecastFromCards,
   MAX_STEPS,
@@ -33,7 +34,6 @@ import { shareLink } from "./share-modal";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
 
-const CANDLES_PER_DAY = 24;
 const FLOW_MS_PER_CANDLE = 45;
 const CHANGE_LOOKBACK = 24;
 
@@ -347,7 +347,7 @@ class ReadingPage {
     unit: number,
   ): Promise<void> {
     this.setProphecy(el, { kind: "pending", text: () => t().prophecy.checking, retry: false });
-    const total = results.length * CANDLES_PER_DAY;
+    const total = results.length * CANDLES_PER_STEP;
     let real: Candle[];
     try {
       real = await fetchAfter(record.asset, record.anchor_ts, total, record.source, Date.now());
