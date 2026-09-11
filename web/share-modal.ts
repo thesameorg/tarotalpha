@@ -1,6 +1,10 @@
-/** The share dialog: the reading link and one copy button; closes on the corner cross, a click outside or Escape. */
+/**
+ * The share dialog: the reading link and one copy button; closes on the corner cross, a click outside or Escape.
+ * Inside Telegram the link goes to the client's own "send to" dialog instead, and this one never opens.
+ */
 import { onLangChange, t } from "./i18n/index";
 import { icons, setIcon } from "./icons";
+import { telegramShare } from "./telegram";
 import { toast } from "./toast";
 
 function byId(id: string): HTMLElement {
@@ -13,7 +17,8 @@ function linkField(): HTMLInputElement {
   return byId("sharelink") as HTMLInputElement;
 }
 
-export function openShareModal(link: string): void {
+export function shareLink(link: string): void {
+  if (telegramShare(link)) return;
   linkField().value = link;
   byId("sharemodal").classList.add("on");
 }

@@ -6,3 +6,4 @@
 | --- | --- |
 | [`run-locally.md`](run-locally.md) | поднять клиент и воркер с локальной D1 одним процессом |
 | [`deploy-workers-dev.md`](deploy-workers-dev.md) | как прод обновляется с `main`, как завести секрет для Actions, как выкатить и откатить руками |
+| [`test-in-telegram.md`](test-in-telegram.md) | посмотреть ветку как мини-апп: тестовый бот на превью-версию, web.telegram.org под вторым аккаунтом, подставной хэш без Telegram |

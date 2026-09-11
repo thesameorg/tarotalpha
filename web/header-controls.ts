@@ -5,7 +5,7 @@
  */
 import { applyStatic, isLang, lang, LANGS, onLangChange, setLang } from "./i18n/index";
 import { icons } from "./icons";
-import { isTheme, setTheme, theme, type Theme } from "./theme";
+import { isTheme, onThemeChange, setTheme, theme, type Theme } from "./theme";
 
 const THEMES: readonly Theme[] = ["light", "dark", "system"];
 const THEME_ICON: Record<Theme, string> = { light: icons.sun, dark: icons.moon, system: icons.monitor };
@@ -26,25 +26,31 @@ function languageMarkup(): string {
   return `<div class="lang"><button class="lang-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" data-i18n="language.label@aria-label;language.label@title"><span class="lang-code"></span>${icons.chevron}</button><ul class="picker-list lang-list" role="listbox" tabindex="-1" hidden>${options}</ul></div>`;
 }
 
-export function initHeaderControls({ language }: { language: boolean } = { language: true }): void {
-  const root = document.getElementById("header-controls");
-  if (root === null) return;
-  root.innerHTML = themeMarkup() + (language ? languageMarkup() : "");
+/** The three theme icons appended to `root`, pressed state following every switch wherever it was made. */
+export function mountThemeSwitch(root: HTMLElement): void {
+  root.insertAdjacentHTML("beforeend", themeMarkup());
   applyStatic(root);
-  const pressTheme = (): void => {
+  const press = (): void => {
     for (const button of root.querySelectorAll<HTMLElement>("[data-theme-pick]")) {
       button.setAttribute("aria-pressed", String(button.dataset.themePick === theme()));
     }
   };
   root.addEventListener("click", (event) => {
     const button = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-theme-pick]") : null;
-    if (button !== null && isTheme(button.dataset.themePick)) {
-      setTheme(button.dataset.themePick);
-      pressTheme();
-    }
+    if (button !== null && isTheme(button.dataset.themePick)) setTheme(button.dataset.themePick);
   });
-  pressTheme();
-  if (language) initLanguageList(root);
+  onThemeChange(press);
+  press();
+}
+
+export function initHeaderControls({ language }: { language: boolean } = { language: true }): void {
+  const root = document.getElementById("header-controls");
+  if (root === null) return;
+  mountThemeSwitch(root);
+  if (!language) return;
+  root.insertAdjacentHTML("beforeend", languageMarkup());
+  applyStatic(root);
+  initLanguageList(root);
 }
 
 function initLanguageList(root: HTMLElement): void {

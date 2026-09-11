@@ -25,7 +25,7 @@ import { onReaderChange, reader } from "./reader-choice";
 import { initReaderPicker } from "./reader-picker";
 import { playReveal } from "./reveal-overlay";
 import type { View } from "./router";
-import { openShareModal } from "./share-modal";
+import { shareLink } from "./share-modal";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
 import { toast } from "./toast";
@@ -163,6 +163,7 @@ class LandingPage {
   private readerPending = false;
   private stateText: Text | null = null;
   private stateRetry = false;
+  private stateBusy = false;
 
   constructor(root: HTMLElement, params: URLSearchParams) {
     root.innerHTML = landingMarkup();
@@ -237,16 +238,18 @@ class LandingPage {
     return !this.alive;
   }
 
-  private chartState(text: Text | null, retry: boolean): void {
+  private chartState(text: Text | null, retry: boolean, busy = false): void {
     this.stateText = text;
     this.stateRetry = retry;
+    this.stateBusy = busy;
     this.el.chartState.hidden = text === null;
+    this.el.chartState.classList.toggle("busy", busy);
     this.el.chartMessage.textContent = text?.() ?? "";
     this.el.retry.hidden = !retry;
   }
 
   private relabel(): void {
-    this.chartState(this.stateText, this.stateRetry);
+    this.chartState(this.stateText, this.stateRetry, this.stateBusy);
     this.el.retry.textContent = t().retry;
     this.labelDraw();
     this.el.share.setAttribute("aria-label", t().share.button);
@@ -330,7 +333,7 @@ class LandingPage {
     this.el.share.disabled = true;
     showExchangeLogo(this.el.srcLogo, null);
     this.showPrice();
-    this.chartState(() => t().loading, false);
+    this.chartState(() => t().loading, false, true);
     this.relabel();
     this.panel.clear();
     this.setStepsBar(0);
@@ -434,7 +437,7 @@ class LandingPage {
       if (this.gone()) return;
       const url = new URL(created.url, window.location.origin);
       url.searchParams.set("lang", lang());
-      openShareModal(url.href);
+      shareLink(url.href);
     } catch (error: unknown) {
       if (!this.gone()) toast(shareErrorMessage(error));
     } finally {
