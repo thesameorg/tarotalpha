@@ -121,6 +121,19 @@ describe("the sweep", () => {
     for (let attempt = 0; attempt < 4; attempt++) await sweepMatured(env, NOW);
     expect(await verdictOf(id)).toMatchObject({ scored_at: null, attempts: 3 });
   });
+
+  // The last forecast candle opens a whole horizon after the anchor and closes an hour later; the cron ticks every
+  // ten minutes through that hour, and none of those ticks may spend an attempt on a candle still being drawn.
+  it("spends no attempt before the last forecast candle has closed", async () => {
+    stubExchanges();
+    const anchorTs = MATURED - 3 * HOUR_MS;
+    const id = await beatAt(anchorTs);
+    const closes = anchorTs + (HORIZON + 1) * HOUR_MS;
+    for (let tick = 6; tick > 0; tick--) await sweepMatured(env, closes - tick * 10 * 60_000);
+    expect(await verdictOf(id)).toMatchObject({ scored_at: null, attempts: 0 });
+    await sweepMatured(env, closes);
+    expect((await verdictOf(id)).scored_at).toBe(closes);
+  });
 });
 
 describe("GET /api/readers", () => {

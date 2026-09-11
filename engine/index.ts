@@ -6,7 +6,7 @@
  * full seed string, so the version label changes the candles as well as the cards.
  */
 import { natr as natrOf, type Candle } from "./atr";
-import { cardEffect, type CardEffect } from "./card-effect";
+import { CANDLES_PER_CARD, cardEffect, type CardEffect } from "./card-effect";
 import { READERS, type ReaderId } from "./readers";
 import { cardById } from "./deck";
 import { drawCards, type DrawnCard, type StepCards } from "./draw-cards";
@@ -16,6 +16,8 @@ import { stepDigest, type StepDigest } from "./step-digest";
 export const ENGINE_VERSION = "v2" as const;
 // The horizon: a week ahead, as long as the snapshot behind the anchor. `cpu-budget.test.ts` measures this many steps.
 export const MAX_STEPS = 7;
+// Three cards of eight candles: one step is a day ahead.
+export const CANDLES_PER_STEP = 3 * CANDLES_PER_CARD;
 
 export interface StepResult {
   step: number;
