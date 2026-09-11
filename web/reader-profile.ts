@@ -34,8 +34,7 @@ function starsMarkup(id: ReaderId): string {
   const wins = Math.round(standing.wins * 100);
   return (
     `<div class="stars" role="img" aria-label="${t().reader.rated(standing.stars, STARS)}">${stars}</div>` +
-    `<div class="profile-score">${t().reader.wins(wins)}</div>` +
-    `<p class="disclaimer">${t().disclaimer}</p>`
+    `<div class="profile-score">${t().reader.wins(wins)}</div>`
   );
 }
 

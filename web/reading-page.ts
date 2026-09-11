@@ -134,7 +134,6 @@ function verdictMarkup({ overall, perStep, total, reader, deviation }: Verdict):
   <div class="verdict-title">${title}</div>
   <div class="verdict-sub">${status}${word}</div>
   <div class="verdict-steps">${lines}</div>
-  <p class="disclaimer">${t().disclaimer}</p>
 </div>`;
 }
 
