@@ -5,6 +5,7 @@
  * at it. Why ids in the browser and not accounts: docs/adr/0008-my-readings-are-ids-in-the-browser.md
  */
 import type { CloudStorage } from "@twa-dev/types";
+import { CANDLES_PER_STEP } from "../engine/index";
 import { isReaderId, type ReaderId } from "../engine/readers";
 import { ASSET_PATTERN, HOUR_MS } from "../exchange/closed-candles";
 
@@ -32,7 +33,6 @@ const CLOUD_PREFIX = "reading_";
 const KEEP = 200;
 // A client that never answers must not hang the reading flow: the list is then empty and the write is lost.
 const CLOUD_TIMEOUT_MS = 3000;
-const CANDLES_PER_DAY = 24;
 // The id goes into markup and into a path, so a stored entry is trusted no further than a launch parameter.
 const READING_ID = /^[A-Za-z0-9_-]{1,32}$/;
 
@@ -101,7 +101,7 @@ export async function markChecked(id: string, now = Date.now()): Promise<void> {
 
 /** When the last candle of the forecast closes: from then on the reading is ripe for the prophecy check. */
 export function ripensAt(entry: Pick<MyReading, "anchor_ts" | "steps">): number {
-  return entry.anchor_ts + (entry.steps * CANDLES_PER_DAY + 1) * HOUR_MS;
+  return entry.anchor_ts + (entry.steps * CANDLES_PER_STEP + 1) * HOUR_MS;
 }
 
 export function isRipe(entry: Pick<MyReading, "anchor_ts" | "steps">, now: number): boolean {

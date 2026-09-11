@@ -13,12 +13,11 @@ import type {
   SeriesAttachedParameter,
   UTCTimestamp,
 } from "lightweight-charts";
+import { CANDLES_PER_STEP } from "../engine/index";
 import { t } from "./i18n/index";
 import { palette } from "./palette";
 
 type RenderTarget = Parameters<IPrimitivePaneRenderer["draw"]>[0];
-
-const CANDLES_PER_DAY = 24;
 
 export interface ZoneLayout {
   start: number;
@@ -86,7 +85,7 @@ export class ForecastZone implements ISeriesPrimitive {
     const anchorX = scale.logicalToCoordinate(base as Logical);
     const nextX = scale.logicalToCoordinate((base + 1) as Logical);
     if (anchorX === null || nextX === null) return null;
-    const dayWidth = CANDLES_PER_DAY * (nextX - anchorX);
+    const dayWidth = CANDLES_PER_STEP * (nextX - anchorX);
     const start = (anchorX + nextX) / 2;
     const separators: number[] = [];
     const dayLabels: ZoneLayout["dayLabels"] = [];

@@ -9,6 +9,8 @@ pnpm run check          # политика документирования по
 pnpm run related        # доки, которые могли начать врать
 pnpm run test:lint      # тесты самого линтера
 pre-commit run --all-files
+pnpm run test           # в pre-commit их нет, а CI краснеет
+pnpm run build
 ```
 
 Разбор вывода:

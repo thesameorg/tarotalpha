@@ -74,6 +74,24 @@ describe("fetchSnapshot", () => {
     expect(snapshot.source).toBe("binance");
   });
 
+  it("falls back to Binance when Bybit answers something that is not JSON", async () => {
+    stubFetch((url) =>
+      url.hostname === "api.bybit.com"
+        ? new Response("<html>checking your browser</html>", { status: 200 })
+        : jsonResponse(binanceRows(SNAPSHOT_LENGTH, ANCHOR)),
+    );
+    const snapshot = await fetchSnapshot("BTCUSDT", ANCHOR);
+    expect(snapshot.source).toBe("binance");
+  });
+
+  it("gives every exchange call a deadline: a provider that hangs must not keep the next one waiting", async () => {
+    const fetchMock = stubFetch(() => jsonResponse(binanceRows(SNAPSHOT_LENGTH, ANCHOR)));
+    await fetchSnapshot("BTCUSDT", ANCHOR, ["binance"]);
+    await fetchSnapshot("BTCUSDT", ANCHOR, ["bybit"]).catch(() => undefined);
+    for (const call of fetchMock.mock.calls) expect((call[1] as RequestInit).signal).toBeInstanceOf(AbortSignal);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("uses only the sources it is given", async () => {
     const fetchMock = stubFetch(() =>
       jsonResponse({ retCode: 0, retMsg: "OK", result: { list: bybitRows(SNAPSHOT_LENGTH, ANCHOR) } }),

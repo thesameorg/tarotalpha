@@ -88,7 +88,7 @@ export async function createReading(request: Request, env: Env): Promise<Respons
   return Response.json({ id, url: `/r/${id}`, steps: body.steps }, { status: 201 });
 }
 
-/** The next open step, redrawn from the stored snapshot; the reader stays the one the row was written with. */
+/** The next open step, drawn from the stored snapshot; the days already written and the reader stay as they are. */
 export async function extendReading(id: string, request: Request, env: Env): Promise<Response> {
   const { steps, reader } = await parseExtendBody(request);
   const row = ID_PATTERN.test(id)
@@ -101,26 +101,31 @@ export async function extendReading(id: string, request: Request, env: Env): Pro
     : null;
   if (row === null) throw new ApiError(404, "not_found", `no reading ${id}`);
   if (row.reader !== reader) throw new ApiError(409, "reader_locked", `reading ${id} is read by ${row.reader}`);
+  const written = JSON.parse(row.steps) as StepCards[];
   // A reading never loses a day: a reopen of the same window that asks for fewer steps keeps every one of them.
-  const count = Math.max(steps, (JSON.parse(row.steps) as unknown[]).length);
-  const snapshot: Candle[] = (JSON.parse(row.candles_snapshot) as SnapshotRow[]).map(([t, o, h, l, c]) => ({
-    t,
-    o,
-    h,
-    l,
-    c,
-  }));
-  const cards = computeSteps({
-    asset: row.asset,
-    anchorTs: row.anchor_ts,
-    snapshot,
-    reader,
-    nonce: row.seed_nonce,
-    steps: count,
-  }).map((result) => result.cards);
-  await env.DB.prepare("UPDATE readings SET steps = ?2, engine_version = ?3 WHERE id = ?1")
-    .bind(id, JSON.stringify(cards), ENGINE_VERSION)
-    .run();
+  const count = Math.max(steps, written.length);
+  if (count > written.length) {
+    const snapshot: Candle[] = (JSON.parse(row.candles_snapshot) as SnapshotRow[]).map(([t, o, h, l, c]) => ({
+      t,
+      o,
+      h,
+      l,
+      c,
+    }));
+    const drawn = computeSteps({
+      asset: row.asset,
+      anchorTs: row.anchor_ts,
+      snapshot,
+      reader,
+      nonce: row.seed_nonce,
+      steps: count,
+    }).map((result) => result.cards);
+    // Written days are the reading (docs/adr/0012-written-days-are-never-redrawn.md): this engine draws only the new
+    // ones. The guard keeps the shorter of two racing extensions from landing last and taking a day back.
+    await env.DB.prepare("UPDATE readings SET steps = ?2 WHERE id = ?1 AND json_array_length(steps) < ?3")
+      .bind(id, JSON.stringify([...written, ...drawn.slice(written.length)]), count)
+      .run();
+  }
   return Response.json({ id, url: `/r/${id}`, steps: count });
 }
 

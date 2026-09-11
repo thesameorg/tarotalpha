@@ -18,7 +18,7 @@
 1. `wrangler whoami` — в списке `Dksg87@gmail.com's Account`, в правах `d1 (write)`. Нет — `wrangler login`.
 2. Новая миграция в `migrations/` — сначала `pnpm exec wrangler d1 migrations apply tarotalpha --remote`, потом деплой; воркер со старой схемой на новой миграции не падает, наоборот — падает.
 3. `pnpm run deploy` — `vite build`, затем `wrangler deploy` по собранному конфигу; в конце печатает адрес `https://tarotalpha.dksg87.workers.dev`.
-4. Проверить: `curl https://tarotalpha.dksg87.workers.dev/api/health` → `{"ok":true,"engine":"v1"}`; открыть `/?asset=BTCUSDT`, открыть шаг, «Поделиться», открыть ссылку в другом окне.
+4. Проверить: `curl https://tarotalpha.dksg87.workers.dev/api/health` → `{"ok":true,"engine":…}` с меткой движка из `ENGINE_VERSION`; открыть `/?asset=BTCUSDT`, открыть шаг, «Поделиться», открыть ссылку в другом окне.
 
 Откат: `pnpm exec wrangler rollback` возвращает предыдущую версию воркера; схему D1 назад не откатывают, миграции пишут только добавляющими.
 

@@ -15,6 +15,9 @@ export class ExchangeError extends Error {
   }
 }
 
+// A provider that hangs must fail like one that refuses, or the next one in line is never asked.
+export const DEADLINE_MS = 8_000;
+
 export interface KlineWindow {
   asset: string;
   startTs?: number;

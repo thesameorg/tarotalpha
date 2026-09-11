@@ -7,7 +7,6 @@
 **/build/
 **/.wrangler/
 pnpm-lock.yaml
-pnpm-lock.yaml
 
 # генерирует `npm run types`, формат задаёт wrangler
 worker-configuration.d.ts

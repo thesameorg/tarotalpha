@@ -1,6 +1,6 @@
 /** Binance spot klines, the primary provider. Response format and limits: docs/reference/binance-klines.md */
 import type { Candle } from "../engine/atr";
-import { ExchangeError, type KlineWindow, type Provider } from "./provider";
+import { DEADLINE_MS, ExchangeError, type KlineWindow, type Provider } from "./provider";
 
 const KLINES_URL = "https://api.binance.com/api/v3/klines";
 const INVALID_SYMBOL_CODE = -1121;
@@ -17,7 +17,7 @@ export const binance: Provider = {
 
     let response: Response;
     try {
-      response = await fetch(url);
+      response = await fetch(url, { signal: AbortSignal.timeout(DEADLINE_MS) });
     } catch (error) {
       throw new ExchangeError("unavailable", "binance", `network failure: ${String(error)}`);
     }
@@ -28,7 +28,7 @@ export const binance: Provider = {
       throw new ExchangeError("unavailable", "binance", `bad request: ${JSON.stringify(body)}`);
     }
     if (!response.ok) throw new ExchangeError("unavailable", "binance", `HTTP ${String(response.status)}`);
-    const rows: unknown = await response.json();
+    const rows: unknown = await response.json().catch(() => null);
     if (!Array.isArray(rows)) throw new ExchangeError("unavailable", "binance", "unexpected body");
     return rows.map(parseRow);
   },

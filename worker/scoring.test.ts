@@ -121,6 +121,35 @@ describe("the sweep", () => {
     for (let attempt = 0; attempt < 4; attempt++) await sweepMatured(env, NOW);
     expect(await verdictOf(id)).toMatchObject({ scored_at: null, attempts: 3 });
   });
+
+  // The last forecast candle opens a whole horizon after the anchor and closes an hour later; the cron ticks every
+  // ten minutes through that hour, and none of those ticks may spend an attempt on a candle still being drawn.
+  it("spends no attempt before the last forecast candle has closed", async () => {
+    stubExchanges();
+    const anchorTs = MATURED - 3 * HOUR_MS;
+    const id = await beatAt(anchorTs);
+    const closes = anchorTs + (HORIZON + 1) * HOUR_MS;
+    for (let tick = 6; tick > 0; tick--) await sweepMatured(env, closes - tick * 10 * 60_000);
+    expect(await verdictOf(id)).toMatchObject({ scored_at: null, attempts: 0 });
+    await sweepMatured(env, closes);
+    expect((await verdictOf(id)).scored_at).toBe(closes);
+  });
+
+  it("parks a row it cannot replay instead of stalling the readings behind it", async () => {
+    stubExchanges();
+    const broken = MATURED - 7 * HOUR_MS;
+    await env.DB.prepare(
+      "INSERT INTO readings (id, asset, anchor_ts, source, engine_version, reader, steps, candles_snapshot," +
+        " created_at, origin) VALUES ('cccccccc', 'BTCUSDT', ?1, 'binance', ?2, 'atr', '[[[0,0],[1,0],[2,0]]]'," +
+        " '{', ?3, 'beat')",
+    )
+      .bind(broken, ENGINE_VERSION, Date.now())
+      .run();
+    const id = await beatAt(broken + HOUR_MS);
+    expect(await sweepMatured(env, NOW)).toEqual({ scored: 1, parked: 1 });
+    expect(await verdictOf("cccccccc")).toMatchObject({ scored_at: null, attempts: 1 });
+    expect((await verdictOf(id)).scored_at).toBe(NOW);
+  });
 });
 
 describe("GET /api/readers", () => {

@@ -9,6 +9,7 @@
 import {
   accuracy,
   atr,
+  CANDLES_PER_STEP,
   deviation,
   forecastFromCards,
   MAX_STEPS,
@@ -20,20 +21,19 @@ import {
 import { fetchAfter, HOUR_MS } from "../exchange/closed-candles";
 import { ApiError, fetchReading, postEvent, type ReadingRecord } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
-import { createCoinPicker } from "./coin-picker";
+import { createCoinPicker, type CoinPicker } from "./coin-picker";
 import { required } from "./dom-lookup";
 import { showExchangeLogo } from "./exchange-logo";
 import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
 import { localDateTime, localTime, zoneLabel } from "./local-time-format";
 import { formatChange, formatPrice } from "./price-format";
-import { playReveal } from "./reveal-overlay";
+import { cancelReveal, playReveal } from "./reveal-overlay";
 import type { Navigate, View } from "./router";
 import { shareLink } from "./share-modal";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
 
-const CANDLES_PER_DAY = 24;
 const FLOW_MS_PER_CANDLE = 45;
 const CHANGE_LOOKBACK = 24;
 
@@ -152,6 +152,7 @@ class ReadingPage {
   private record: ReadingRecord | null = null;
   private chart: CandleChart | null = null;
   private panel: SpreadPanel | null = null;
+  private picker: CoinPicker | null = null;
   private actual: Candle[] | null = null;
   private prophecy: Prophecy = null;
   private noteText: Text | null = null;
@@ -172,6 +173,9 @@ class ReadingPage {
   dispose(): void {
     this.alive = false;
     this.unsubscribe();
+    this.picker?.dispose();
+    this.picker = null;
+    cancelReveal();
     this.toolbar.replaceChildren();
     this.panel?.dispose();
     this.panel = null;
@@ -225,7 +229,7 @@ class ReadingPage {
     const el = lookup(this.root, this.toolbar);
     this.el = el;
     showExchangeLogo(el.srcLogo, record.source);
-    createCoinPicker(el.picker, record.asset, (symbol) => {
+    this.picker = createCoinPicker(el.picker, record.asset, (symbol) => {
       postEvent({ type: "own_reading_clicked", asset: symbol, reading_id: record.id });
       this.navigate(`/?asset=${encodeURIComponent(symbol)}`);
     });
@@ -347,7 +351,7 @@ class ReadingPage {
     unit: number,
   ): Promise<void> {
     this.setProphecy(el, { kind: "pending", text: () => t().prophecy.checking, retry: false });
-    const total = results.length * CANDLES_PER_DAY;
+    const total = results.length * CANDLES_PER_STEP;
     let real: Candle[];
     try {
       real = await fetchAfter(record.asset, record.anchor_ts, total, record.source, Date.now());

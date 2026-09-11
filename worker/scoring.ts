@@ -5,6 +5,7 @@
  * no view triggers or changes any of this. When it runs and what it writes: ../docs/flows/reading-lifecycle.md
  */
 import {
+  CANDLES_PER_STEP,
   deviation,
   ENGINE_VERSION,
   forecastFromCards,
@@ -14,7 +15,7 @@ import {
   type Drifts,
   type StepCards,
 } from "../engine/index";
-import { fetchAfter } from "../exchange/closed-candles";
+import { fetchAfter, HOUR_MS } from "../exchange/closed-candles";
 import type { Source } from "../exchange/provider";
 
 // A cron on the free plan gets the same 10 ms of CPU as a request, and one reading costs about half a millisecond
@@ -22,9 +23,6 @@ import type { Source } from "../exchange/provider";
 const SWEEP = 5;
 // Three refusals and the reading is parked: a delisted symbol must not hold the head of the queue forever.
 const ATTEMPTS = 3;
-// Three cards of eight candles: one step of a reading is a day.
-const CANDLES_PER_STEP = 24;
-const DAY_MS = 86_400_000;
 
 /** The snapshot is stored a row per candle, not an object per candle: it is the widest column in the table. */
 type SnapshotRow = [t: number, o: number, h: number, l: number, c: number];
@@ -45,17 +43,23 @@ export interface Sweep {
 }
 
 export async function sweepMatured(env: Env, nowMs: number): Promise<Sweep> {
+  // Ripe once the last forecast candle has closed, an hour after it opens: the rule of ripensAt in web/my-readings.ts.
+  // An hour earlier the exchange has one candle short, and three ticks of that hour used to park every reading.
   const { results } = await env.DB.prepare(
     "SELECT id, asset, anchor_ts, source, seed_nonce, steps, candles_snapshot FROM readings" +
       " WHERE origin = 'beat' AND scored_at IS NULL AND attempts < ?1" +
-      " AND anchor_ts + json_array_length(steps) * ?2 <= ?3 ORDER BY anchor_ts LIMIT ?4",
+      " AND anchor_ts + (json_array_length(steps) * ?2 + 1) * ?3 <= ?4 ORDER BY anchor_ts LIMIT ?5",
   )
-    .bind(ATTEMPTS, DAY_MS, nowMs, SWEEP)
+    .bind(ATTEMPTS, CANDLES_PER_STEP, HOUR_MS, nowMs, SWEEP)
     .all<MaturedRow>();
   const writes: D1PreparedStatement[] = [];
   const sweep: Sweep = { scored: 0, parked: 0 };
   for (const row of results) {
-    const drifts = await driftsOf(row, nowMs);
+    // A row the engine cannot replay counts as a refusal: thrown, it would stall the whole queue behind it forever.
+    const drifts = await driftsOf(row, nowMs).catch((error: unknown) => {
+      console.error(`sweep: reading ${row.id} cannot be scored`, error);
+      return null;
+    });
     if (drifts === null) {
       sweep.parked++;
       writes.push(env.DB.prepare("UPDATE readings SET attempts = attempts + 1 WHERE id = ?1").bind(row.id));

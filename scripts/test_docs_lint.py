@@ -208,6 +208,7 @@ print("ok")
 
 # --- долга нет, поэтому не прощается ничего: хук ругается на всё в записанном файле, а режим PR
 # смотрит весь репозиторий — ссылка из нетронутого дока на переименованный файл краснеет и там.
+import json  # noqa: E402
 import subprocess  # noqa: E402
 
 
@@ -248,6 +249,19 @@ with tempfile.TemporaryDirectory() as _repo:
     code, out = lint(_repo, "web/a.ts")  # PostToolUse-хук
     assert code == 1 and "web/a.ts:1: [CMT001] комментарий 11 строк" in out, out
     git(_repo, "checkout", "--", "web/a.ts")
+
+    # Предупреждение код линтера не поднимает, а до агента доходить обязано: хук ругается на любое нарушение.
+    put("web/utils.ts", "export const z = 1\n")
+    hook = subprocess.run(  # noqa: S603
+        [sys.executable, os.path.abspath(H.__file__)],
+        input=json.dumps({"tool_input": {"file_path": "web/utils.ts"}, "cwd": _repo}),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert hook.returncode == 2 and "[NAM001]" in hook.stderr, (hook.returncode, hook.stderr)
+    assert "комментарий" not in hook.stderr, hook.stderr  # подсказка про комментарий к имени файла не относится
+    os.remove(os.path.join(_repo, "web/utils.ts"))
 
     # Отставшим от PR считается только живой док: ни замороженный ADR, ни корневой README.
     put("web/candles.ts", "export const y = 3\n")

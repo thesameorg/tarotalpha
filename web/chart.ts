@@ -20,7 +20,7 @@ import {
   type UTCTimestamp,
 } from "lightweight-charts";
 import type { Candle } from "../engine/atr";
-import { MAX_STEPS } from "../engine/index";
+import { CANDLES_PER_STEP, MAX_STEPS } from "../engine/index";
 import { AnchorPulse } from "./anchor-pulse";
 import { DeviationRibbon, type DeviationPair } from "./deviation-ribbon";
 import { ForecastZone, type ZoneLayout } from "./forecast-zone";
@@ -31,7 +31,6 @@ import { formatPrice, priceMinMove } from "./price-format";
 import { reducedMotion } from "./stage-effects";
 import { onThemeChange } from "./theme";
 
-const CANDLES_PER_DAY = 24;
 const MIN_FORECAST_DAYS = 3;
 const DRAW_MS_PER_CANDLE = 10;
 const REAL_VISIBLE = 72;
@@ -43,7 +42,7 @@ type Bar = CandlestickData;
 
 // The next day always has an empty slot to stand in until the horizon; three days at least, so the frame starts wide.
 const futureVisible = (steps: number): number =>
-  Math.min(MAX_STEPS, Math.max(MIN_FORECAST_DAYS, steps + 1)) * CANDLES_PER_DAY + 3;
+  Math.min(MAX_STEPS, Math.max(MIN_FORECAST_DAYS, steps + 1)) * CANDLES_PER_STEP + 3;
 
 export interface CandleChart {
   showSnapshot(candles: readonly Candle[], animate: boolean): Promise<void>;

@@ -39,17 +39,22 @@ def main() -> int:
         cwd=root,
         check=False,
     )
-    if res.returncode == 0:
+    found = res.stdout.strip()
+    # Код ноль бывает и с находками: предупреждения его не поднимают, а хук обещает любое нарушение.
+    if res.returncode == 0 and not found:
         return 0
     # Находок нет, а код не ноль — упал сам линтер. Без stderr агент видел пустое «нарушена».
-    if not res.stdout.strip():
+    if not found:
         print("scripts/docs_lint.py упал:\n" + res.stderr.strip(), file=sys.stderr)
         return 2
 
+    # Подсказка про комментарий — только к находке про комментарий: к имени файла она сбивала бы с толку.
+    hint = " Длинный комментарий — это документ, его место в docs/ со ссылкой." if "[CMT001]" in found else ""
     print(
         "Политика документирования (.claude/skills/documenting/SKILL.md) нарушена:\n"
-        + res.stdout.strip()
-        + "\n\nПочини сейчас: длинный комментарий — это документ, его место в docs/ со ссылкой.",
+        + found
+        + "\n\nПочини сейчас."
+        + hint,
         file=sys.stderr,
     )
     return 2  # 2 = stderr уходит агенту как замечание
