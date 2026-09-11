@@ -191,13 +191,21 @@ def tracked(root: str) -> list[str]:
     return [p for p in files if not any(s.search(p) for s in SKIP)]
 
 
-def hunk_lines(*git_args: str, cwd: str | None = None) -> set[int]:
-    out = sh(*git_args, cwd=cwd)
-    res: set[int] = set()
-    for m in re.finditer(r"^@@ -\S+ \+(\d+)(?:,(\d+))? @@", out, re.M):
-        start, count = int(m.group(1)), int(m.group(2) or 1)
-        res.update(range(start, start + count))
-    return res
+def parse_hunks(diff: str) -> list[tuple[int, int, int, int]]:
+    """Ханки `-U0`: (старое начало, старых строк, новое начало, новых строк)."""
+    found = re.findall(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@", diff, re.M)
+    return [(int(a), int(b or 1), int(c), int(d or 1)) for a, b, c, d in found]
+
+
+def head_line(hunks: list[tuple[int, int, int, int]], line: int) -> int | None:
+    """Где строка базы стоит после диффа; None — дифф её удалил или переписал."""
+    shift = 0
+    for a, b, c, d in hunks:
+        if a <= line < a + b:
+            return None
+        if line >= a + max(b, 1):  # пустой ханк стоит после строки a, а не на ней
+            shift = c + max(d, 1) - a - max(b, 1)
+    return line + shift
 
 
 def skip_formatting_commits(base: str, root: str) -> str:
@@ -658,17 +666,29 @@ def related_docs(root: str, index: list[str], files: list[str], top: int = 6) ->
 # ---------------------------------------------------------------------- сборка
 
 
-def authored(f: Finding, added: dict[str, set[int] | None]) -> bool:
-    """Блок под правилом, только если PR его писал, а не задел строку внутри."""
+def inherited(root: str, ref: str, path: str, hunks: list[tuple[int, int, int, int]]) -> set[int]:
+    """Строки, которые и на ref стояли в блоке за лимитом, — долг, доставшийся диффу готовым."""
+    kind = CODE_EXT.get(os.path.splitext(path)[1])
+    if not kind:
+        return set()
+    was = sh("git", "show", f"{ref}:{path}", cwd=root).split("\n")
+    spans = [range(f.line, f.end + 1) for f in check_comments(path, was, kind)]
+    return {n for span in spans for i in span if (n := head_line(hunks, i)) is not None}
 
-    # Переименование пути в чужом 40-строчном докстринге — не новый долг, его
-    # разбирает ратчет. Новый комментарий на 8 строк — долг.
+
+def authored(f: Finding, added: dict[str, set[int] | None], debt: dict[str, set[int]]) -> bool:
+    """Блок под правилом, если PR его писал или вывел за лимит, а не задел строку в чужом долге."""
+
+    # Переименование пути в чужом 40-строчном докстринге — не новый долг.
+    # Новый комментарий на 8 строк или шапка, выросшая с 10 строк до 11, — долг.
     new = added.get(f.path)
     if new is None:  # None = файл целиком новый, писали его в этом PR
         return True
     if not f.end:
         return f.line in new
     span = range(f.line, f.end + 1)
+    if not debt[f.path].intersection(span):  # в базе блок укладывался в лимит — вывел его за лимит дифф
+        return True
     return sum(1 for i in span if i in new) >= max(2, len(span) // 2)
 
 
@@ -764,7 +784,7 @@ def summary(text: str) -> None:
 
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="линтер политики документирования")
-    ap.add_argument("files", nargs="*", help="файлы (режим pre-commit: только новые строки)")
+    ap.add_argument("files", nargs="*", help="файлы (режим pre-commit: новые строки и блоки, выведенные за лимит)")
     ap.add_argument(
         "--worktree", action="store_true", help="новые строки считать против HEAD, а не против индекса (режим хука)"
     )
@@ -801,9 +821,10 @@ def run_ratchet(root: str, index: list[str], ref: str) -> int:
 
 def select_files(
     args: argparse.Namespace, root: str, index: list[str]
-) -> tuple[list[str], dict[str, set[int] | None], set[str]]:
-    """Какие файлы смотрим и какие строки считаем «новыми»."""
+) -> tuple[list[str], dict[str, set[int] | None], dict[str, set[int]], set[str]]:
+    """Какие файлы смотрим, какие строки считаем «новыми» и какие — чужим долгом."""
     added: dict[str, set[int] | None] = {}
+    debt: dict[str, set[int]] = {}
     touched: set[str] = set()
 
     if args.files:
@@ -811,24 +832,25 @@ def select_files(
         # Хук зовут до `git add`, поэтому индекс ему не годится: он смотрит рабочее
         # дерево против HEAD. Файл, которого git ещё не знает, проверяем целиком.
         diff = ["diff", "HEAD"] if args.worktree else ["diff", "--cached"]
-        known = set(index)
-        added = {f: (hunk_lines("git", *diff, "-U0", "--no-color", "--", f) if f in known else None) for f in files}
+        ref, fresh = "HEAD", set(files) - set(index)
     elif args.base:
         args.base = skip_formatting_commits(args.base, root)
         files = changed_files(args.base, root)
         touched = set(files)  # MD005 включается только здесь
-        new = set(sh("git", "diff", "--name-only", "--diff-filter=A", f"{args.base}...HEAD").splitlines())
-        added = {
-            f: (
-                None  # None = файл целиком новый; множество строк тут строить незачем
-                if f in new
-                else hunk_lines("git", "diff", "-U0", "--no-color", f"{args.base}...HEAD", "--", f)
-            )
-            for f in files
-        }
+        diff = ["diff", f"{args.base}...HEAD"]
+        ref = sh("git", "merge-base", args.base, "HEAD", cwd=root).strip()
+        fresh = set(sh("git", "diff", "--name-only", "--diff-filter=A", f"{args.base}...HEAD").splitlines())
     else:
-        files = index
-    return files, added, touched
+        return index, added, debt, touched
+
+    for f in files:
+        if f in fresh:
+            added[f] = None  # None = файл целиком новый; множество строк тут строить незачем
+            continue
+        hunks = parse_hunks(sh("git", *diff, "-U0", "--no-color", "--", f, cwd=root))
+        added[f] = {n for _, _, c, d in hunks for n in range(c, c + d)}
+        debt[f] = inherited(root, ref, f, hunks)
+    return files, added, debt, touched
 
 
 def print_related(root: str, index: list[str], files: list[str]) -> int:
@@ -879,7 +901,7 @@ def main() -> int:
     if args.ratchet_vs:
         return run_ratchet(root, index, args.ratchet_vs)
 
-    files, added, touched = select_files(args, root, index)
+    files, added, debt, touched = select_files(args, root, index)
 
     if args.related:
         return print_related(root, index, files)
@@ -892,7 +914,7 @@ def main() -> int:
     findings = collect(root, files, touched, index)
 
     if added:
-        findings = [f for f in findings if f.code.startswith("MD") or authored(f, added)]
+        findings = [f for f in findings if f.code.startswith("MD") or authored(f, added, debt)]
     if args.only:
         findings = [f for f in findings if f.code == args.only]
 

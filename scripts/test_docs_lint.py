@@ -2,7 +2,6 @@
 """Самопроверка парсеров docs_lint. Запуск: python3 scripts/test_docs_lint.py"""
 
 import os
-import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -81,11 +80,15 @@ assert codes("# ---------\n# a\nkey: 1", "h") == []
 
 # --- парсер git-ханков
 sample = "@@ -1,0 +5,3 @@\n@@ -20 +21 @@\n@@ -30,2 +40,0 @@\n"
-got: set[int] = set()
-for m in re.finditer(r"^@@ -\S+ \+(\d+)(?:,(\d+))? @@", sample, re.M):
-    s, c = int(m.group(1)), int(m.group(2) or 1)
-    got.update(range(s, s + c))
-assert got == {5, 6, 7, 21}, got
+assert L.parse_hunks(sample) == [(1, 0, 5, 3), (20, 1, 21, 1), (30, 2, 40, 0)]
+
+# --- строка базы после диффа: сдвиг, удаление, пустые ханки по обе стороны
+split = L.parse_hunks("@@ -3 +3,2 @@")  # третья строка переписана двумя
+assert [L.head_line(split, i) for i in (2, 3, 4, 10)] == [2, None, 5, 11]
+assert [L.head_line(L.parse_hunks("@@ -4,0 +5,3 @@"), i) for i in (4, 5)] == [4, 8]
+assert [L.head_line(L.parse_hunks("@@ -30,2 +29,0 @@"), i) for i in (29, 30, 31, 32)] == [29, None, None, 30]
+assert [L.head_line(L.parse_hunks("@@ -0,0 +1,2 @@"), i) for i in (1, 5)] == [3, 7]
+assert [L.head_line(L.parse_hunks("@@ -1,2 +0,0 @@"), i) for i in (1, 3)] == [None, 1]
 
 # --- строка статуса дока
 assert L.DOC_HEADER.match("> актуально · 2026-08-24 · рендерер ходит в Payload только через readFetch")
@@ -156,15 +159,17 @@ print("ok")
 # --- фильтр «блок написан этим PR», и что он вообще подключён
 import inspect  # noqa: E402
 
-assert "authored(f, added)" in inspect.getsource(L.main), "authored определён, но не вызывается"
+assert "authored(f, added, debt)" in inspect.getsource(L.main), "authored определён, но не вызывается"
 
 long_block = L.Finding("a.py", 191, "CMT002", L.SEVERITY_FAIL, "", 205)
-assert not L.authored(long_block, {"a.py": {191}})  # правка одной строки — не наш долг
-assert L.authored(long_block, {"a.py": set(range(191, 199))})  # переписали половину — наш
-assert L.authored(long_block, {"a.py": None})  # файл целиком новый
+old_debt = {"a.py": set(range(191, 206))}  # в базе блок уже был за лимитом
+assert not L.authored(long_block, {"a.py": {191}}, old_debt)  # правка одной строки в чужом долге — не наш долг
+assert L.authored(long_block, {"a.py": set(range(191, 199))}, old_debt)  # переписали половину — наш
+assert L.authored(long_block, {"a.py": None}, {})  # файл целиком новый
+assert L.authored(long_block, {"a.py": {191}}, {"a.py": set()})  # в базе укладывался в лимит — вывел за лимит PR
 one_liner = L.Finding("a.py", 5, "MD004", L.SEVERITY_FAIL, "")
-assert L.authored(one_liner, {"a.py": {5}})
-assert not L.authored(one_liner, {"a.py": {6}})
+assert L.authored(one_liner, {"a.py": {5}}, {})
+assert not L.authored(one_liner, {"a.py": {6}}, {})
 
 # --- у длинных блоков end обязан быть заполнен, иначе фильтр вырождается
 for f in L.check_comments("x", ('"""a\n' + "b\n" * 10 + '"""').split("\n"), "py"):
@@ -228,5 +233,52 @@ with tempfile.TemporaryDirectory() as _root:
     assert L.on_disk(_root, "real.py")
     assert not L.on_disk(_root, "appsite/node_modules/next/index.js")
     assert not L.on_disk(_root, "appsite/.next/x.json")
+
+print("ok")
+
+# --- правка, выводящая шапку за лимит, краснеет в хуке, в pre-commit и в режиме PR, а не впервые
+# в полном аудите CI. Правка строки внутри блока, который и в базе был за лимитом, — по-прежнему не наш долг.
+import subprocess  # noqa: E402
+
+
+def git(cwd: str, *args: str) -> None:
+    env = ["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null"]
+    subprocess.run(["git", *env, *args], cwd=cwd, check=True, capture_output=True)  # noqa: S603
+
+
+def lint(cwd: str, *args: str) -> tuple[int, str]:
+    res = subprocess.run(  # noqa: S603
+        [sys.executable, os.path.abspath(L.__file__), *args], cwd=cwd, capture_output=True, text=True, check=False
+    )
+    return res.returncode, res.stdout
+
+
+with tempfile.TemporaryDirectory() as _repo:
+    head = ["/**"] + [f" * line {i}" for i in range(8)] + [" */"]  # шапка ровно в 10 строк
+    legacy = ["// a", "// b", "// c", "// d", "// e"]  # блок в теле, за лимитом уже в базе
+
+    def write() -> None:
+        with open(os.path.join(_repo, "a.ts"), "w") as fh:
+            fh.write("\n".join(head + ["let x = 1", ""] + legacy + ["let y = 2", ""]))
+
+    write()
+    git(_repo, "init", "-q", "-b", "main")
+    git(_repo, "add", ".")
+    git(_repo, "commit", "-q", "-m", "base")
+
+    legacy[2] = "// c, renamed"
+    write()
+    assert lint(_repo, "--worktree", "a.ts") == (0, ""), "строка в чужом долге снова стала нашей"
+
+    head[3:4] = [" * line 3 grew", " * into two"]
+    write()
+    code, out = lint(_repo, "--worktree", "a.ts")  # PostToolUse-хук
+    assert code == 1 and out.count("ERROR") == 1 and "a.ts:1: [CMT001] комментарий 11 строк" in out, out
+    git(_repo, "add", "a.ts")
+    code, out = lint(_repo, "a.ts")  # pre-commit: застейдженное против HEAD
+    assert code == 1 and out.count("ERROR") == 1 and "a.ts:1: [CMT001]" in out, out
+    git(_repo, "commit", "-q", "-m", "grow")
+    code, out = lint(_repo, "--base", "main~1")  # pnpm run check
+    assert code == 1 and out.count("ERROR") == 1 and "a.ts:1: [CMT001]" in out, out
 
 print("ok")

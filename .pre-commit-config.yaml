@@ -29,8 +29,8 @@ repos:
     hooks:
       - id: shellcheck
 
-  # Ругается только на строки, которые ты сейчас застейджил — легаси в том же
-  # файле молчит. Политика: .claude/skills/documenting/SKILL.md
+  # Ругается на застейдженные строки и на блок комментариев, который правка вывела за лимит;
+  # легаси в том же файле молчит. Политика: .claude/skills/documenting/SKILL.md
   - repo: local
     hooks:
       - id: docs-lint
