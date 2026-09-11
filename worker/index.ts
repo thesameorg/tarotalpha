@@ -24,8 +24,12 @@ export default {
     return env.ASSETS.fetch(request);
   },
   async scheduled(_controller, env) {
-    const sweep = await sweepMatured(env, Date.now());
     // Scoring first: an exchange that refuses a fresh snapshot must not cost the verdicts already waiting.
+    // Each half fails on its own, so a D1 error in the sweep does not cost the track its draw either.
+    const sweep = await sweepMatured(env, Date.now()).catch((error: unknown) => {
+      console.error(error);
+      return { scored: 0, parked: 0 };
+    });
     const drawn = await beat(env, Date.now()).catch((error: unknown) => {
       console.error(error);
       return [];

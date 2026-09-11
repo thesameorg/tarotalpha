@@ -134,6 +134,22 @@ describe("the sweep", () => {
     await sweepMatured(env, closes);
     expect((await verdictOf(id)).scored_at).toBe(closes);
   });
+
+  it("parks a row it cannot replay instead of stalling the readings behind it", async () => {
+    stubExchanges();
+    const broken = MATURED - 7 * HOUR_MS;
+    await env.DB.prepare(
+      "INSERT INTO readings (id, asset, anchor_ts, source, engine_version, reader, steps, candles_snapshot," +
+        " created_at, origin) VALUES ('cccccccc', 'BTCUSDT', ?1, 'binance', ?2, 'atr', '[[[0,0],[1,0],[2,0]]]'," +
+        " '{', ?3, 'beat')",
+    )
+      .bind(broken, ENGINE_VERSION, Date.now())
+      .run();
+    const id = await beatAt(broken + HOUR_MS);
+    expect(await sweepMatured(env, NOW)).toEqual({ scored: 1, parked: 1 });
+    expect(await verdictOf("cccccccc")).toMatchObject({ scored_at: null, attempts: 1 });
+    expect((await verdictOf(id)).scored_at).toBe(NOW);
+  });
 });
 
 describe("GET /api/readers", () => {

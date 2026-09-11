@@ -55,7 +55,11 @@ export async function sweepMatured(env: Env, nowMs: number): Promise<Sweep> {
   const writes: D1PreparedStatement[] = [];
   const sweep: Sweep = { scored: 0, parked: 0 };
   for (const row of results) {
-    const drifts = await driftsOf(row, nowMs);
+    // A row the engine cannot replay counts as a refusal: thrown, it would stall the whole queue behind it forever.
+    const drifts = await driftsOf(row, nowMs).catch((error: unknown) => {
+      console.error(`sweep: reading ${row.id} cannot be scored`, error);
+      return null;
+    });
     if (drifts === null) {
       sweep.parked++;
       writes.push(env.DB.prepare("UPDATE readings SET attempts = attempts + 1 WHERE id = ?1").bind(row.id));
