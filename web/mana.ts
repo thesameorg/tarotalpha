@@ -20,10 +20,11 @@ export interface Tank {
   at: number;
 }
 
-export function dayCost(day: number): number {
+/** What opening `day` costs when the first `paid` days of the same reading were already paid for here. */
+export function dayCost(day: number, paid = 0): number {
   const cost = DAY_COST[day - 1];
   if (cost === undefined) throw new RangeError(`day ${String(day)} is past the horizon`);
-  return cost;
+  return day <= paid ? 0 : cost;
 }
 
 const sameLocalDay = (a: number, b: number): boolean => new Date(a).toDateString() === new Date(b).toDateString();

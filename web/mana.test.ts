@@ -19,6 +19,12 @@ describe("day cost", () => {
     expect(() => dayCost(MAX_STEPS + 1)).toThrow(RangeError);
   });
 
+  it("charges nothing for a day of the same reading already paid for, and the full price past it", () => {
+    expect(dayCost(1, 3)).toBe(0);
+    expect(dayCost(3, 3)).toBe(0);
+    expect(dayCost(4, 3)).toBe(2);
+  });
+
   it("lets a full tank open six days of one reading, not the seventh", () => {
     let tank = full(at(11, 10));
     for (let day = 1; day <= 6; day++) tank = pay(tank, dayCost(day), at(11, 10));

@@ -29,7 +29,7 @@ import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
 import { dayCost, manaLeft, spendMana } from "./mana";
 import { mountManaMeter } from "./mana-meter";
-import { findMyReading, rememberReading } from "./my-readings";
+import { findMyReading, myReadingsNow, rememberReading } from "./my-readings";
 import { mountMyReadings } from "./my-readings-list";
 import { openPaywall } from "./paywall-modal";
 import { formatChange, formatPrice } from "./price-format";
@@ -289,15 +289,25 @@ class LandingPage {
   private labelDraw(): void {
     const next = (this.loaded?.steps.length ?? 0) + 1;
     if (next > MAX_STEPS) return;
-    const cost = String(dayCost(next));
+    const cost = this.nextCost();
     this.el.ctaFull.textContent = t().drawStep(next);
     this.el.ctaShort.textContent = t().day(next);
-    this.el.ctaCost.innerHTML = `<span class="mana-glyph">${icons.bolt}</span>${cost}`;
-    this.el.draw.setAttribute("aria-label", `${t().drawStep(next)} · ${t().mana}: ${cost}`);
+    this.el.ctaCost.innerHTML = cost === 0 ? "" : `<span class="mana-glyph">${icons.bolt}</span>${String(cost)}`;
+    const price = cost === 0 ? "" : ` · ${t().mana}: ${String(cost)}`;
+    this.el.draw.setAttribute("aria-label", `${t().drawStep(next)}${price}`);
+  }
+
+  // Days this browser opened in this window before a reload are in "my readings": they are not paid for twice.
+  private nextCost(): number {
+    const loaded = this.loaded;
+    if (loaded === null) return dayCost(1);
+    const paid = myReadingsNow().find((entry) => entry.asset === loaded.asset && entry.anchor_ts === loaded.anchorTs);
+    return dayCost(loaded.steps.length + 1, paid?.steps ?? 0);
   }
 
   private enableDraw(on: boolean): void {
     this.el.draw.disabled = !on;
+    if (on) this.labelDraw();
     this.placeCta();
   }
 
@@ -411,7 +421,7 @@ class LandingPage {
     const loaded = this.loaded;
     if (this.busy || loaded === null || loaded.steps.length >= MAX_STEPS) return;
     const step = loaded.steps.length + 1;
-    const cost = dayCost(step);
+    const cost = this.nextCost();
     if (manaLeft() < cost) {
       openPaywall();
       postEvent({ type: "paywall_hit", asset: loaded.asset, step });
@@ -460,7 +470,6 @@ class LandingPage {
     if (this.loaded !== loaded) return;
     if (this.readerPending) this.applyReader();
     this.el.share.disabled = false;
-    this.labelDraw();
     this.enableDraw(true);
     postEvent({ type: "step_opened", asset: loaded.asset, step });
   }
