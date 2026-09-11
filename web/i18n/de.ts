@@ -226,6 +226,11 @@ export const de: Dictionary = {
     replay: "Legung wiederholen",
     own: "Eigene Legung für dieses Instrument",
   },
+  mine: {
+    button: "Meine Legungen",
+    ripe: "reif",
+    ripensIn: (hours: number): string => `reif in ${String(hours)} h`,
+  },
   prophecy: {
     checking: "Prophezeiung wird an den Kerzen der Börse geprüft…",
     notYet: (closesAt: string): string =>

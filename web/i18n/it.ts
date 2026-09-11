@@ -228,6 +228,11 @@ export const it: Dictionary = {
     replay: "Ripeti la lettura",
     own: "La tua lettura per questo strumento",
   },
+  mine: {
+    button: "Le mie letture",
+    ripe: "pronta",
+    ripensIn: (hours: number): string => `pronta tra ${String(hours)} h`,
+  },
   prophecy: {
     checking: "Verifica della profezia sulle candele dell'exchange…",
     notYet: (closesAt: string): string =>

@@ -7,6 +7,7 @@ import "./styles.css";
 import { initHeaderControls } from "./header-controls";
 import { initLang } from "./i18n/index";
 import { zoneLabel } from "./local-time-format";
+import { initMyReadings } from "./my-readings";
 import { initPaywallModal } from "./paywall-modal";
 import { initReader } from "./reader-choice";
 import { initReaderProfile } from "./reader-profile";
@@ -19,6 +20,7 @@ import {
   initTelegram,
   telegram,
   telegramBack,
+  telegramCloudStorage,
   telegramLanguages,
   telegramReady,
   telegramStartReading,
@@ -35,6 +37,7 @@ async function boot(): Promise<void> {
   if (zone !== null) zone.textContent = zoneLabel(Date.now());
 
   await initTelegram();
+  initMyReadings(telegramCloudStorage());
   initLang(new URL(window.location.href).searchParams, telegramLanguages());
   initTheme();
   initReader();
@@ -56,7 +59,7 @@ async function boot(): Promise<void> {
             navigate("/");
           },
     );
-    return id === undefined ? landingView(url.searchParams) : readingView(id, navigate);
+    return id === undefined ? landingView(url.searchParams, navigate) : readingView(id, navigate);
   });
   telegramReady();
 }

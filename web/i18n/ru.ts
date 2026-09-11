@@ -217,6 +217,11 @@ export const ru = {
     replay: "Воспроизвести расклад",
     own: "Свой расклад по этому инструменту",
   },
+  mine: {
+    button: "Мои расклады",
+    ripe: "созрел",
+    ripensIn: (hours: number): string => `созреет через ${String(hours)} ч`,
+  },
   prophecy: {
     checking: "Проверяем пророчество по свечам биржи…",
     notYet: (closesAt: string): string => `Будущее ещё не наступило: первая свеча проверки закроется в ${closesAt}`,

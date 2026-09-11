@@ -15,6 +15,7 @@ export const icons = {
   monitor: svg('<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>', 15),
   external: svg('<path d="M7 17 17 7"/><path d="M8 7h9v9"/>', 12),
   star: svg('<path d="m12 3.8 2.5 5.2 5.7.8-4.1 4 1 5.7-5.1-2.7-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/>', 14),
+  history: svg('<path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3.5 3.5V9H9"/><path d="M12 7.5V12l3 2"/>', 15),
 } as const;
 
 /** Turns a plain button into an icon button: the label goes to assistive tech and to the tooltip. */

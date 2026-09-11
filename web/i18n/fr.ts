@@ -230,6 +230,11 @@ export const fr: Dictionary = {
     replay: "Rejouer le tirage",
     own: "Votre propre tirage pour cet instrument",
   },
+  mine: {
+    button: "Mes tirages",
+    ripe: "prêt",
+    ripensIn: (hours: number): string => `prêt dans ${String(hours)} h`,
+  },
   prophecy: {
     checking: "Vérification de la prophétie sur les bougies de la bourse…",
     notYet: (closesAt: string): string =>

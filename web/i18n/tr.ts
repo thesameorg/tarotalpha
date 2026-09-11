@@ -213,6 +213,11 @@ export const tr: Dictionary = {
     replay: "Açılımı yeniden oynat",
     own: "Bu enstrüman için kendi açılımın",
   },
+  mine: {
+    button: "Açılımlarım",
+    ripe: "hazır",
+    ripensIn: (hours: number): string => `${String(hours)} s sonra hazır`,
+  },
   prophecy: {
     checking: "Kehanet borsanın mumlarıyla kontrol ediliyor…",
     notYet: (closesAt: string): string =>

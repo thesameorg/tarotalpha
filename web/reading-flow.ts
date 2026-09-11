@@ -1,17 +1,17 @@
 /**
  * The landing: the chart of the instrument picked in its header loads by itself (the URL's `asset`, the last one
- * used, or BTCUSDT), two free steps open with the fullscreen reveal, the third hits the paywall, the reading is
- * shared with the author's language in the link. Candles come straight from the exchange and steps from the engine
- * in this browser; the API only stores a reading and takes funnel events, and both calls degrade quietly. Every
- * label is a function of the dictionary, so a language switch relabels the page without touching its state.
- * The only buttons are the row over the free days of the forecast zone: the next day and, once a day is open,
- * share. On a wide screen the row rides with the chart and shortens to the day alone when the free part is narrow;
- * on a phone it stands at the right of the chart with the full label wrapped.
+ * used, or BTCUSDT), two free steps open with the fullscreen reveal, the third hits the paywall. Candles come
+ * straight from the exchange and steps from the engine in this browser. The first open step writes the reading
+ * through the API in the background and the next step extends it, so "Share" only hands out the link with the
+ * author's language; the id lands in "my readings" beside the step marks. Every label is a function of the
+ * dictionary, so a language switch relabels the page without touching its state. The only buttons are the row over
+ * the free days of the forecast zone: the next day and, once a day is open, share; on a wide screen the row rides
+ * with the chart and shortens to the day alone when the free part is narrow, on a phone it stands at the right.
  */
 import { computeSteps, ENGINE_VERSION, forecastFromCards, type Candle, type StepResult } from "../engine/index";
 import { ASSET_PATTERN, fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
 import { ExchangeError, type Source } from "../exchange/provider";
-import { ApiError, createReading, postEvent } from "./api";
+import { ApiError, createReading, extendReading, postEvent } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
 import { createCoinPicker, type CoinPicker } from "./coin-picker";
 import { required } from "./dom-lookup";
@@ -19,12 +19,14 @@ import { showExchangeLogo } from "./exchange-logo";
 import type { ZoneLayout } from "./forecast-zone";
 import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
+import { findMyReading, rememberReading } from "./my-readings";
+import { mountMyReadings } from "./my-readings-list";
 import { openPaywall } from "./paywall-modal";
 import { formatChange, formatPrice } from "./price-format";
 import { onReaderChange, reader } from "./reader-choice";
 import { initReaderPicker } from "./reader-picker";
 import { playReveal } from "./reveal-overlay";
-import type { View } from "./router";
+import type { Navigate, View } from "./router";
 import { shareLink } from "./share-modal";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
@@ -47,6 +49,8 @@ interface Loaded {
   snapshot: Candle[];
   source: Source;
   steps: StepResult[];
+  /** The stored reading's id once the row holds every open step; null while nothing is stored or a write failed. */
+  saved: Promise<string | null>;
 }
 
 interface Elements {
@@ -57,6 +61,7 @@ interface Elements {
   last: HTMLElement;
   chg: HTMLElement;
   steps: HTMLElement;
+  mine: HTMLElement;
   chart: HTMLElement;
   chartState: HTMLElement;
   chartMessage: HTMLElement;
@@ -91,7 +96,10 @@ function landingMarkup(): string {
 <div class="stage" id="stage">
   <div class="stage-top">
     <div class="px"><div id="picker"></div><img class="src-logo" id="src-logo" alt="" hidden><span id="last">—</span><span class="chg" id="chg"></span></div>
-    <div class="steps" id="steps"><span></span><span></span><span class="locked"></span></div>
+    <div class="stage-side">
+      <div class="steps" id="steps"><span></span><span></span><span class="locked"></span></div>
+      <div id="mine" hidden></div>
+    </div>
   </div>
   <div class="chart-box">
     <div class="chart" id="chart"></div>
@@ -120,6 +128,7 @@ function lookup(root: HTMLElement): Elements {
     last: required(root, "#last", HTMLElement),
     chg: required(root, "#chg", HTMLElement),
     steps: required(root, "#steps", HTMLElement),
+    mine: required(root, "#mine", HTMLElement),
     chart: required(root, "#chart", HTMLElement),
     chartState: required(root, "#chart-state", HTMLElement),
     chartMessage: required(root, "#chart-message", HTMLElement),
@@ -165,7 +174,7 @@ class LandingPage {
   private stateRetry = false;
   private stateBusy = false;
 
-  constructor(root: HTMLElement, params: URLSearchParams) {
+  constructor(root: HTMLElement, params: URLSearchParams, navigate: Navigate) {
     root.innerHTML = landingMarkup();
     this.el = lookup(root);
     this.panel = createSpreadPanel(this.el.panel, true);
@@ -176,6 +185,7 @@ class LandingPage {
       this.placeCta();
     });
     initReaderPicker(this.el.readers);
+    const unmountMine = mountMyReadings(this.el.mine, navigate);
     const relabel = onLangChange(() => {
       this.relabel();
     });
@@ -185,6 +195,7 @@ class LandingPage {
     this.unsubscribe = (): void => {
       relabel();
       rereads();
+      unmountMine();
     };
 
     const preset = (params.get("asset") ?? "").trim().toUpperCase();
@@ -231,6 +242,8 @@ class LandingPage {
     });
     this.panel.setSteps(loaded.steps, loaded.steps.length - 1);
     this.chart.setForecast(loaded.steps.flatMap((s) => s.candles));
+    // The row follows the screen: a link shared after the switch must show the reader the author was looking at.
+    void this.persist(loaded, loaded.steps.length);
   }
 
   // Read through a method: an `if (!this.alive)` guard would narrow the field to `true` for the rest of the flow.
@@ -355,7 +368,14 @@ class LandingPage {
       this.chartState(() => t().exchange.too_old, true);
       return;
     }
-    this.loaded = { asset, anchorTs, snapshot: candles, source: snapshot.source, steps: [] };
+    this.loaded = {
+      asset,
+      anchorTs,
+      snapshot: candles,
+      source: snapshot.source,
+      steps: [],
+      saved: Promise.resolve(null),
+    };
     storeAsset(asset);
     showExchangeLogo(this.el.srcLogo, snapshot.source);
     this.showPrice();
@@ -400,6 +420,7 @@ class LandingPage {
       return;
     }
     loaded.steps.push(result);
+    void this.persist(loaded, step);
     this.panel.setSteps(loaded.steps, step - 1);
     this.chart.setSteps(step);
     this.setStepsBar(step);
@@ -421,22 +442,46 @@ class LandingPage {
     postEvent({ type: "step_opened", asset: loaded.asset, step });
   }
 
+  // The row follows the steps in the background: the first one writes it, the next one extends it, and the entry
+  // in "my readings" follows. A failed write leaves null behind, and "Share" then writes afresh and shows why.
+  private persist(loaded: Loaded, steps: number): Promise<string> {
+    const saving = loaded.saved.then(async (stored) => {
+      // The same window this browser opened before has the same cards: its row is extended, not written twice.
+      const id = stored ?? (await findMyReading(loaded.asset, loaded.anchorTs))?.id ?? null;
+      const body = { steps, reader: reader() };
+      const saved =
+        id === null
+          ? await createReading({
+              asset: loaded.asset,
+              anchor_ts: loaded.anchorTs,
+              source: loaded.source,
+              engine_version: ENGINE_VERSION,
+              ...body,
+            })
+          : await extendReading(id, body);
+      await rememberReading({
+        id: saved.id,
+        asset: loaded.asset,
+        anchor_ts: loaded.anchorTs,
+        ...body,
+        steps: saved.steps,
+      });
+      return saved.id;
+    });
+    loaded.saved = saving.catch(() => null);
+    return saving;
+  }
+
   private async share(): Promise<void> {
     const loaded = this.loaded;
     if (this.busy || loaded === null || loaded.steps.length === 0) return;
     this.el.share.disabled = true;
     try {
-      const created = await createReading({
-        asset: loaded.asset,
-        anchor_ts: loaded.anchorTs,
-        steps: loaded.steps.length,
-        source: loaded.source,
-        reader: reader(),
-        engine_version: ENGINE_VERSION,
-      });
+      const id = (await loaded.saved) ?? (await this.persist(loaded, loaded.steps.length));
       if (this.gone()) return;
-      const url = new URL(created.url, window.location.origin);
+      const url = new URL(`/r/${id}`, window.location.origin);
       url.searchParams.set("lang", lang());
+      postEvent({ type: "shared", asset: loaded.asset, reading_id: id, step: loaded.steps.length });
       shareLink(url.href);
     } catch (error: unknown) {
       if (!this.gone()) toast(shareErrorMessage(error));
@@ -446,11 +491,11 @@ class LandingPage {
   }
 }
 
-export function landingView(params: URLSearchParams): View {
+export function landingView(params: URLSearchParams, navigate: Navigate): View {
   let page: LandingPage | null = null;
   return {
     mount(root) {
-      page = new LandingPage(root, params);
+      page = new LandingPage(root, params, navigate);
     },
     unmount() {
       page?.dispose();

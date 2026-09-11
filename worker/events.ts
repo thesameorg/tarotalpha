@@ -1,6 +1,6 @@
 /**
- * Funnel journal: one row per event, read only by the owner's own SQL.
- * Client and server event types are kept apart so a browser cannot forge `shared`.
+ * Funnel journal: one row per event, read only by the owner's own SQL. The client reports what it did; the one
+ * event only the Worker writes is a snapshot the edge could not take.
  * `ip_hash` is a daily-rotating pseudonym (SHA-256 of address and date), not an identity.
  */
 import { ASSET_PATTERN } from "../exchange/closed-candles";
@@ -8,10 +8,18 @@ import { ApiError, readJsonBody } from "./json-api";
 import { clientIp } from "./rate-limit";
 import { ID_PATTERN } from "./short-id";
 
-const CLIENT_TYPES = ["chart_loaded", "step_opened", "paywall_hit", "own_reading_clicked", "replayed"] as const;
+const CLIENT_TYPES = [
+  "chart_loaded",
+  "step_opened",
+  "paywall_hit",
+  "own_reading_clicked",
+  "replayed",
+  "shared",
+  "rechecked",
+] as const;
 
 type ClientEventType = (typeof CLIENT_TYPES)[number];
-export type EventType = ClientEventType | "shared" | "share_failed";
+export type EventType = ClientEventType | "share_failed";
 
 export interface EventInput {
   type: EventType;
