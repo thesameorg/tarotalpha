@@ -30,7 +30,7 @@ repos:
       - id: shellcheck
 
   # Тот же полный аудит, что в CI, на каждом коммите — даже на коммите из одного удаления.
-  # Почему не только застейдженное: docs/adr/0010-docs-lint-forgives-nothing.md
+  # Почему не только застейдженное: docs/architecture.md
   - repo: local
     hooks:
       - id: docs-lint

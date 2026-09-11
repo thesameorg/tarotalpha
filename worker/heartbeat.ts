@@ -3,7 +3,7 @@
  * week's popular coin than about the readers, so the score keeps its own track: one instrument, one reading every
  * four hours, drawn by the cron and by nobody else. A reading is a hypothesis by all five readers at once, so one
  * draw beats the whole table. While the track is short the cron fills it backwards, a few slots per run.
- * Why the track is one instrument: ../docs/flows/reading-lifecycle.md
+ * Why the track is one instrument: ../docs/reading-lifecycle.md
  */
 import { computeSteps, DEFAULT_READER } from "../engine/index";
 import { fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";

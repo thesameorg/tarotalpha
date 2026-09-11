@@ -3,8 +3,8 @@
  * the place counts: the week itself cancels out, so a calm stretch cannot flatter all of them at once and no
  * threshold has to be calibrated. Places fade exponentially — last month's luck stops holding a reader up. Stars are
  * a place at this table and not a mark out of five: five similar mechanics all sit near the middle, so the ratings
- * are spread across the scale against each other. Where the number is shown and what it may not claim:
- * ../docs/flows/reading-lifecycle.md
+ * are spread across the scale against each other. The arithmetic and what the number may not claim:
+ * ../docs/engine.md
  */
 import { READER_IDS, type ReaderId } from "./readers";
 
@@ -22,7 +22,7 @@ export interface ReaderRating {
   verdicts: number;
 }
 
-// Twenty readings of memory: half of a place is forgotten in fourteen, so the stars keep moving.
+// Twenty readings of memory: a place loses half its weight within seven readings, so the stars keep moving.
 const SMOOTHING = 2 / (20 + 1);
 
 /** Below this the stars would be noise, and the card says the table has not been scored instead. */

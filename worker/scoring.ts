@@ -2,7 +2,7 @@
  * The sweep that scores the score's own readings once their horizon has closed. One reading judges the whole table:
  * the cards are common ground, so five forecasts are rebuilt from what the row already holds and measured against
  * one set of real candles — the same market, the same cards, the same unit. Shared readings are never scored, and
- * no view triggers or changes any of this. When it runs and what it writes: ../docs/flows/reading-lifecycle.md
+ * no view triggers or changes any of this. When it runs and what it writes: ../docs/reading-lifecycle.md
  */
 import {
   CANDLES_PER_STEP,
@@ -18,8 +18,8 @@ import {
 import { fetchAfter, HOUR_MS } from "../exchange/closed-candles";
 import type { Source } from "../exchange/provider";
 
-// A cron on the free plan gets the same 10 ms of CPU as a request, and one reading costs about half a millisecond
-// to score for the whole table; five leaves room for the JSON and the batch. Runs are cheap, a killed run is not.
+// A cron on the free plan gets the same 10 ms of CPU as a request, and one reading costs about a millisecond to
+// score for the whole table; five leaves room for the JSON and the batch. Runs are cheap, a killed run is not.
 const SWEEP = 5;
 // Three refusals and the reading is parked: a delisted symbol must not hold the head of the queue forever.
 const ATTEMPTS = 3;
@@ -44,7 +44,7 @@ export interface Sweep {
 
 export async function sweepMatured(env: Env, nowMs: number): Promise<Sweep> {
   // Ripe once the last forecast candle has closed, an hour after it opens: the rule of ripensAt in web/my-readings.ts.
-  // An hour earlier the exchange has one candle short, and three ticks of that hour used to park every reading.
+  // An hour earlier the exchange is one candle short, and the ticks of that hour would spend all three attempts.
   const { results } = await env.DB.prepare(
     "SELECT id, asset, anchor_ts, source, seed_nonce, steps, candles_snapshot FROM readings" +
       " WHERE origin = 'beat' AND scored_at IS NULL AND attempts < ?1" +

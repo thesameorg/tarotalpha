@@ -1,6 +1,6 @@
 /**
  * Card scans are static files under web/public/cards, one per engine card id, served from /cards.
- * Where they come from and how they were compressed: docs/reference/rider-waite-deck.md.
+ * Where they come from and how they were compressed: docs/assets.md.
  */
 import { DECK } from "../engine/deck";
 

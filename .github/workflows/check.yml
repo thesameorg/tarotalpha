@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Проверки только на PR: в main попадает уже проверенная ветка, повторный прогон снят решением владельца — docs/adr/0004-checks-on-pr-only.md
+  # Проверки только на PR: в main попадает только проверенная ветка — docs/architecture.md
   check:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -30,7 +30,7 @@ jobs:
       - run: python3 scripts/docs_lint.py
       - run: python3 scripts/test_docs_lint.py
 
-  # Раскатка на Cloudflare с main без повторных проверок — docs/adr/0004-checks-on-pr-only.md
+  # Раскатка на Cloudflare с main без повторных проверок — docs/architecture.md
   deploy:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
@@ -44,7 +44,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Секрета ещё нет — шаг пропускается, а не красит мерж; как завести — docs/runbooks/deploy-workers-dev.md
+      # Нет секрета — шаг пропускается, а не красит мерж; как завести — docs/architecture.md
       - name: миграции D1 и деплой
         if: env.CLOUDFLARE_API_TOKEN != ''
         run: |

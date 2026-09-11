@@ -2,7 +2,7 @@
  * A reader is who computes the forecast: the same three cards, different candles. The id is stored with the
  * reading and also seeds the noise, so one seed never gives two readers the same candles and a link replays the
  * reader its author saw. Every reader keeps the shared invariants: eight candles per card, no gap between them
- * and no candle narrower than 0.3 ATR. What each mechanic does: docs/reference/forecast-mechanics.md.
+ * and no candle narrower than 0.3 ATR. What each mechanic does: docs/engine.md.
  */
 import { natr, type Candle } from "./atr";
 import { cardsToCandles } from "./card-to-candles";

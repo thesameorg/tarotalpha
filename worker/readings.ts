@@ -3,7 +3,7 @@
  * from the stored snapshot, so the exchange is asked once per reading. The Worker never trusts the client's candles
  * or cards: it snapshots the candles itself, from the author's provider when the edge can reach it, and draws the
  * cards with its own engine, whose version label it stores next to them. What is stored and why:
- * docs/flows/reading-lifecycle.md
+ * docs/reading-lifecycle.md
  */
 import {
   computeSteps,
@@ -120,7 +120,7 @@ export async function extendReading(id: string, request: Request, env: Env): Pro
       nonce: row.seed_nonce,
       steps: count,
     }).map((result) => result.cards);
-    // Written days are the reading (docs/adr/0012-written-days-are-never-redrawn.md): this engine draws only the new
+    // Written days are the reading (docs/reading-lifecycle.md): this engine draws only the new
     // ones. The guard keeps the shorter of two racing extensions from landing last and taking a day back.
     await env.DB.prepare("UPDATE readings SET steps = ?2 WHERE id = ?1 AND json_array_length(steps) < ?3")
       .bind(id, JSON.stringify([...written, ...drawn.slice(written.length)]), count)
@@ -240,7 +240,7 @@ function isIdCollision(error: unknown): boolean {
   return error instanceof Error && error.message.includes("UNIQUE constraint failed: readings.id");
 }
 
-// Mana is paid in the viewer's browser and never checked here (docs/adr/0009-mana-lives-in-the-browser.md).
+// Mana is paid in the viewer's browser and never checked here (docs/reading-lifecycle.md).
 function isStepCount(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= MAX_STEPS;
 }

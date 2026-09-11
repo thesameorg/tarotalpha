@@ -527,7 +527,7 @@ main {
   }
 }
 
-/* Cards block: tabs row, the popover with the technical text, three cards, one line under each. */
+/* Cards block: tabs row, three cards, one line under each, the day's summary. */
 .panel {
   position: relative;
   display: flex;
@@ -561,7 +561,7 @@ main {
   color: var(--gold);
   border-color: var(--gold-deep);
 }
-/* The method page opens in a new tab: one link where the technical popover used to be. */
+/* The method page opens in a new tab, from one link in the footer. */
 .how-link {
   display: inline-flex;
   align-items: center;

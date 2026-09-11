@@ -52,7 +52,7 @@ it.each(READER_IDS)("computes the longest %s reading from a 168-candle snapshot 
 });
 
 // The sweep scores a whole table on one reading, and it runs on a Cron Trigger with the same 10 ms of CPU. The sweep
-// is sized from the measured cost, about a millisecond (docs/flows/reading-lifecycle.md); the ceiling here is a
+// is sized from the measured cost, about a millisecond (docs/reading-lifecycle.md); the ceiling here is a
 // regression guard with the same headroom as the step tests, so a slow CI runner (2.0 ms seen) does not trip it.
 it("scores one reading for all five readers in under 5 ms of CPU", () => {
   const anchorTs = 1789020000000;

@@ -1,5 +1,5 @@
 /**
- * Client for the Worker API: which call happens when is in docs/flows/reading-lifecycle.md.
+ * Client for the Worker API: which call happens when is in docs/reading-lifecycle.md.
  * A non-2xx answer becomes an ApiError with the status so the UI can pick a message; events are
  * fire-and-forget and never throw, because losing a funnel row must not break a reading.
  */

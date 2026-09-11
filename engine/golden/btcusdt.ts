@@ -1,10 +1,10 @@
 /**
  * Golden output of the engine for BTCUSDT at anchor 1789020000000 over a synthetic snapshot: the drawn cards, the
  * candles of three steps and of four hand-picked steps that reach every card branch, plus the prototype's generator
- * numbers that still hold. Generated, not edited: the snapshot is 168 hourly candles from rng("fixture") starting
+ * numbers, matched as is. Generated, not edited: the snapshot is 168 hourly candles from rng("fixture") starting
  * at 62000 with close = o + (r() - 0.5) * o * 0.012, h = max(o, c) + r() * o * 0.004, l = min(o, c) - r() * o * 0.004;
  * candles chain `cardsToCandles` over each list with `previousForecast` accumulated and `natr` as listed.
- * A formula change regenerates this file on purpose: the engine is edited in place (docs/adr/0005-engine-edited-in-place.md).
+ * A formula change regenerates this file on purpose: the engine is edited in place (docs/engine.md).
  */
 import type { Candle } from "../atr";
 import type { StepCards } from "../draw-cards";

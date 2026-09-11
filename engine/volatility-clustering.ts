@@ -3,7 +3,7 @@
  * beta·variance`, so one violent hour makes the next hours violent and a quiet stretch stays quiet. The card sets
  * how sharply the variance answers a shock (`alpha`), how long it remembers (`beta`) and where the day leans;
  * the Tower and the Sun feed their jump into the variance too, so the shock echoes instead of passing.
- * Character: quiet zones and bursts. The mechanic: docs/reference/forecast-mechanics.md.
+ * Character: quiet zones and bursts. The mechanic: docs/engine.md.
  */
 import { natr, type Candle } from "./atr";
 import { CANDLES_PER_CARD, cardEffect } from "./card-effect";

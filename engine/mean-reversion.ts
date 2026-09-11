@@ -2,7 +2,7 @@
  * A reader that pulls the price back to the 20-candle mean instead of letting it drift away. The card sets how
  * hard the pull is, how wide the noise around it and where the mean itself moves; the Tower and the Sun overshoot
  * for one candle and the pull drags the price back after them. Character: swings in a corridor, almost no trend.
- * The mechanic and why it is in the set: docs/reference/forecast-mechanics.md.
+ * The mechanic and why it is in the set: docs/engine.md.
  */
 import { natr, type Candle } from "./atr";
 import { CANDLES_PER_CARD, cardEffect } from "./card-effect";

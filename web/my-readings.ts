@@ -2,7 +2,7 @@
  * My readings: the readings this browser opened, kept as ids next to what a list row needs, so the list draws
  * without a request. Outside Telegram the entries live in localStorage; inside, in the client's CloudStorage, which
  * follows the user across devices. The row in D1 is the source of truth: `/r/:id` reads it, the entry only points
- * at it. Why ids in the browser and not accounts: docs/adr/0008-my-readings-are-ids-in-the-browser.md
+ * at it. Why ids in the browser and not accounts: docs/reading-lifecycle.md
  */
 import type { CloudStorage } from "@twa-dev/types";
 import { CANDLES_PER_STEP } from "../engine/index";

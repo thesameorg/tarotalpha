@@ -4,7 +4,7 @@
  * how loud; the mean of the copied stretch is removed, so a rising week does not make every forecast rise.
  * A copy is stretched to the snapshot's scale, or a quiet week of history would draw a flat line of dots next to
  * the other readers. Character: a plausible shape, the market repeating itself. Mechanic and the rest of the
- * shortlist: docs/reference/forecast-mechanics.md.
+ * shortlist: docs/engine.md.
  */
 import { natr, type Candle } from "./atr";
 import { CANDLES_PER_CARD, cardEffect } from "./card-effect";

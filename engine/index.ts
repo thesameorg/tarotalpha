@@ -1,7 +1,7 @@
 /**
  * The forecast engine: pure formulas, no I/O, no platform imports, one version edited in place. A stored reading
  * keeps its cards and snapshot; the candles are recomputed with whatever formulas are current, so a link may show
- * a different forecast after an engine change — docs/adr/0005-engine-edited-in-place.md. `computeSteps` draws
+ * a different forecast after an engine change — docs/engine.md. `computeSteps` draws
  * cards and forecasts; `forecastFromCards` replays cards a reading already stores. Both seed the noise with the
  * full seed string, so the version label changes the candles as well as the cards.
  */
