@@ -6,11 +6,11 @@
 import { describe, expect, it } from "vitest";
 import { natr, type Candle } from "./atr";
 import { GOLDEN as F } from "./golden/btcusdt";
-import { computeSteps, READER_IDS, type ReaderId } from "./index";
+import { computeSteps, MAX_STEPS, READER_IDS, type ReaderId } from "./index";
 import { makeRng } from "./seed";
 
 const ANCHOR = F.anchorTs;
-const INPUT = { asset: F.asset, anchorTs: ANCHOR, snapshot: F.snapshot, steps: 3 };
+const INPUT = { asset: F.asset, anchorTs: ANCHOR, snapshot: F.snapshot, steps: MAX_STEPS };
 const MIN_RANGE = 0.3;
 
 function candlesOf(reader: ReaderId, input = INPUT): Candle[] {
@@ -34,9 +34,9 @@ function walk(seed: string, count: number, anchorTs: number): Candle[] {
 describe.each(READER_IDS)("reader %s", (reader: ReaderId) => {
   it("draws 24 candles per step and chains them without a gap", () => {
     const steps = computeSteps({ ...INPUT, reader });
-    expect(steps).toHaveLength(3);
+    expect(steps).toHaveLength(MAX_STEPS);
     const candles = steps.flatMap((step) => step.candles);
-    expect(candles).toHaveLength(72);
+    expect(candles).toHaveLength(MAX_STEPS * 24);
     expect(candles[0]?.t).toBe(ANCHOR + 3_600_000);
     let previous = F.snapshot.at(-1);
     for (const candle of candles) {
@@ -61,7 +61,7 @@ describe.each(READER_IDS)("reader %s", (reader: ReaderId) => {
     expect(JSON.stringify(again)).toBe(JSON.stringify(computeSteps({ ...INPUT, reader })));
   });
 
-  it("leans neither way over 120 readings on drift-free snapshots", () => {
+  it("leans neither way over every day of forty readings on drift-free snapshots", () => {
     let up = 0;
     let total = 0;
     for (let i = 0; i < 40; i++) {
@@ -69,7 +69,7 @@ describe.each(READER_IDS)("reader %s", (reader: ReaderId) => {
       // hand forty times over and the count would say nothing about the reader.
       const snapshot = walk(`walk-${String(i)}`, 168, ANCHOR);
       const asset = `WALK${String(i)}USDT`;
-      for (const step of computeSteps({ asset, anchorTs: ANCHOR, snapshot, reader, steps: 3 })) {
+      for (const step of computeSteps({ asset, anchorTs: ANCHOR, snapshot, reader, steps: MAX_STEPS })) {
         const first = step.candles[0];
         const last = step.candles.at(-1);
         if (first === undefined || last === undefined) continue;
@@ -77,7 +77,7 @@ describe.each(READER_IDS)("reader %s", (reader: ReaderId) => {
         if (last.c > first.o) up++;
       }
     }
-    expect(total).toBe(120);
+    expect(total).toBe(40 * MAX_STEPS);
     expect(up / total).toBeGreaterThan(0.3);
     expect(up / total).toBeLessThan(0.7);
   });

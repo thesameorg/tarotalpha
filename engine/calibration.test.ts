@@ -9,12 +9,12 @@ import type { Candle } from "./atr";
 import { cardsToCandles } from "./card-to-candles";
 import type { DrawnCard } from "./draw-cards";
 import { GOLDEN as F } from "./golden/btcusdt";
-import { computeSteps, ENGINE_VERSION } from "./index";
+import { computeSteps, ENGINE_VERSION, MAX_STEPS } from "./index";
 
 const NATR = F.natr;
 const ASSETS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT"];
 const ANCHORS = Array.from({ length: 50 }, (_, k) => F.anchorTs + k * 3_600_000);
-const STEPS = 3;
+const STEPS = MAX_STEPS;
 const HANGED_MAN: DrawnCard = [12, 0];
 const MOON: DrawnCard = [18, 0];
 const TOWER: DrawnCard = [16, 0];
