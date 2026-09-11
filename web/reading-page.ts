@@ -28,7 +28,7 @@ import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
 import { localDateTime, localTime, zoneLabel } from "./local-time-format";
 import { formatChange, formatPrice } from "./price-format";
-import { playReveal } from "./reveal-overlay";
+import { cancelReveal, playReveal } from "./reveal-overlay";
 import type { Navigate, View } from "./router";
 import { shareLink } from "./share-modal";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
@@ -175,6 +175,7 @@ class ReadingPage {
     this.unsubscribe();
     this.picker?.dispose();
     this.picker = null;
+    cancelReveal();
     this.toolbar.replaceChildren();
     this.panel?.dispose();
     this.panel = null;

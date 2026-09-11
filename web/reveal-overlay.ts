@@ -3,7 +3,8 @@
  * the user pulls three backs out of it (card-fan.ts), each flies to its slot and flips with a spark, a reversed
  * major flips red and shakes the stage. The i-th pull reveals card i: the fan is theatre, the cards are fixed by
  * the seed. Markup is in index.html, the ring and flash live inside the overlay so they stay above the page.
- * Reveals queue: two never overlap. A replay uses the same fan — the viewer pulls too; "close" resolves false.
+ * Reveals queue: two never overlap. A replay uses the same fan — the viewer pulls too; "close" resolves false, and
+ * so does a page that leaves under it: the overlay lives outside the router's root and would outlast the page.
  * With reduced motion there are no particles and no flight: backs vanish from the fan, cards fade in face up.
  */
 import type { Card } from "../engine/deck";
@@ -34,11 +35,17 @@ const DECK_SIZE = 6;
 
 let sparkles: Sparkles | null = null;
 let queue: Promise<boolean> = Promise.resolve(true);
+let closeCurrent: (() => void) | null = null;
 
 /** Resolves true once every card is pulled, false when the viewer closed the overlay before that. */
 export function playReveal(cards: readonly RevealCard[]): Promise<boolean> {
   queue = queue.then(() => run(cards));
   return queue;
+}
+
+/** Closes the reveal on screen as its close button would; the page that asked for it calls this when it unmounts. */
+export function cancelReveal(): void {
+  closeCurrent?.();
 }
 
 function centreOf(el: Element): { x: number; y: number } {
@@ -125,6 +132,7 @@ async function run(cards: readonly RevealCard[]): Promise<boolean> {
     finish(false);
   };
   close.addEventListener("click", cancel);
+  closeCurrent = cancel;
 
   if (reduced) {
     deck.hidden = true;
@@ -153,6 +161,7 @@ async function run(cards: readonly RevealCard[]): Promise<boolean> {
 
   const ok = await outcome;
   live = false;
+  closeCurrent = null;
   close.removeEventListener("click", cancel);
   fan.dispose();
 

@@ -26,7 +26,7 @@ import { openPaywall } from "./paywall-modal";
 import { formatChange, formatPrice } from "./price-format";
 import { lockReader, onReaderChange, reader } from "./reader-choice";
 import { initReaderPicker } from "./reader-picker";
-import { playReveal } from "./reveal-overlay";
+import { cancelReveal, playReveal } from "./reveal-overlay";
 import type { View } from "./router";
 import { shareLink } from "./share-modal";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
@@ -218,6 +218,7 @@ class LandingPage {
     lockReader(false);
     this.unsubscribe();
     this.picker.dispose();
+    cancelReveal();
     this.toolbar.replaceChildren();
     this.panel.dispose();
     this.chart.remove();
