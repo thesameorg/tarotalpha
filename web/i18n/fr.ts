@@ -181,12 +181,14 @@ export const fr: Dictionary = {
     back: "Retour au tirage",
   },
   fan: { hint: "Tirez trois cartes", close: "fermer" },
+  cloth: "Ouvrez un tirage de tarot — découvrez le destin des bougies",
   reader: {
     unscored: "Pas encore notée",
     rated: (stars: number, of: number): string => `note ${String(stars)} sur ${String(of)}`,
     wins: (pct: number): string => `La prédiction la plus proche des cinq dans ${String(pct)} % des tirages`,
     others: "Tout le monde à la table",
-    current: "Lit vos bougies en ce moment",
+    current: "Tire les cartes pour vous",
+    locked: (name: string): string => `${name} mène ce tirage jusqu'au dernier jour`,
     choose: (name: string): string => `Que ${name} tire les cartes`,
   },
   reading: {

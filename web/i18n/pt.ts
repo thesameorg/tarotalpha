@@ -181,12 +181,14 @@ export const pt: Dictionary = {
     back: "Voltar à leitura",
   },
   fan: { hint: "Puxe três cartas", close: "fechar" },
+  cloth: "Abra uma leitura de tarô e descubra o destino dos candles",
   reader: {
     unscored: "Ainda sem nota",
     rated: (stars: number, of: number): string => `nota ${String(stars)} de ${String(of)}`,
     wins: (pct: number): string => `A previsão mais próxima das cinco em ${String(pct)} % das leituras`,
     others: "Todos à mesa",
-    current: "Agora lê seus candles",
+    current: "Lê as cartas para você",
+    locked: (name: string): string => `${name} conduz esta leitura até o último dia`,
     choose: (name: string): string => `Que ${name} leia`,
   },
   reading: {

@@ -8,14 +8,7 @@
  * the free days of the forecast zone: the next day and, once a day is open, share; on a wide screen the row rides
  * with the chart and shortens to the day alone when the free part is narrow, on a phone it stands at the right.
  */
-import {
-  computeSteps,
-  ENGINE_VERSION,
-  forecastFromCards,
-  MAX_STEPS,
-  type Candle,
-  type StepResult,
-} from "../engine/index";
+import { computeSteps, ENGINE_VERSION, MAX_STEPS, type Candle, type StepResult } from "../engine/index";
 import { ASSET_PATTERN, fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
 import { ExchangeError, type Source } from "../exchange/provider";
 import { ApiError, createReading, extendReading, postEvent } from "./api";
@@ -32,7 +25,7 @@ import { findMyReading, myReadingsNow, rememberReading } from "./my-readings";
 import { mountMyReadings } from "./my-readings-list";
 import { openPaywall } from "./paywall-modal";
 import { formatChange, formatPrice } from "./price-format";
-import { onReaderChange, reader } from "./reader-choice";
+import { lockReader, onReaderChange, reader } from "./reader-choice";
 import { initReaderPicker } from "./reader-picker";
 import { playReveal } from "./reveal-overlay";
 import type { Navigate, View } from "./router";
@@ -182,7 +175,6 @@ class LandingPage {
   private loadSeq = 0;
   private loaded: Loaded | null = null;
   private zone: ZoneLayout | null = null;
-  private readerPending = false;
   private stateText: Text | null = null;
   private stateRetry = false;
   private stateBusy = false;
@@ -190,7 +182,7 @@ class LandingPage {
   constructor(root: HTMLElement, params: URLSearchParams, navigate: Navigate) {
     root.innerHTML = landingMarkup();
     this.el = lookup(root);
-    this.panel = createSpreadPanel(this.el.panel, true);
+    this.panel = createSpreadPanel(this.el.panel, true, this.el.readers);
     this.chart = createCandleChart(this.el.chart);
     this.chart.onZoneLayout((layout) => {
       if (sameZone(layout, this.zone)) return;
@@ -203,12 +195,13 @@ class LandingPage {
     const relabel = onLangChange(() => {
       this.relabel();
     });
-    const rereads = onReaderChange(() => {
-      this.applyReader();
+    // The next day's price follows the reader: a day she already opened in this window is free.
+    const reprice = onReaderChange(() => {
+      this.labelDraw();
     });
     this.unsubscribe = (): void => {
       relabel();
-      rereads();
+      reprice();
       unmountMine();
       unmountMana();
     };
@@ -233,32 +226,10 @@ class LandingPage {
 
   dispose(): void {
     this.alive = false;
+    lockReader(false);
     this.unsubscribe();
     this.panel.dispose();
     this.chart.remove();
-  }
-
-  // Same cards, another reader's candles. A switch during the reveal waits for it: the flow is mid-animation.
-  private applyReader(): void {
-    const loaded = this.loaded;
-    if (loaded === null) return;
-    if (this.busy) {
-      this.readerPending = true;
-      return;
-    }
-    this.readerPending = false;
-    if (loaded.steps.length === 0) return;
-    loaded.steps = forecastFromCards({
-      asset: loaded.asset,
-      anchorTs: loaded.anchorTs,
-      snapshot: loaded.snapshot,
-      reader: reader(),
-      cards: loaded.steps.map((s) => s.cards),
-    });
-    this.panel.setSteps(loaded.steps, loaded.steps.length - 1);
-    this.chart.setForecast(loaded.steps.flatMap((s) => s.candles));
-    // The row follows the screen: a link shared after the switch must show the reader the author was looking at.
-    void this.persist(loaded, loaded.steps.length);
   }
 
   // Read through a method: an `if (!this.alive)` guard would narrow the field to `true` for the rest of the flow.
@@ -296,11 +267,13 @@ class LandingPage {
     this.el.draw.setAttribute("aria-label", `${t().drawStep(next)}${price}`);
   }
 
-  // Days this browser opened in this window before a reload are in "my readings": they are not paid for twice.
+  // Days this reader opened in this window before a reload are in "my readings": they are not paid for twice.
   private nextCost(): number {
     const loaded = this.loaded;
     if (loaded === null) return dayCost(1);
-    const paid = myReadingsNow().find((entry) => entry.asset === loaded.asset && entry.anchor_ts === loaded.anchorTs);
+    const paid = myReadingsNow().find(
+      (entry) => entry.asset === loaded.asset && entry.anchor_ts === loaded.anchorTs && entry.reader === reader(),
+    );
     return dayCost(loaded.steps.length + 1, paid?.steps ?? 0);
   }
 
@@ -371,6 +344,7 @@ class LandingPage {
       return;
     }
     this.loaded = null;
+    lockReader(false);
     this.enableDraw(false);
     this.el.share.disabled = true;
     showExchangeLogo(this.el.srcLogo, null);
@@ -451,6 +425,7 @@ class LandingPage {
     }
     // Paid once the third card is out: a reveal closed before that opened nothing and costs nothing.
     spendMana(cost);
+    lockReader(true);
     loaded.steps.push(result);
     void this.persist(loaded, step);
     this.panel.setSteps(loaded.steps, step - 1);
@@ -467,7 +442,6 @@ class LandingPage {
     }
     this.busy = false;
     if (this.loaded !== loaded) return;
-    if (this.readerPending) this.applyReader();
     this.el.share.disabled = false;
     this.enableDraw(true);
     postEvent({ type: "step_opened", asset: loaded.asset, step });
@@ -477,8 +451,8 @@ class LandingPage {
   // in "my readings" follows. A failed write leaves null behind, and "Share" then writes afresh and shows why.
   private persist(loaded: Loaded, steps: number): Promise<string> {
     const saving = loaded.saved.then(async (stored) => {
-      // The same window this browser opened before has the same cards: its row is extended, not written twice.
-      const id = stored ?? (await findMyReading(loaded.asset, loaded.anchorTs))?.id ?? null;
+      // The same window this reader opened here before is her row: it is extended, not written twice.
+      const id = stored ?? (await findMyReading(loaded.asset, loaded.anchorTs, reader()))?.id ?? null;
       const body = { steps, reader: reader() };
       const saved =
         id === null

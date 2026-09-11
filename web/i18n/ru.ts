@@ -177,12 +177,14 @@ export const ru = {
     back: "Вернуться к раскладу",
   },
   fan: { hint: "Вытяните три карты", close: "закрыть" },
+  cloth: "Сделайте расклад таро — узнайте судьбу свечей",
   reader: {
     unscored: "Пока без оценки",
     rated: (stars: number, of: number): string => `оценка ${String(stars)} из ${String(of)}`,
     wins: (pct: number): string => `Ближе всех из пяти в ${String(pct)} % раскладов`,
     others: "Все за столом",
-    current: "Считает ваши свечи",
+    current: "Вам гадает",
+    locked: (name: string): string => `${name} ведёт этот расклад до последнего дня`,
     choose: (name: string): string => `Пусть гадает ${name}`,
   },
   reading: {

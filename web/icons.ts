@@ -17,6 +17,7 @@ export const icons = {
   star: svg('<path d="m12 3.8 2.5 5.2 5.7.8-4.1 4 1 5.7-5.1-2.7-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/>', 14),
   bolt: svg('<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>', 12),
   history: svg('<path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3.5 3.5V9H9"/><path d="M12 7.5V12l3 2"/>', 15),
+  lock: svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>', 13),
 } as const;
 
 /** Turns a plain button into an icon button: the label goes to assistive tech and to the tooltip. */

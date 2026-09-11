@@ -69,10 +69,10 @@ export function onMyReadingsChange(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
-/** The reading of this window, if this browser opened it before: same cards, so the row is extended, not doubled. */
-export async function findMyReading(asset: string, anchorTs: number): Promise<MyReading | undefined> {
+/** This reader's reading of this window, if this browser opened it before: the row is extended, not doubled. */
+export async function findMyReading(asset: string, anchorTs: number, reader: ReaderId): Promise<MyReading | undefined> {
   await ready;
-  return entries.find((entry) => entry.asset === asset && entry.anchor_ts === anchorTs);
+  return entries.find((entry) => entry.asset === asset && entry.anchor_ts === anchorTs && entry.reader === reader);
 }
 
 export async function rememberReading(

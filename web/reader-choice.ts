@@ -1,5 +1,5 @@
 /**
- * Which reader computes the forecast: chosen under the chart, kept in localStorage, sent with a shared reading and
+ * Which reader computes the forecast: chosen beside the day tabs, kept in localStorage, sent with a shared reading and
  * replayed from it. Portraits are static files under web/public/readers, one per reader id, served from /readers;
  * where they come from is docs/reference/reader-portraits.md. What she is called and the paragraph about her are
  * text and live in the dictionaries (web/i18n/readers-*.ts), so both follow the interface language; the id never
@@ -10,9 +10,21 @@ import { DEFAULT_READER, isReaderId, type ReaderId } from "../engine/readers";
 const STORAGE_KEY = "ta.reader";
 const listeners = new Set<() => void>();
 let choice: ReaderId = DEFAULT_READER;
+let locked = false;
 
 export function reader(): ReaderId {
   return choice;
+}
+
+/** Whether the choice is held: a forecast is one reader's from its first open day, so nothing switches it then. */
+export function readerLocked(): boolean {
+  return locked;
+}
+
+export function lockReader(on: boolean): void {
+  if (on === locked) return;
+  locked = on;
+  for (const listener of listeners) listener();
 }
 
 export function readerAvatarUrl(id: ReaderId): string {
@@ -26,7 +38,7 @@ export function initReader(): void {
 }
 
 export function setReader(next: ReaderId): void {
-  if (next === choice) return;
+  if (next === choice || locked) return;
   choice = next;
   store(next);
   apply();

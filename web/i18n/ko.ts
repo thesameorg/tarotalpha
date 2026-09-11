@@ -158,12 +158,14 @@ export const ko: Dictionary = {
     back: "리딩으로 돌아가기",
   },
   fan: { hint: "카드 세 장을 뽑으세요", close: "닫기" },
+  cloth: "타로 리딩을 열고 캔들의 운명을 알아보세요",
   reader: {
     unscored: "아직 평가 없음",
     rated: (stars: number, of: number): string => `${String(of)}점 만점에 ${String(stars)}점`,
     wins: (pct: number): string => `다섯 중 가장 가까웠던 리딩 ${String(pct)} %`,
     others: "이 탁자의 모두",
-    current: "당신의 캔들을 읽는 중",
+    current: "당신을 위해 점치는 중",
+    locked: (name: string): string => `마지막 날까지 이 리딩은 ${name} 담당입니다`,
     choose: (name: string): string => `${name}에게 맡기기`,
   },
   reading: {

@@ -168,12 +168,14 @@ export const tr: Dictionary = {
     back: "Açılıma dön",
   },
   fan: { hint: "Üç kart çekin", close: "kapat" },
+  cloth: "Bir tarot açılımı yapın, mumların kaderini öğrenin",
   reader: {
     unscored: "Henüz puanlanmadı",
     rated: (stars: number, of: number): string => `${String(of)} üzerinden ${String(stars)} puan`,
     wins: (pct: number): string => `Beş falcı arasında açılımların %${String(pct)} oranında en yakın olan`,
     others: "Masadaki herkes",
-    current: "Şu anda mumlarınızı okuyor",
+    current: "Size fal bakıyor",
+    locked: (name: string): string => `Bu açılımı son güne kadar ${name} yürütüyor`,
     choose: (name: string): string => `${name} baksın`,
   },
   reading: {
