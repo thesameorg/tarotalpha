@@ -23,8 +23,9 @@ const CANDLES_PER_DAY = 24;
 export interface ZoneLayout {
   start: number;
   width: number;
+  dayWidth: number;
   separators: number[];
-  dayLabels: { x: number; text: string }[];
+  dayLabels: { x: number; text: string; short: string }[];
 }
 
 let labelFont: string | null = null;
@@ -88,13 +89,13 @@ export class ForecastZone implements ISeriesPrimitive {
     const dayWidth = CANDLES_PER_DAY * (nextX - anchorX);
     const start = (anchorX + nextX) / 2;
     const separators: number[] = [];
-    const dayLabels: { x: number; text: string }[] = [];
+    const dayLabels: ZoneLayout["dayLabels"] = [];
     for (let day = 0; day <= this.steps; day++) {
       const x = start + day * dayWidth;
       separators.push(x);
-      if (day < this.steps) dayLabels.push({ x: x + 6, text: t().day(day + 1) });
+      if (day < this.steps) dayLabels.push({ x: x + 6, text: t().day(day + 1), short: String(day + 1) });
     }
-    return { start, width: scale.width(), separators, dayLabels };
+    return { start, width: scale.width(), dayWidth, separators, dayLabels };
   }
 }
 
@@ -154,7 +155,9 @@ class LabelsView implements IPrimitivePaneView {
           context.textBaseline = "alphabetic";
           for (const label of layout.dayLabels) {
             if (label.x < 0 || label.x > mediaSize.width) continue;
-            context.fillText(label.text, label.x, mediaSize.height - 8);
+            // A long reading on a phone leaves a day narrower than its label: the number alone then.
+            const fits = context.measureText(label.text).width + 12 <= layout.dayWidth;
+            context.fillText(fits ? label.text : label.short, label.x, mediaSize.height - 8);
           }
           const now = t().now;
           const nowWidth = context.measureText(now).width;

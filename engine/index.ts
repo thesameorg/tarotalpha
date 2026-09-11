@@ -14,6 +14,8 @@ import { seedString } from "./seed";
 import { stepDigest, type StepDigest } from "./step-digest";
 
 export const ENGINE_VERSION = "v2" as const;
+// The horizon: a week ahead, as long as the snapshot behind the anchor. `cpu-budget.test.ts` measures this many steps.
+export const MAX_STEPS = 7;
 
 export interface StepResult {
   step: number;

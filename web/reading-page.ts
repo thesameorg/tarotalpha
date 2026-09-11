@@ -11,6 +11,7 @@ import {
   atr,
   deviation,
   forecastFromCards,
+  MAX_STEPS,
   praise,
   type Accuracy,
   type Candle,
@@ -83,7 +84,7 @@ function readingMarkup(): string {
   <div class="stage-top">
     <div class="px"><div id="picker"></div><img class="src-logo" id="src-logo" alt="" hidden><span id="last"></span><span class="chg" id="chg"></span></div>
     <span class="meta" id="meta"></span>
-    <div class="steps" id="steps"><span></span><span></span><span class="locked"></span></div>
+    <div class="steps" id="steps">${"<span></span>".repeat(MAX_STEPS)}</div>
   </div>
   <div class="chart-box"><div class="chart" id="chart"></div></div>
   <div class="prophecy" id="prophecy"></div>

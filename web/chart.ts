@@ -4,7 +4,7 @@
  * between the two sets of closes and the anchor pulse as series primitives. Colours come from the theme's CSS variables and are re-applied on a theme
  * switch; the locale follows the interface language. The library has no timezone, so candle times are shifted by
  * the viewer's offset before they go in: day ticks then land on local midnight and labels read as local wall clock.
- * The frame is fixed around the anchor: 72 real candles on the left, room for the three forecast days on the right.
+ * The frame holds around the anchor: 72 real candles on the left, on the right three days or one past the open ones.
  */
 import {
   CandlestickSeries,
@@ -20,6 +20,7 @@ import {
   type UTCTimestamp,
 } from "lightweight-charts";
 import type { Candle } from "../engine/atr";
+import { MAX_STEPS } from "../engine/index";
 import { AnchorPulse } from "./anchor-pulse";
 import { DeviationRibbon, type DeviationPair } from "./deviation-ribbon";
 import { ForecastZone, type ZoneLayout } from "./forecast-zone";
@@ -31,15 +32,18 @@ import { reducedMotion } from "./stage-effects";
 import { onThemeChange } from "./theme";
 
 const CANDLES_PER_DAY = 24;
-const FORECAST_DAYS = 3;
+const MIN_FORECAST_DAYS = 3;
 const DRAW_MS_PER_CANDLE = 10;
 const REAL_VISIBLE = 72;
 const MIN_REAL_VISIBLE = 24;
-const FUTURE_VISIBLE = FORECAST_DAYS * CANDLES_PER_DAY + 3;
 const PX_PER_BAR = 4.5;
 const TRANSPARENT = "rgba(0,0,0,0)";
 
 type Bar = CandlestickData;
+
+// The next day always has an empty slot to stand in until the horizon; three days at least, so the frame starts wide.
+const futureVisible = (steps: number): number =>
+  Math.min(MAX_STEPS, Math.max(MIN_FORECAST_DAYS, steps + 1)) * CANDLES_PER_DAY + 3;
 
 export interface CandleChart {
   showSnapshot(candles: readonly Candle[], animate: boolean): Promise<void>;
@@ -176,6 +180,7 @@ export function createCandleChart(container: HTMLElement): CandleChart {
 
   let anchor: UTCTimestamp | null = null;
   let snapshotLength = 0;
+  let future = futureVisible(0);
   let generation = 0;
   // One offset per snapshot, taken at the anchor: a per-candle offset could double a time across a DST switch.
   let offsetMs = 0;
@@ -187,15 +192,15 @@ export function createCandleChart(container: HTMLElement): CandleChart {
     for (const series of [real, forecast, actual]) series.applyOptions({ priceFormat });
   };
 
-  // Frame: the anchor near the middle, 72 real candles left of it (fewer on a narrow screen), all three days right.
+  // Frame: the anchor near the middle, 72 real candles left of it (fewer on a narrow screen), the forecast days right.
   const frame = (): void => {
     if (snapshotLength === 0) return;
     const anchorIndex = snapshotLength - 1;
-    const fits = Math.floor(chart.timeScale().width() / PX_PER_BAR) - FUTURE_VISIBLE;
+    const fits = Math.floor(chart.timeScale().width() / PX_PER_BAR) - future;
     const visibleReal = Math.min(REAL_VISIBLE, Math.max(MIN_REAL_VISIBLE, fits));
     chart.timeScale().setVisibleLogicalRange({
       from: anchorIndex - visibleReal + 0.5,
-      to: anchorIndex + FUTURE_VISIBLE + 0.5,
+      to: anchorIndex + future + 0.5,
     });
   };
 
@@ -252,6 +257,7 @@ export function createCandleChart(container: HTMLElement): CandleChart {
       syncRibbon();
       pulse.setPoint(null);
       zone.setAnchor(anchor, 0);
+      future = futureVisible(0);
       applyPriceFormat(last.c);
       const bars = candles.map(toBar);
       if (!animate || reducedMotion()) {
@@ -267,6 +273,7 @@ export function createCandleChart(container: HTMLElement): CandleChart {
     },
     setSteps(count) {
       zone.setAnchor(anchor, count);
+      future = futureVisible(count);
       frame();
     },
     appendForecast(candle) {
