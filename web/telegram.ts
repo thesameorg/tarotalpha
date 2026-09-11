@@ -61,6 +61,8 @@ export async function initTelegram(): Promise<void> {
   // The launch hash carries initData, the viewer's signed identity: strip it before any link is built from the URL.
   window.history.replaceState(null, "", window.location.pathname + window.location.search);
   loaded.expand();
+  // A drag down the chart with the page at the top is the client's collapse gesture; the phone showed it (Bot API 7.7).
+  if (loaded.isVersionAtLeast("7.7")) loaded.disableVerticalSwipes();
   bindSystemScheme(
     () => loaded.colorScheme,
     (listener) => {
