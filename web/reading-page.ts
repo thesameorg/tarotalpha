@@ -221,6 +221,7 @@ class ReadingPage {
       anchorTs: record.anchor_ts,
       snapshot,
       reader: record.reader,
+      nonce: record.seed_nonce,
       cards: record.steps,
     });
     this.record = record;
@@ -338,6 +339,7 @@ class ReadingPage {
       anchorTs: record.anchor_ts,
       snapshot,
       reader: record.reader,
+      nonce: record.seed_nonce,
       cards: record.steps,
     });
     await this.checkProphecy(el, chart, results, record, atr(snapshot));

@@ -21,7 +21,7 @@ import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
 import { zoneLabel } from "./local-time-format";
 import { dayCost, manaLeft, spendMana } from "./mana";
-import { findMyReading, myReadingsNow, rememberReading } from "./my-readings";
+import { rememberReading } from "./my-readings";
 import { openPaywall } from "./paywall-modal";
 import { formatChange, formatPrice } from "./price-format";
 import { lockReader, onReaderChange, reader } from "./reader-choice";
@@ -43,11 +43,18 @@ const ROW_MARGIN_PX = 8;
 
 type Text = () => string;
 
+/** A reading's entropy: 64 random bits as hex, short enough for a seed string and unique enough for a window. */
+function newNonce(): string {
+  return [...crypto.getRandomValues(new Uint8Array(8))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 interface Loaded {
   asset: string;
   anchorTs: number;
   snapshot: Candle[];
   source: Source;
+  /** This reading's own entropy: it goes into the seed, so the cards are nobody else's. */
+  nonce: string;
   steps: StepResult[];
   /** The stored reading's id once the row holds every open step; null while nothing is stored or a write failed. */
   saved: Promise<string | null>;
@@ -185,7 +192,7 @@ class LandingPage {
     const relabel = onLangChange(() => {
       this.relabel();
     });
-    // The next day's price follows the reader: a day she already opened in this window is free.
+    // The reader is part of the label, so the price line is redrawn when she changes.
     const reprice = onReaderChange(() => {
       this.labelDraw();
     });
@@ -259,14 +266,8 @@ class LandingPage {
     this.el.draw.setAttribute("aria-label", `${t().drawStep(next)}${price}`);
   }
 
-  // Days this reader opened in this window before a reload are in "my readings": they are not paid for twice.
   private nextCost(): number {
-    const loaded = this.loaded;
-    if (loaded === null) return dayCost(1);
-    const paid = myReadingsNow().find(
-      (entry) => entry.asset === loaded.asset && entry.anchor_ts === loaded.anchorTs && entry.reader === reader(),
-    );
-    return dayCost(loaded.steps.length + 1, paid?.steps ?? 0);
+    return dayCost((this.loaded?.steps.length ?? 0) + 1);
   }
 
   private enableDraw(on: boolean): void {
@@ -361,6 +362,7 @@ class LandingPage {
       anchorTs,
       snapshot: candles,
       source: snapshot.source,
+      nonce: newNonce(),
       steps: [],
       saved: Promise.resolve(null),
     };
@@ -390,6 +392,7 @@ class LandingPage {
       anchorTs: loaded.anchorTs,
       snapshot: loaded.snapshot,
       reader: reader(),
+      nonce: loaded.nonce,
       steps: step,
     };
     const result = computeSteps(input)[step - 1];
@@ -435,9 +438,7 @@ class LandingPage {
   // The row follows the steps in the background: the first one writes it, the next one extends it, and the entry
   // in "my readings" follows. A failed write leaves null behind, and "Share" then writes afresh and shows why.
   private persist(loaded: Loaded, steps: number): Promise<string> {
-    const saving = loaded.saved.then(async (stored) => {
-      // The same window this reader opened here before is her row: it is extended, not written twice.
-      const id = stored ?? (await findMyReading(loaded.asset, loaded.anchorTs, reader()))?.id ?? null;
+    const saving = loaded.saved.then(async (id) => {
       const body = { steps, reader: reader() };
       const saved =
         id === null
@@ -446,6 +447,7 @@ class LandingPage {
               anchor_ts: loaded.anchorTs,
               source: loaded.source,
               engine_version: ENGINE_VERSION,
+              seed_nonce: loaded.nonce,
               ...body,
             })
           : await extendReading(id, body);

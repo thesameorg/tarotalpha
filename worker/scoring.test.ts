@@ -14,6 +14,7 @@ import { callApi, post } from "./call-api";
 import { sweepMatured } from "./scoring";
 
 const HORIZON = 48;
+const NONCE = "b2c3d4e5f6a1";
 const NOW = Date.now();
 const MATURED = lastClosedAnchor(NOW) - HORIZON * HOUR_MS;
 const GREEN = lastClosedAnchor(NOW) - 24 * HOUR_MS;
@@ -63,6 +64,7 @@ async function shareAt(anchorTs: number): Promise<string> {
       source: "binance",
       reader: "atr",
       engine_version: ENGINE_VERSION,
+      seed_nonce: NONCE,
     }),
   );
   expect(response.status).toBe(201);
@@ -119,7 +121,14 @@ describe("the sweep", () => {
     const real = Array.from({ length: HORIZON }, (_, i) => candleAt(stored.anchor_ts + (i + 1) * HOUR_MS));
     const drifts = JSON.parse(stored.scores) as Record<string, number>;
     for (const reader of READER_IDS) {
-      const forecast = forecastFromCards({ asset: "BTCUSDT", anchorTs: stored.anchor_ts, snapshot, reader, cards });
+      const forecast = forecastFromCards({
+        asset: "BTCUSDT",
+        anchorTs: stored.anchor_ts,
+        snapshot,
+        reader,
+        nonce: NONCE,
+        cards,
+      });
       const expected = deviation(
         forecast.flatMap((step) => step.candles),
         real,

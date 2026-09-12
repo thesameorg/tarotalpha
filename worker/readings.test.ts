@@ -5,6 +5,7 @@ import { HOUR_MS, SNAPSHOT_LENGTH, lastClosedAnchor } from "../exchange/closed-c
 import { callApi, patch, post } from "./call-api";
 
 const ANCHOR = lastClosedAnchor(Date.now()) - 24 * HOUR_MS;
+const NONCE = "a1b2c3d4e5f6";
 const CREATE = {
   asset: "BTCUSDT",
   anchor_ts: ANCHOR,
@@ -12,6 +13,7 @@ const CREATE = {
   source: "binance",
   reader: "atr" as string,
   engine_version: ENGINE_VERSION as string,
+  seed_nonce: NONCE as string,
 };
 
 interface Created {
@@ -25,6 +27,7 @@ interface ReadingBody {
   asset: string;
   anchor_ts: number;
   reader: string;
+  seed_nonce: string | null;
   steps: unknown[];
   candles_snapshot: [number, number, number, number, number][];
 }
@@ -101,15 +104,30 @@ describe("POST /api/readings then GET /api/readings/:id", () => {
     expect(read.status).toBe(200);
     const body = await read.json<ReadingBody>();
     expect(body).toMatchObject({ id, asset: "BTCUSDT", timeframe: "1H", anchor_ts: ANCHOR, source: "binance" });
-    expect(body).toMatchObject({ engine_version: ENGINE_VERSION, reader: "atr" });
+    expect(body).toMatchObject({ engine_version: ENGINE_VERSION, reader: "atr", seed_nonce: NONCE });
     expect(body.candles_snapshot).toHaveLength(SNAPSHOT_LENGTH);
     expect(body.candles_snapshot[SNAPSHOT_LENGTH - 1]?.[0]).toBe(ANCHOR);
     const snapshot = body.candles_snapshot.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
-    const expected = computeSteps({ asset: "BTCUSDT", anchorTs: ANCHOR, snapshot, reader: "atr", steps: 2 }).map(
-      (step) => step.cards,
-    );
+    const expected = computeSteps({
+      asset: "BTCUSDT",
+      anchorTs: ANCHOR,
+      snapshot,
+      reader: "atr",
+      nonce: NONCE,
+      steps: 2,
+    }).map((step) => step.cards);
     expect(body.steps).toEqual(expected);
     expect(await eventTypesAfter(mark)).toEqual([]);
+  });
+
+  it("draws different cards for two readings of the same window: the nonce is the reading's own", async () => {
+    stubBinance(200, binanceRows(SNAPSHOT_LENGTH, ANCHOR));
+    const first = await (await share()).json<Created>();
+    const second = await (await share({ seed_nonce: "f6e5d4c3b2a1" })).json<Created>();
+    expect(second.id).not.toBe(first.id);
+    const cardsOf = async (id: string): Promise<unknown> =>
+      (await (await callApi(`/api/readings/${id}`)).json<ReadingBody>()).steps;
+    expect(await cardsOf(second.id)).not.toEqual(await cardsOf(first.id));
   });
 
   it("answers an unknown id with 404", async () => {
@@ -135,6 +153,14 @@ describe("POST /api/readings validation", () => {
   it("rejects an anchor that is not on the hour", async () => {
     const response = await share({ anchor_ts: ANCHOR + 1 });
     expect(response.status).toBe(400);
+  });
+
+  it("refuses a reading without its own entropy: a nonce it cannot replay from is no nonce", async () => {
+    for (const seed_nonce of [undefined, "", "short", "a1b2c3d4e5f6!"]) {
+      const response = await share({ seed_nonce });
+      expect(response.status, String(seed_nonce)).toBe(400);
+      expect(await response.json()).toMatchObject({ error: "bad_request" });
+    }
   });
 
   it("refuses to store with an engine other than the server's", async () => {
@@ -190,9 +216,14 @@ describe("PATCH /api/readings/:id", () => {
 
     const body = await (await callApi(`/api/readings/${id}`)).json<ReadingBody>();
     const snapshot = body.candles_snapshot.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
-    const expected = computeSteps({ asset: "BTCUSDT", anchorTs: ANCHOR, snapshot, reader: "atr", steps: 2 }).map(
-      (step) => step.cards,
-    );
+    const expected = computeSteps({
+      asset: "BTCUSDT",
+      anchorTs: ANCHOR,
+      snapshot,
+      reader: "atr",
+      nonce: NONCE,
+      steps: 2,
+    }).map((step) => step.cards);
     expect(body.reader).toBe("atr");
     expect(body.steps).toEqual(expected);
   });
@@ -224,7 +255,7 @@ describe("PATCH /api/readings/:id", () => {
 
     const body = await (await callApi(`/api/readings/${id}`)).json<ReadingBody>();
     const snapshot = body.candles_snapshot.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
-    const fresh = computeSteps({ asset: "BTCUSDT", anchorTs: ANCHOR, snapshot, reader: "atr", steps: 2 });
+    const fresh = computeSteps({ asset: "BTCUSDT", anchorTs: ANCHOR, snapshot, reader: "atr", nonce: NONCE, steps: 2 });
     expect(body.steps).toEqual([...(JSON.parse(written) as unknown[]), fresh[1]?.cards]);
   });
 

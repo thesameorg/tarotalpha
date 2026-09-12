@@ -8,6 +8,7 @@
 import { computeSteps, DEFAULT_READER } from "../engine/index";
 import { fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
 import { insertReading } from "./readings";
+import { shortId } from "./short-id";
 
 export const BENCHMARK = "BTCUSDT";
 const SLOT_MS = 4 * 3_600_000;
@@ -39,13 +40,16 @@ async function missingSlots(db: D1Database, nowMs: number): Promise<number[]> {
 
 async function draw(db: D1Database, anchorTs: number): Promise<string> {
   const snapshot = await fetchSnapshot(BENCHMARK, anchorTs);
+  // Its own entropy, drawn like an id: a reading of the track is as unrepeatable as anybody's, and the row keeps it.
+  const nonce = shortId();
   const cards = computeSteps({
     asset: BENCHMARK,
     anchorTs,
     snapshot: snapshot.candles,
     reader: DEFAULT_READER,
+    nonce,
     steps: STEPS,
   }).map((step) => step.cards);
-  const body = { asset: BENCHMARK, anchorTs, steps: STEPS, source: snapshot.source, reader: DEFAULT_READER };
+  const body = { asset: BENCHMARK, anchorTs, steps: STEPS, source: snapshot.source, reader: DEFAULT_READER, nonce };
   return insertReading(db, body, cards, snapshot, "beat");
 }

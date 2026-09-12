@@ -34,7 +34,7 @@ export interface SeedParts {
   nonce?: string | null;
 }
 
-// Without a nonce the string is byte-equal to the prototype's; the nonce is a fifth field only when SEED_ENTROPY is on.
+// The nonce is the fifth field: every reading draws its own, and a row written before that field existed has none.
 export function seedString({ asset, anchorTs, step, engineVersion, nonce }: SeedParts): string {
   const base = `${asset}|${String(anchorTs)}|${String(step)}|${engineVersion}`;
   return nonce === undefined || nonce === null ? base : `${base}|${nonce}`;
