@@ -6,7 +6,7 @@
     <title>TarotAlpha — how the forecast is computed</title>
     <meta
       name="description"
-      content="How a tarot reading becomes 24 hourly candles: the seed, the deck, the three readers and their formulas, the day summary and the prophecy check. Not financial advice."
+      content="How a tarot reading becomes 24 hourly candles: the seed, the deck, the five readers and their formulas, the day summary and the prophecy check. Not financial advice."
     />
     <script>
       // The theme lands on <html> before the first paint, so a light-theme viewer never sees a dark flash.
@@ -37,16 +37,16 @@
           financial advice: the cards are a seeded random-number generator in a costume.
         </p>
 
-        <h2>1. The seed and the fixation window</h2>
+        <h2>1. The seed and the reading's own entropy</h2>
         <p>
-          A reading is fixed by four values: the instrument, the anchor, the step and the engine label. The anchor is
-          the open time of the last <em>closed</em> hourly candle, so everyone who opens the same instrument within the
-          same hour gets the same cards, and the reading changes at the next hour boundary.
+          A reading is fixed by five values: the instrument, the anchor, the step, the engine label and the nonce. The
+          anchor is the open time of the last <em>closed</em> hourly candle; the nonce is 64 random bits this browser
+          draws for this reading, so two readings of the same instrument in the same hour are never the same cards.
         </p>
         <ul>
           <li>
-            Seed string: <code>asset|anchor_ts|step|engine_version</code>, for example
-            <code>BTCUSDT|1789020000000|1|v2</code>.
+            Seed string: <code>asset|anchor_ts|step|engine_version|nonce</code>, for example
+            <code>BTCUSDT|1789020000000|1|v2|9f3c2b7e41a05d68</code>.
           </li>
           <li>
             Hash: xmur3 of the seed string feeds a mulberry32 generator. The candle noise uses a second generator seeded
@@ -55,8 +55,8 @@
           </li>
           <li>
             The engine label (<code>v2</code>) is part of the seed, so a formula change draws new cards for new
-            readings. A stored reading keeps its cards and its 168-candle snapshot; its candles are recomputed with the
-            current formulas whenever the link is opened.
+            readings. A stored reading keeps its cards, its nonce and its 168-candle snapshot; its candles are
+            recomputed with the current formulas whenever the link is opened.
           </li>
         </ul>
 
