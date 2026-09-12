@@ -2,7 +2,6 @@
  * One Worker: `/api/*` is answered here, `/r/<id>` is index.html with the reading's meta tags, the rest is static.
  * The cron is the only writer that no request asks for: it scores readings whose horizon has closed.
  */
-import { ENGINE_VERSION } from "../engine/index";
 import { postEvent } from "./events";
 import { beat } from "./heartbeat";
 import { ApiError } from "./json-api";
@@ -52,7 +51,7 @@ async function api(pathname: string, request: Request, env: Env): Promise<Respon
 
 function route(pathname: string, request: Request, env: Env): Promise<Response> | Response {
   const { method } = request;
-  if (pathname === "/api/health" && method === "GET") return Response.json({ ok: true, engine: ENGINE_VERSION });
+  if (pathname === "/api/health" && method === "GET") return Response.json({ ok: true });
   if (pathname === "/api/readings" && method === "POST") return createReading(request, env);
   if (pathname === "/api/readers" && method === "GET") return readReaderRatings(env);
   const reading = READING_API.exec(pathname);

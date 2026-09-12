@@ -2,8 +2,8 @@ import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   atr,
+  computeSteps,
   deviation,
-  ENGINE_VERSION,
   forecastFromCards,
   READER_IDS,
   type Candle,
@@ -22,7 +22,6 @@ const GREEN = lastClosedAnchor(NOW) - 24 * HOUR_MS;
 interface Verdict {
   scores: string | null;
   scored_at: number | null;
-  scored_version: string | null;
   attempts: number;
 }
 
@@ -54,6 +53,14 @@ function stubExchanges(binanceStatus = 200): void {
   );
 }
 
+// The client sends the cards it drew; they come from the seed, so any long-enough snapshot draws the same ones.
+function cardsAt(anchorTs: number): StepCards[] {
+  const snapshot = Array.from({ length: 168 }, (_, i) => candleAt(anchorTs - (167 - i) * HOUR_MS));
+  return computeSteps({ asset: "BTCUSDT", anchorTs, snapshot, reader: "atr", nonce: NONCE, steps: 2 }).map(
+    (step) => step.cards,
+  );
+}
+
 async function shareAt(anchorTs: number): Promise<string> {
   const response = await callApi(
     "/api/readings",
@@ -63,8 +70,8 @@ async function shareAt(anchorTs: number): Promise<string> {
       steps: 2,
       source: "binance",
       reader: "atr",
-      engine_version: ENGINE_VERSION,
       seed_nonce: NONCE,
+      cards: cardsAt(anchorTs),
     }),
   );
   expect(response.status).toBe(201);
@@ -79,7 +86,7 @@ async function beatAt(anchorTs: number): Promise<string> {
 }
 
 async function verdictOf(id: string): Promise<Verdict> {
-  const row = await env.DB.prepare("SELECT scores, scored_at, scored_version, attempts FROM readings WHERE id = ?1")
+  const row = await env.DB.prepare("SELECT scores, scored_at, attempts FROM readings WHERE id = ?1")
     .bind(id)
     .first<Verdict>();
   if (row === null) throw new Error(`no reading ${id}`);
@@ -98,7 +105,7 @@ describe("the sweep", () => {
 
     const verdict = await verdictOf(id);
     expect(verdict.scored_at).toBeGreaterThan(0);
-    expect(verdict).toMatchObject({ scored_version: ENGINE_VERSION, attempts: 0 });
+    expect(verdict).toMatchObject({ attempts: 0 });
     const drifts = JSON.parse(verdict.scores ?? "{}") as Record<string, number>;
     expect(Object.keys(drifts).sort()).toEqual([...READER_IDS].sort());
     for (const drift of Object.values(drifts)) expect(drift).toBeGreaterThan(0);
@@ -187,11 +194,11 @@ describe("the sweep", () => {
     stubExchanges();
     const broken = MATURED - 7 * HOUR_MS;
     await env.DB.prepare(
-      "INSERT INTO readings (id, asset, anchor_ts, source, engine_version, reader, steps, candles_snapshot," +
-        " created_at, origin) VALUES ('cccccccc', 'BTCUSDT', ?1, 'binance', ?2, 'atr', '[[[0,0],[1,0],[2,0]]]'," +
-        " '{', ?3, 'beat')",
+      "INSERT INTO readings (id, asset, anchor_ts, source, reader, steps, candles_snapshot," +
+        " created_at, origin) VALUES ('cccccccc', 'BTCUSDT', ?1, 'binance', 'atr', '[[[0,0],[1,0],[2,0]]]'," +
+        " '{', ?2, 'beat')",
     )
-      .bind(broken, ENGINE_VERSION, Date.now())
+      .bind(broken, Date.now())
       .run();
     const id = await beatAt(broken + HOUR_MS);
     expect(await sweepMatured(env, NOW)).toEqual({ scored: 1, parked: 1 });

@@ -25,7 +25,6 @@ export interface ReadingRecord {
   timeframe: string;
   anchor_ts: number;
   source: Source;
-  engine_version: string;
   reader: ReaderId;
   /** The reading's own entropy; null in a row written before readings had any. */
   seed_nonce: string | null;
@@ -34,15 +33,16 @@ export interface ReadingRecord {
   candles_snapshot: SnapshotRow[];
 }
 
-// `steps` is a count: the Worker draws the cards itself, from this nonce, and never trusts the client's cards.
+// `steps` is a count: the Worker draws the cards itself, from this nonce. `cards` is only there to be matched
+// against that draw, so a tab with an older bundle cannot store a reading its author never saw.
 export interface CreateReadingBody {
   asset: string;
   anchor_ts: number;
   steps: number;
   source: Source;
   reader: ReaderId;
-  engine_version: string;
   seed_nonce: string;
+  cards: StepCards[];
 }
 
 /** The next open step of a stored reading; the Worker never lets a reading lose a day, so `steps` may come back larger. */

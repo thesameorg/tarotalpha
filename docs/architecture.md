@@ -72,7 +72,7 @@
 Обычный путь — смержить зелёный PR в `main`. Job `deploy` в `.github/workflows/check.yml` применяет миграции, выкатывает и дёргает `/api/health` снаружи.
 
 - **Секрет один:** `CLOUDFLARE_API_TOKEN` в секретах репозитория GitHub; `account_id` не секрет и лежит в `wrangler.jsonc`. Без секрета шаг деплоя пропускается молча и прод остаётся прежним: мерж не краснеет по причине, не связанной с кодом.
-- **Миграции идут перед деплоем и только добавляющие:** воркер со старой схемой на новой миграции не падает, наоборот — падает. Схему назад не откатывают.
+- **Миграции идут перед деплоем.** Добавляющая миграция безопасна: воркер со старой схемой переживает новую колонку, а наоборот — падает. Снос колонки стоит секунд: между миграцией и выкаткой старый воркер пишет в колонку, которой уже нет, и записи раскладов в это окно отказывают. Так снесли `engine_version`: на прототипе без трафика это дешевле, чем перестраивать таблицу ради колонки, которую никто не читает. Схему назад не откатывают.
 - **Красный `deploy` при зелёном PR** — прод остаётся на предыдущей версии, лечит следующий PR.
 - Отвергнуто: деплой руками с машины — токена в GitHub нет, но прод привязан к одной машине и одному человеку; `wrangler-action` — тот же wrangler в обёртке, а своя команда деплоя уже собирает клиент и берёт конфиг из `web/dist`.
 - Цена: токен с правами на Workers и D1 лежит в GitHub — второй канал доступа к аккаунту.
@@ -88,7 +88,7 @@
 1. `wrangler whoami` — в списке `Dksg87@gmail.com's Account`, в правах `d1 (write)`. Нет — `wrangler login`.
 2. Новая миграция в `migrations/` — сначала `pnpm exec wrangler d1 migrations apply tarotalpha --remote`, потом деплой.
 3. `pnpm run deploy` — `vite build`, затем `wrangler deploy` по собранному конфигу; в конце печатает `https://tarotalpha.dksg87.workers.dev`.
-4. `curl https://tarotalpha.dksg87.workers.dev/api/health` → `{"ok":true,"engine":…}` с меткой движка; открыть `/?asset=BTCUSDT`, открыть день, «Поделиться», открыть ссылку в другом окне.
+4. `curl https://tarotalpha.dksg87.workers.dev/api/health` → `{"ok":true}`; открыть `/?asset=BTCUSDT`, открыть день, «Поделиться», открыть ссылку в другом окне.
 
 Откат — `pnpm exec wrangler rollback`, возвращает предыдущую версию воркера. База D1 `tarotalpha` пайплайном не создаётся: она заведена `pnpm exec wrangler d1 create tarotalpha`, id — в `wrangler.jsonc`. Превью-версия для Telegram — `pnpm run deploy:tg`, ходит в ту же D1, что и прод (`telegram.md`).
 
@@ -96,7 +96,7 @@
 
 1. `pnpm install --frozen-lockfile` — Node 22+. `packageManager` в `package.json` держит версию pnpm; нет pnpm — `corepack enable`. Стор один на машину, в каждом дереве задачи — жёсткие ссылки.
 2. `pnpm exec wrangler d1 migrations apply tarotalpha --local` — схема в локальную D1 (`.wrangler/state`, тот же каталог читает `vite dev`).
-3. `pnpm run dev` — клиент и воркер на `http://localhost:5173`; `/api/health` отвечает `{"ok":true,"engine":…}`.
+3. `pnpm run dev` — клиент и воркер на `http://localhost:5173`; `/api/health` отвечает `{"ok":true}`.
 4. `http://localhost:5173/?asset=BTCUSDT` — график грузится живым запросом из браузера к бирже; биржа недоступна из сети — страница скажет об этом.
 
 `pnpm run test` — движок, биржевые адаптеры на моках и воркер внутри workerd. Весь прогон CI с тем, чего CI не смотрит, — команда `/check`.

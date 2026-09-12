@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { computeSteps, ENGINE_VERSION, MAX_STEPS } from "../engine/index";
+import { computeSteps, MAX_STEPS, type Candle, type StepCards } from "../engine/index";
 import { HOUR_MS, SNAPSHOT_LENGTH, lastClosedAnchor } from "../exchange/closed-candles";
 import { callApi, patch, post } from "./call-api";
 
@@ -12,8 +12,8 @@ const CREATE = {
   steps: 2,
   source: "binance",
   reader: "atr" as string,
-  engine_version: ENGINE_VERSION as string,
   seed_nonce: NONCE as string,
+  cards: [] as unknown,
 };
 
 interface Created {
@@ -82,8 +82,32 @@ async function eventTypesAfter(mark: number): Promise<string[]> {
   return results.map((row) => row.type);
 }
 
+// Cards come from the seed, not from the candles, so any snapshot long enough draws the ones the Worker will draw.
+const FLAT: Candle[] = Array.from({ length: SNAPSHOT_LENGTH }, (_, i) => ({
+  t: ANCHOR - (SNAPSHOT_LENGTH - 1 - i) * HOUR_MS,
+  o: 100,
+  h: 102,
+  l: 98,
+  c: 101,
+}));
+
+function drawnCards(body: typeof CREATE): StepCards[] {
+  const steps = typeof body.steps === "number" && body.steps >= 1 && body.steps <= MAX_STEPS ? body.steps : 1;
+  return computeSteps({
+    asset: "BTCUSDT",
+    anchorTs: ANCHOR,
+    snapshot: FLAT,
+    reader: "atr",
+    nonce: body.seed_nonce,
+    steps,
+  }).map((step) => step.cards);
+}
+
+// The client sends the cards it drew; every valid request carries the ones this engine draws for its nonce.
 async function share(overrides: Partial<typeof CREATE> = {}): Promise<Response> {
-  return callApi("/api/readings", post({ ...CREATE, ...overrides }));
+  const body = { ...CREATE, ...overrides };
+  const cards = "cards" in overrides ? overrides.cards : drawnCards(body);
+  return callApi("/api/readings", post({ ...body, cards }));
 }
 
 afterEach(() => {
@@ -104,7 +128,7 @@ describe("POST /api/readings then GET /api/readings/:id", () => {
     expect(read.status).toBe(200);
     const body = await read.json<ReadingBody>();
     expect(body).toMatchObject({ id, asset: "BTCUSDT", timeframe: "1H", anchor_ts: ANCHOR, source: "binance" });
-    expect(body).toMatchObject({ engine_version: ENGINE_VERSION, reader: "atr", seed_nonce: NONCE });
+    expect(body).toMatchObject({ reader: "atr", seed_nonce: NONCE });
     expect(body.candles_snapshot).toHaveLength(SNAPSHOT_LENGTH);
     expect(body.candles_snapshot[SNAPSHOT_LENGTH - 1]?.[0]).toBe(ANCHOR);
     const snapshot = body.candles_snapshot.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
@@ -163,10 +187,19 @@ describe("POST /api/readings validation", () => {
     }
   });
 
-  it("refuses to store with an engine other than the server's", async () => {
-    const response = await share({ engine_version: "v0" });
+  it("refuses cards it does not draw itself: a stale tab must not store a reading its author never saw", async () => {
+    stubBinance(200, binanceRows(SNAPSHOT_LENGTH, ANCHOR));
+    const mine = drawnCards(CREATE);
+    const swapped = [mine[1], mine[0]] as unknown as StepCards[];
+    const response = await share({ cards: swapped });
     expect(response.status).toBe(409);
-    expect(await response.json()).toMatchObject({ error: "engine_mismatch", engine_version: ENGINE_VERSION });
+    expect(await response.json()).toMatchObject({ error: "cards_mismatch" });
+  });
+
+  it("refuses a body without the cards of every day", async () => {
+    const response = await share({ cards: [[[0, 0]]] });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: "bad_request" });
   });
 });
 
@@ -207,7 +240,7 @@ describe("PATCH /api/readings/:id", () => {
     return (await created.json<Created>()).id;
   }
 
-  it("adds the next day from the stored snapshot without asking the exchange again", async () => {
+  it("adds the next day from the row's own seed without asking the exchange again", async () => {
     const id = await opened(1);
     stubBinance(500, "down");
     const extended = await callApi(`/api/readings/${id}`, patch({ steps: 2, reader: "atr" }));
@@ -274,10 +307,10 @@ describe("PATCH /api/readings/:id", () => {
 
   it("leaves the score's own readings alone", async () => {
     await env.DB.prepare(
-      "INSERT INTO readings (id, asset, anchor_ts, source, engine_version, reader, steps, candles_snapshot," +
-        " created_at, origin) VALUES ('bbbbbbbb', 'BTCUSDT', ?1, 'binance', ?2, 'atr', '[]', '[]', ?3, 'beat')",
+      "INSERT INTO readings (id, asset, anchor_ts, source, reader, steps, candles_snapshot," +
+        " created_at, origin) VALUES ('bbbbbbbb', 'BTCUSDT', ?1, 'binance', 'atr', '[]', '[]', ?2, 'beat')",
     )
-      .bind(ANCHOR - 48 * HOUR_MS, ENGINE_VERSION, Date.now())
+      .bind(ANCHOR - 48 * HOUR_MS, Date.now())
       .run();
     const response = await callApi("/api/readings/bbbbbbbb", patch({ steps: 2, reader: "atr" }));
     expect(response.status).toBe(404);

@@ -10,7 +10,6 @@ import { cardsToCandles } from "./card-to-candles";
 import { drawCards } from "./draw-cards";
 import type { GoldenStep } from "./golden/btcusdt";
 import { GOLDEN as F } from "./golden/btcusdt";
-import { ENGINE_VERSION } from "./index";
 import { makeRng, seedString } from "./seed";
 
 function replay(steps: readonly GoldenStep[]): void {
@@ -42,9 +41,8 @@ describe("parity with tarot-alpha.html", () => {
 
 describe("golden output of the engine", () => {
   it("builds the seed strings the fixture was generated from and draws its cards", () => {
-    expect(F.engineVersion).toBe(ENGINE_VERSION);
     for (const s of F.steps) {
-      const seed = seedString({ asset: F.asset, anchorTs: F.anchorTs, step: s.step, engineVersion: ENGINE_VERSION });
+      const seed = seedString({ asset: F.asset, anchorTs: F.anchorTs, step: s.step });
       expect(seed).toBe(s.seed);
       expect(drawCards(seed)).toEqual(s.cards);
     }

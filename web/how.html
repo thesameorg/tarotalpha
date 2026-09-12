@@ -39,14 +39,14 @@
 
         <h2>1. The seed and the reading's own entropy</h2>
         <p>
-          A reading is fixed by five values: the instrument, the anchor, the step, the engine label and the nonce. The
-          anchor is the open time of the last <em>closed</em> hourly candle; the nonce is 64 random bits this browser
-          draws for this reading, so two readings of the same instrument in the same hour are never the same cards.
+          A reading is fixed by four values: the instrument, the anchor, the step and the nonce. The anchor is the open
+          time of the last <em>closed</em> hourly candle; the nonce is 64 random bits this browser draws for this
+          reading, so two readings of the same instrument in the same hour are never the same cards.
         </p>
         <ul>
           <li>
-            Seed string: <code>asset|anchor_ts|step|engine_version|nonce</code>, for example
-            <code>BTCUSDT|1789020000000|1|v2|9f3c2b7e41a05d68</code>.
+            Seed string: <code>asset|anchor_ts|step|nonce</code>, for example
+            <code>BTCUSDT|1789020000000|1|9f3c2b7e41a05d68</code>.
           </li>
           <li>
             Hash: xmur3 of the seed string feeds a mulberry32 generator. The candle noise uses a second generator seeded
@@ -54,9 +54,9 @@
             cards.
           </li>
           <li>
-            The engine label (<code>v2</code>) is part of the seed, so a formula change draws new cards for new
-            readings. A stored reading keeps its cards, its nonce and its 168-candle snapshot; its candles are
-            recomputed with the current formulas whenever the link is opened.
+            A stored reading keeps its cards, its nonce and its 168-candle snapshot; its candles are recomputed with the
+            current formulas whenever the link is opened, so a formula change can move the candles of an old link but
+            never its cards.
           </li>
         </ul>
 
@@ -302,8 +302,8 @@
         <h2>7. What a link stores</h2>
         <p>
           The cards drawn per step, the 168-candle snapshot the server took at the moment of sharing, the exchange it
-          came from, the reader that drew it and the engine label. Everything else — forecast candles, summary, accuracy
-          — is recomputed in your browser with the current formulas.
+          came from, the reader that drew it and its nonce. Everything else — forecast candles, summary, accuracy — is
+          recomputed in your browser with the current formulas.
         </p>
 
         <p><a class="back" href="/">← back to the terminal</a></p>

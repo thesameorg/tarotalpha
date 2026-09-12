@@ -17,8 +17,8 @@ async function page(path: string, headers: Record<string, string> = {}): Promise
 
 beforeAll(async () => {
   await env.DB.prepare(
-    "INSERT INTO readings (id, asset, anchor_ts, source, engine_version, steps, candles_snapshot, created_at)" +
-      " VALUES (?1, 'ETHUSDT', ?2, 'bybit', 'v1', '[[[0,0],[1,0],[2,1]],[[3,0],[4,1],[5,0]]]', '[]', 0)",
+    "INSERT INTO readings (id, asset, anchor_ts, source, steps, candles_snapshot, created_at)" +
+      " VALUES (?1, 'ETHUSDT', ?2, 'bybit', '[[[0,0],[1,0],[2,1]],[[3,0],[4,1],[5,0]]]', '[]', 0)",
   )
     .bind(ID, ANCHOR)
     .run();

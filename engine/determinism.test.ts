@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { drawCards } from "./draw-cards";
 import { GOLDEN as F } from "./golden/btcusdt";
-import { computeSteps, DEFAULT_READER, ENGINE_VERSION, forecastFromCards, READER_IDS } from "./index";
+import { computeSteps, DEFAULT_READER, forecastFromCards, READER_IDS } from "./index";
 import { seedString } from "./seed";
 
 const input = { asset: F.asset, anchorTs: F.anchorTs, snapshot: F.snapshot, reader: DEFAULT_READER };
@@ -49,24 +49,26 @@ describe("determinism", () => {
   });
 });
 
-describe("engine version in the seed", () => {
-  it("changes the seed string and the drawn cards", () => {
-    const now = STEPS.map((step) =>
-      seedString({ asset: F.asset, anchorTs: F.anchorTs, step, engineVersion: ENGINE_VERSION }),
-    );
-    const v1 = STEPS.map((step) => seedString({ asset: F.asset, anchorTs: F.anchorTs, step, engineVersion: "v1" }));
-    now.forEach((seed, i) => {
-      expect(seed).not.toBe(v1[i]);
-    });
-    expect(v1.map(drawCards)).not.toEqual(now.map(drawCards));
+describe("the nonce in the seed", () => {
+  it("appends the nonce as a fourth field only when it is set", () => {
+    const parts = { asset: "BTCUSDT", anchorTs: 1789020000000, step: 2 };
+    expect(seedString(parts)).toBe("BTCUSDT|1789020000000|2");
+    expect(seedString({ ...parts, nonce: null })).toBe("BTCUSDT|1789020000000|2");
+    expect(seedString({ ...parts, nonce: "k7" })).toBe("BTCUSDT|1789020000000|2|k7");
   });
 
-  it("appends the nonce as a fifth field only when it is set", () => {
-    const parts = { asset: "BTCUSDT", anchorTs: 1789020000000, step: 2, engineVersion: "v1" };
-    expect(seedString(parts)).toBe("BTCUSDT|1789020000000|2|v1");
-    expect(seedString({ ...parts, nonce: null })).toBe("BTCUSDT|1789020000000|2|v1");
-    expect(seedString({ ...parts, nonce: "k7" })).toBe("BTCUSDT|1789020000000|2|v1|k7");
+  // The whole point of the nonce: one window, one instrument, two readings, and nothing in common but the market.
+  it("draws other cards for another nonce and the same ones for the same nonce", () => {
+    const seedsOf = (nonce?: string): string[] =>
+      STEPS.map((step) => seedString({ asset: F.asset, anchorTs: F.anchorTs, step, nonce }));
+    const mine = seedsOf("k7");
+    expect(mine).not.toEqual(seedsOf("k9"));
+    expect(mine).toEqual(seedsOf("k7"));
+    expect(mine.map(drawCards)).not.toEqual(seedsOf("k9").map(drawCards));
     expect(computeSteps({ ...input, nonce: "k7", steps: 1 })).not.toEqual(computeSteps({ ...input, steps: 1 }));
+    expect(computeSteps({ ...input, nonce: "k7", steps: 1 })).toEqual(
+      computeSteps({ ...input, nonce: "k7", steps: 1 }),
+    );
   });
 });
 
