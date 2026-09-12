@@ -1,12 +1,17 @@
 /** Test helper: one Worker call against the real handler with the test bindings. */
 import { env } from "cloudflare:workers";
 import worker from "./index";
+import type { PaymentSecrets } from "./wallet";
 
 const ORIGIN = "https://tarotalpha.test";
 const IncomingRequest = Request<unknown, IncomingRequestCfProperties>;
-type Init = RequestInit<IncomingRequestCfProperties>;
+export type Init = RequestInit<IncomingRequestCfProperties>;
 
-export async function callApi(path: string, init: Init = {}, bindings: Partial<Env> = {}): Promise<Response> {
+export async function callApi(
+  path: string,
+  init: Init = {},
+  bindings: Partial<Env & PaymentSecrets> = {},
+): Promise<Response> {
   return worker.fetch(new IncomingRequest(ORIGIN + path, init), { ...env, ...bindings });
 }
 

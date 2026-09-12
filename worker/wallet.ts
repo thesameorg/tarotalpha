@@ -97,7 +97,7 @@ export async function claimInvoice(request: Request, env: WalletEnv): Promise<Re
     throw new ApiError(402, "underpaid", "the transfer is smaller than the offer");
   }
 
-  await markPaid(token, found.hash, env);
+  await markPaid(token, found.hash, "ton", env);
   return Response.json({ balance: await balanceOf(owner, env), mana: invoice.mana });
 }
 
@@ -119,7 +119,7 @@ export async function telegramWebhook(request: Request, env: WalletEnv): Promise
   }
 
   const payment = paymentOf(update);
-  if (payment !== null && TOKEN.test(payment.token)) await markPaid(payment.token, payment.chargeId, env);
+  if (payment !== null && TOKEN.test(payment.token)) await markPaid(payment.token, payment.chargeId, "stars", env);
   return Response.json({ ok: true });
 }
 
@@ -137,13 +137,19 @@ export async function registerWebhook(request: Request, env: WalletEnv): Promise
   return Response.json({ ok: true, webhook: `${origin}/api/tg/webhook` });
 }
 
-/** Marks an offer paid, once. A second call with the same charge changes nothing and raises nothing. */
-async function markPaid(token: string, extId: string, env: WalletEnv): Promise<void> {
-  await env.DB.prepare("UPDATE invoices SET paid_at = ?1, ext_id = ?2 WHERE token = ?3 AND paid_at IS NULL")
-    .bind(Date.now(), extId, token)
-    .run()
-    // The unique index refuses a charge that already paid another offer; that is the guard doing its job.
-    .catch(() => undefined);
+/** Settles one offer with one charge. A charge that already paid an offer is done and says so quietly; anything
+ * else that goes wrong is left to throw, so the caller answers non-2xx and Telegram brings the payment back. */
+async function markPaid(token: string, extId: string, method: Method, env: WalletEnv): Promise<void> {
+  const settled = await env.DB.prepare("SELECT token FROM invoices WHERE method = ?1 AND ext_id = ?2")
+    .bind(method, extId)
+    .first<{ token: string }>();
+  if (settled !== null) return;
+  // Racing this SELECT breaks the unique index instead, which throws, and the retry finds the charge above.
+  await env.DB.prepare(
+    "UPDATE invoices SET paid_at = ?1, ext_id = ?2 WHERE token = ?3 AND method = ?4 AND paid_at IS NULL",
+  )
+    .bind(Date.now(), extId, token, method)
+    .run();
 }
 
 async function balanceOf(owner: string, env: WalletEnv): Promise<number> {
