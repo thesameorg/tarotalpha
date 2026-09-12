@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HOUR_MS } from "../exchange/closed-candles";
 import {
   cloudStore,
-  findMyReading,
   hasUnchecked,
   hoursToRipe,
   initMyReadings,
@@ -80,14 +79,6 @@ describe("my readings", () => {
     expect(list.map((entry) => entry.id)).toEqual(["mnpqrstv", "bcdfghjk"]);
     expect(list[1]).toMatchObject({ steps: 2, reader: "garch", created_at: 1000, checked_at: null });
     expect(JSON.parse(store.values.get("bcdfghjk") ?? "")).toMatchObject({ steps: 2 });
-  });
-
-  it("finds the reading of a window this browser opened before, and only the same reader's", async () => {
-    await rememberReading(BASE);
-    expect((await findMyReading("BTCUSDT", ANCHOR, BASE.reader))?.id).toBe("bcdfghjk");
-    expect(await findMyReading("BTCUSDT", ANCHOR + HOUR_MS, BASE.reader)).toBeUndefined();
-    expect(await findMyReading("ETHUSDT", ANCHOR, BASE.reader)).toBeUndefined();
-    expect(await findMyReading("BTCUSDT", ANCHOR, "garch")).toBeUndefined();
   });
 
   it("marks a reading checked once and writes it through", async () => {

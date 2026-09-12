@@ -69,12 +69,6 @@ export function onMyReadingsChange(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
-/** This reader's reading of this window, if this browser opened it before: the row is extended, not doubled. */
-export async function findMyReading(asset: string, anchorTs: number, reader: ReaderId): Promise<MyReading | undefined> {
-  await ready;
-  return entries.find((entry) => entry.asset === asset && entry.anchor_ts === anchorTs && entry.reader === reader);
-}
-
 export async function rememberReading(
   next: Omit<MyReading, "created_at" | "checked_at">,
   now = Date.now(),

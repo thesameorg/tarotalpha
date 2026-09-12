@@ -2,8 +2,8 @@
  * Writing, extending and reading a reading. The first open step writes the row, the next step extends it in place
  * from the stored snapshot, so the exchange is asked once per reading. The Worker never trusts the client's candles
  * or cards: it snapshots the candles itself, from the author's provider when the edge can reach it, and draws the
- * cards with its own engine, whose version label it stores next to them. What is stored and why:
- * docs/reading-lifecycle.md
+ * cards with its own engine from the nonce the client sends, storing the nonce and the version label next to them.
+ * What is stored and why: docs/reading-lifecycle.md
  */
 import {
   computeSteps,
@@ -29,6 +29,7 @@ import { ApiError, readJsonBody } from "./json-api";
 import { ID_PATTERN, shortId } from "./short-id";
 
 const ID_ATTEMPTS = 3;
+const NONCE_PATTERN = /^[A-Za-z0-9_-]{8,32}$/;
 const EXCHANGE_STATUS = { unknown_asset: 400, too_old: 422, unavailable: 502 } as const;
 
 export interface CreateBody {
@@ -37,6 +38,7 @@ export interface CreateBody {
   steps: number;
   source: Source;
   reader: ReaderId;
+  nonce: string;
 }
 
 interface ReadingRow {
@@ -47,6 +49,7 @@ interface ReadingRow {
   source: string;
   engine_version: string;
   reader: string;
+  seed_nonce: string | null;
   created_at: number;
   steps: string;
   candles_snapshot: string;
@@ -72,16 +75,13 @@ interface ExtendRow {
 
 export async function createReading(request: Request, env: Env): Promise<Response> {
   const body = await parseCreateBody(request);
-  // Nonce generation for SEED_ENTROPY=on is not built; refusing beats storing a reading that cannot be replayed.
-  if (env.SEED_ENTROPY !== "off") {
-    throw new ApiError(501, "not_implemented", "SEED_ENTROPY other than off is not supported yet");
-  }
   const snapshot = await snapshotOrFail(body, request, env.DB);
   const steps = computeSteps({
     asset: body.asset,
     anchorTs: body.anchorTs,
     snapshot: snapshot.candles,
     reader: body.reader,
+    nonce: body.nonce,
     steps: body.steps,
   }).map((result) => result.cards);
   const id = await insertReading(env.DB, body, steps, snapshot, "share");
@@ -132,8 +132,8 @@ export async function extendReading(id: string, request: Request, env: Env): Pro
 export async function readReading(id: string, env: Env): Promise<Response> {
   const row = ID_PATTERN.test(id)
     ? await env.DB.prepare(
-        "SELECT id, asset, timeframe, anchor_ts, source, engine_version, reader, created_at, steps, candles_snapshot" +
-          " FROM readings WHERE id = ?1",
+        "SELECT id, asset, timeframe, anchor_ts, source, engine_version, reader, seed_nonce, created_at, steps," +
+          " candles_snapshot FROM readings WHERE id = ?1",
       )
         .bind(id)
         .first<ReadingRow>()
@@ -159,20 +159,24 @@ export async function readingMeta(db: D1Database, id: string): Promise<ReadingMe
 }
 
 async function parseCreateBody(request: Request): Promise<CreateBody> {
-  const { asset, anchor_ts: anchorTs, steps, source, reader, engine_version: version } = await readJsonBody(request);
+  const body = await readJsonBody(request);
+  const { asset, anchor_ts: anchorTs, steps, source, reader, engine_version: version, seed_nonce: nonce } = body;
   if (typeof asset !== "string" || !ASSET_PATTERN.test(asset)) throw bad("asset must match ^[A-Z0-9]{2,20}$");
   if (typeof anchorTs !== "number" || !isHourAligned(anchorTs)) throw bad("anchor_ts must be an hour-aligned ms UTC");
   if (anchorTs > lastClosedAnchor(Date.now())) throw bad("anchor_ts must be an already closed candle");
   if (!isStepCount(steps)) throw bad(`steps must be an integer from 1 to ${String(MAX_STEPS)}`);
   if (!isSource(source)) throw bad(`source must be one of ${SOURCES.join(", ")}`);
   if (!isReaderId(reader)) throw bad(`reader must be one of ${READER_IDS.join(", ")}`);
+  // The nonce is the reading's own entropy: the Worker redraws the cards from it, so a reading without one could
+  // not be replayed and two readings of the same window would be the same reading again.
+  if (typeof nonce !== "string" || !NONCE_PATTERN.test(nonce)) throw bad("seed_nonce must match ^[A-Za-z0-9_-]{8,32}$");
   // A stale tab with an older bundle would have shown cards this engine no longer draws; refuse rather than mislabel.
   if (version !== ENGINE_VERSION) {
     throw new ApiError(409, "engine_mismatch", `server engine is ${ENGINE_VERSION}`, {
       engine_version: ENGINE_VERSION,
     });
   }
-  return { asset, anchorTs, steps, source, reader };
+  return { asset, anchorTs, steps, source, reader, nonce };
 }
 
 async function parseExtendBody(request: Request): Promise<{ steps: number; reader: ReaderId }> {
@@ -210,7 +214,7 @@ export async function insertReading(
   const candles = JSON.stringify(snapshot.candles.map(({ t, o, h, l, c }) => [t, o, h, l, c]));
   const insert = db.prepare(
     "INSERT INTO readings (id, asset, anchor_ts, source, engine_version, reader, seed_nonce, steps," +
-      " candles_snapshot, created_at, origin) VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, ?7, ?8, ?9, ?10)",
+      " candles_snapshot, created_at, origin) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
   );
   for (let attempt = 1; ; attempt++) {
     const id = shortId();
@@ -223,6 +227,7 @@ export async function insertReading(
           snapshot.source,
           ENGINE_VERSION,
           body.reader,
+          body.nonce,
           JSON.stringify(steps),
           candles,
           Date.now(),

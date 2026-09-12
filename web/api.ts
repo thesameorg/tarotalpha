@@ -27,12 +27,14 @@ export interface ReadingRecord {
   source: Source;
   engine_version: string;
   reader: ReaderId;
+  /** The reading's own entropy; null in a row written before readings had any. */
+  seed_nonce: string | null;
   created_at: string | number;
   steps: StepCards[];
   candles_snapshot: SnapshotRow[];
 }
 
-// `steps` is a count: the Worker draws the cards itself with the same engine and never trusts the client's.
+// `steps` is a count: the Worker draws the cards itself, from this nonce, and never trusts the client's cards.
 export interface CreateReadingBody {
   asset: string;
   anchor_ts: number;
@@ -40,6 +42,7 @@ export interface CreateReadingBody {
   source: Source;
   reader: ReaderId;
   engine_version: string;
+  seed_nonce: string;
 }
 
 /** The next open step of a stored reading; the Worker never lets a reading lose a day, so `steps` may come back larger. */
