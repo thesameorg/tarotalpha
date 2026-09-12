@@ -8,7 +8,7 @@
  * language switch relabels in place. The only buttons are the row over the free days of the forecast zone: the next
  * day and, once a day is open, share; on a wide screen the row rides with the chart and shortens to the day alone.
  */
-import { computeSteps, ENGINE_VERSION, MAX_STEPS, type Candle, type StepResult } from "../engine/index";
+import { computeSteps, MAX_STEPS, type Candle, type StepResult } from "../engine/index";
 import { ASSET_PATTERN, fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
 import { ExchangeError, type Source } from "../exchange/provider";
 import { ApiError, createReading, extendReading, postEvent } from "./api";
@@ -438,6 +438,7 @@ class LandingPage {
   // The row follows the steps in the background: the first one writes it, the next one extends it, and the entry
   // in "my readings" follows. A failed write leaves null behind, and "Share" then writes afresh and shows why.
   private persist(loaded: Loaded, steps: number): Promise<string> {
+    const cards = loaded.steps.slice(0, steps).map((step) => step.cards);
     const saving = loaded.saved.then(async (id) => {
       const body = { steps, reader: reader() };
       const saved =
@@ -446,8 +447,8 @@ class LandingPage {
               asset: loaded.asset,
               anchor_ts: loaded.anchorTs,
               source: loaded.source,
-              engine_version: ENGINE_VERSION,
               seed_nonce: loaded.nonce,
+              cards,
               ...body,
             })
           : await extendReading(id, body);

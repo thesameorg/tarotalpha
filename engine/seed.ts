@@ -1,6 +1,6 @@
 /**
  * xmur3 string hash feeding a mulberry32 generator, bit for bit the prototype's `hash` and `rng`. The seed string
- * is the fixation window: same asset, anchor, step and version label means the same cards for everyone.
+ * is what a reading is drawn from: the instrument, the anchor, the day and the reading's own nonce.
  */
 function xmur3(str: string): () => number {
   let h = 1779033703 ^ str.length;
@@ -30,12 +30,11 @@ export interface SeedParts {
   asset: string;
   anchorTs: number;
   step: number;
-  engineVersion: string;
   nonce?: string | null;
 }
 
-// The nonce is the fifth field: every reading draws its own, and a row written before that field existed has none.
-export function seedString({ asset, anchorTs, step, engineVersion, nonce }: SeedParts): string {
-  const base = `${asset}|${String(anchorTs)}|${String(step)}|${engineVersion}`;
+// The nonce is the fourth field: every reading draws its own, and a row written before that field existed has none.
+export function seedString({ asset, anchorTs, step, nonce }: SeedParts): string {
+  const base = `${asset}|${String(anchorTs)}|${String(step)}`;
   return nonce === undefined || nonce === null ? base : `${base}|${nonce}`;
 }

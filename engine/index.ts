@@ -1,9 +1,9 @@
 /**
- * The forecast engine: pure formulas, no I/O, no platform imports, one version edited in place. A stored reading
- * keeps its cards and snapshot; the candles are recomputed with whatever formulas are current, so a link may show
- * a different forecast after an engine change — docs/engine.md. `computeSteps` draws
- * cards and forecasts; `forecastFromCards` replays cards a reading already stores. Both seed the noise with the
- * full seed string, so the version label changes the candles as well as the cards.
+ * The forecast engine: pure formulas, no I/O, no platform imports, edited in place. A stored reading keeps its
+ * cards, its nonce and its snapshot; the candles are recomputed with whatever formulas are current, so a link may
+ * show a different forecast after an engine change — docs/engine.md. `computeSteps` draws cards and forecasts;
+ * `forecastFromCards` replays cards a reading already stores. Both seed the noise with the full seed string, so a
+ * reading's nonce moves its candles as well as its cards.
  */
 import { natr as natrOf, type Candle } from "./atr";
 import { CANDLES_PER_CARD, cardEffect, type CardEffect } from "./card-effect";
@@ -13,7 +13,6 @@ import { drawCards, type DrawnCard, type StepCards } from "./draw-cards";
 import { seedString } from "./seed";
 import { stepDigest, type StepDigest } from "./step-digest";
 
-export const ENGINE_VERSION = "v2" as const;
 // The horizon: a week ahead, as long as the snapshot behind the anchor. `cpu-budget.test.ts` measures this many steps.
 export const MAX_STEPS = 7;
 // Three cards of eight candles: one step is a day ahead.
@@ -72,13 +71,7 @@ export function forecastFromCards(input: ReadingInput & { cards: readonly StepCa
 }
 
 function stepSeed(input: ReadingInput, step: number): string {
-  return seedString({
-    asset: input.asset,
-    anchorTs: input.anchorTs,
-    step,
-    engineVersion: ENGINE_VERSION,
-    nonce: input.nonce,
-  });
+  return seedString({ asset: input.asset, anchorTs: input.anchorTs, step, nonce: input.nonce });
 }
 
 function effectOf([id, reversed]: DrawnCard): CardEffect {

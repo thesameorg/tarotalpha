@@ -9,7 +9,7 @@ import type { Candle } from "./atr";
 import { cardsToCandles } from "./card-to-candles";
 import type { DrawnCard } from "./draw-cards";
 import { GOLDEN as F } from "./golden/btcusdt";
-import { computeSteps, ENGINE_VERSION, MAX_STEPS } from "./index";
+import { computeSteps, MAX_STEPS } from "./index";
 
 const NATR = F.natr;
 const ASSETS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT"];
@@ -37,7 +37,7 @@ function blocksOf(card: DrawnCard): Candle[] {
   const out: Candle[] = [];
   for (const asset of ASSETS) {
     for (const anchorTs of ANCHORS) {
-      const noiseSeed = `noise|${asset}|${String(anchorTs)}|1|${ENGINE_VERSION}`;
+      const noiseSeed = `noise|${asset}|${String(anchorTs)}|1`;
       out.push(
         ...cardsToCandles({
           snapshot: F.snapshot,

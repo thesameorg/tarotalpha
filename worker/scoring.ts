@@ -8,7 +8,6 @@ import {
   atr,
   CANDLES_PER_STEP,
   deviation,
-  ENGINE_VERSION,
   forecastFromCards,
   READER_IDS,
   type Candle,
@@ -67,9 +66,11 @@ export async function sweepMatured(env: Env, nowMs: number): Promise<Sweep> {
     }
     sweep.scored++;
     writes.push(
-      env.DB.prepare(
-        "UPDATE readings SET scores = ?1, scored_at = ?2, scored_version = ?3 WHERE id = ?4 AND scored_at IS NULL",
-      ).bind(JSON.stringify(drifts), nowMs, ENGINE_VERSION, row.id),
+      env.DB.prepare("UPDATE readings SET scores = ?1, scored_at = ?2 WHERE id = ?3 AND scored_at IS NULL").bind(
+        JSON.stringify(drifts),
+        nowMs,
+        row.id,
+      ),
     );
   }
   if (writes.length > 0) await env.DB.batch(writes);
