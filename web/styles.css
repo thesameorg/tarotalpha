@@ -153,6 +153,20 @@ header {
   gap: 16px;
   min-width: 0;
 }
+/* One dash per day of the horizon on a shared reading; the days the author opened are gold. */
+.steps {
+  display: flex;
+  gap: 4px;
+}
+.steps span {
+  width: 14px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--ink-3);
+}
+.steps span.done {
+  background: var(--gold);
+}
 .header-controls {
   margin-left: auto;
   display: flex;
