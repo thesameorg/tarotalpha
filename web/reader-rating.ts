@@ -2,7 +2,7 @@
  * The stars on a reader's card belong to the Worker, not to the bundle: one number per reader, folded from the
  * verdicts of readings whose horizon has closed. Fetched when a card is first opened and kept for the tab. Until
  * the table has been scored often enough there are no stars at all — a guessed star reads exactly like a measured
- * one. What the number counts: ../docs/flows/reading-lifecycle.md
+ * one. What the number counts: ../docs/reading-lifecycle.md
  */
 import { MIN_VERDICTS, type ReaderId } from "../engine/index";
 import { fetchReaderTable, type ReaderStanding, type ReaderTable } from "./api";

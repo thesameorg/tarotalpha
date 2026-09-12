@@ -1,7 +1,7 @@
 /**
- * The eleven interface languages: where tarot is popular and divination is not a crime, by the owner's rule of
- * 2026-09-10 — English as the lingua franca, the Latin and Romance markets, German, Turkish (fortune-telling is
- * everyday culture there), Russian, and the three East Asian ones with a living tarot culture. Shared with the
+ * The eleven interface languages: where tarot is popular and divination is not a crime — English as the lingua
+ * franca, the Latin and Romance markets, German, Turkish (fortune-telling is everyday culture there), Russian,
+ * and the three East Asian ones with a living tarot culture. Shared with the
  * Worker for the meta tags of a reading link, so nothing here touches the DOM.
  */
 export const LANGS = [

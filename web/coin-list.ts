@@ -1,7 +1,7 @@
 /**
  * Spot pairs the terminal offers, in market-cap order with BTC and ETH first. Every symbol was checked against
  * Binance exchangeInfo (status TRADING) and every icon is a local file; how the list and the icons were assembled
- * and how to add a coin: docs/reference/coin-icons.md.
+ * and how to add a coin: docs/assets.md.
  */
 export interface Coin {
   symbol: string;

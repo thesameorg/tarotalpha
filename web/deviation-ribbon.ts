@@ -2,7 +2,7 @@
  * Series primitive that fills the gap between the forecast closes and the real ones: the wider the band, the further
  * the reading ran from the market. Candles are paired by time, and a missing hour breaks the band in two rather than
  * being drawn across, so a hole in exchange data cannot pass for a match. What the number under the chart means:
- * ../docs/flows/card-to-candles.md
+ * ../docs/engine.md
  */
 import type {
   IChartApiBase,

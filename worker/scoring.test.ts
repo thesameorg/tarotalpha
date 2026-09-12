@@ -1,6 +1,14 @@
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ENGINE_VERSION, READER_IDS } from "../engine/index";
+import {
+  atr,
+  deviation,
+  ENGINE_VERSION,
+  forecastFromCards,
+  READER_IDS,
+  type Candle,
+  type StepCards,
+} from "../engine/index";
 import { HOUR_MS, lastClosedAnchor } from "../exchange/closed-candles";
 import { callApi, post } from "./call-api";
 import { sweepMatured } from "./scoring";
@@ -17,9 +25,15 @@ interface Verdict {
   attempts: number;
 }
 
-function row(t: number): unknown[] {
+/** The candle the exchange stub serves for the hour opening at `t`. */
+function candleAt(t: number): Candle {
   const base = 100 + Math.sin(t / (7 * HOUR_MS)) * 5;
-  return [t, String(base), String(base + 2), String(base - 2), String(base + 1), "10", t + HOUR_MS - 1];
+  return { t, o: base, h: base + 2, l: base - 2, c: base + 1 };
+}
+
+function row(t: number): unknown[] {
+  const { o, h, l, c } = candleAt(t);
+  return [t, String(o), String(h), String(l), String(c), "10", t + HOUR_MS - 1];
 }
 
 // The provider asks for a window, not for a fixture: every kline call is answered from its own query string.
@@ -88,6 +102,31 @@ describe("the sweep", () => {
     for (const drift of Object.values(drifts)) expect(drift).toBeGreaterThan(0);
     // Five mechanics on one set of cards cannot land on the same distance from the market.
     expect(new Set(Object.values(drifts)).size).toBe(READER_IDS.length);
+  });
+
+  // The verdict and the badge on the link must speak one unit: the snapshot's ATR in price, as the browser divides.
+  it("writes every drift in ATR of the snapshot, the same number the link computes", async () => {
+    stubExchanges();
+    const id = await beatAt(MATURED - 8 * HOUR_MS);
+    await sweepMatured(env, NOW);
+    const stored = await env.DB.prepare("SELECT anchor_ts, steps, candles_snapshot, scores FROM readings WHERE id = ?1")
+      .bind(id)
+      .first<{ anchor_ts: number; steps: string; candles_snapshot: string; scores: string }>();
+    if (stored === null) throw new Error(`no reading ${id}`);
+    const rows = JSON.parse(stored.candles_snapshot) as [number, number, number, number, number][];
+    const snapshot = rows.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
+    const cards = JSON.parse(stored.steps) as StepCards[];
+    const real = Array.from({ length: HORIZON }, (_, i) => candleAt(stored.anchor_ts + (i + 1) * HOUR_MS));
+    const drifts = JSON.parse(stored.scores) as Record<string, number>;
+    for (const reader of READER_IDS) {
+      const forecast = forecastFromCards({ asset: "BTCUSDT", anchorTs: stored.anchor_ts, snapshot, reader, cards });
+      const expected = deviation(
+        forecast.flatMap((step) => step.candles),
+        real,
+        atr(snapshot),
+      ).deviation;
+      expect(drifts[reader]).toBeCloseTo(expected ?? NaN, 9);
+    }
   });
 
   it("leaves a verdict alone however often it runs", async () => {

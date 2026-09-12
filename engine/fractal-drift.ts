@@ -3,7 +3,7 @@
  * travels, below 0.5 they argue and it saws. Each candle is a weighted sum of the last shocks with the weights of
  * fractional Brownian motion, `(k+1)^(H−0.5) − k^(H−0.5)`, normalised so the width stays the same whatever H, so
  * the card changes the character of the walk and never its scale. Character: long smooth runs or a fine saw.
- * The mechanic: docs/reference/forecast-mechanics.md.
+ * The mechanic: docs/engine.md.
  */
 import { natr, type Candle } from "./atr";
 import { CANDLES_PER_CARD, cardEffect } from "./card-effect";

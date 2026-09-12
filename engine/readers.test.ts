@@ -1,7 +1,7 @@
 /**
  * What every reader owes whatever its mechanic: the same cards from one seed, candles that chain without a gap,
  * nothing narrower than 0.3 ATR, no price at or below zero, byte-equal repeats, and no built-in direction. Plus
- * the point of having readers at all: one seed, three readers, three different forecasts.
+ * the point of having readers at all: one seed, five readers, five different forecasts.
  */
 import { describe, expect, it } from "vitest";
 import { natr, type Candle } from "./atr";

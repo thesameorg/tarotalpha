@@ -1,9 +1,9 @@
 /**
  * Which reader computes the forecast: chosen beside the day tabs, kept in localStorage, sent with a shared reading and
  * replayed from it. Portraits are static files under web/public/readers, one per reader id, served from /readers;
- * where they come from is docs/reference/reader-portraits.md. What she is called and the paragraph about her are
+ * where they come from is docs/assets.md. What she is called and the paragraph about her are
  * text and live in the dictionaries (web/i18n/readers-*.ts), so both follow the interface language; the id never
- * does. What each mechanic does: docs/reference/forecast-mechanics.md.
+ * does. What each mechanic does: docs/engine.md.
  */
 import { DEFAULT_READER, isReaderId, type ReaderId } from "../engine/readers";
 

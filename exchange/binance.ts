@@ -1,4 +1,4 @@
-/** Binance spot klines, the primary provider. Response format and limits: docs/reference/binance-klines.md */
+/** Binance spot klines, second in the queue: it answers 403 to the Cloudflare edge. Limits: docs/exchange.md */
 import type { Candle } from "../engine/atr";
 import { DEADLINE_MS, ExchangeError, type KlineWindow, type Provider } from "./provider";
 

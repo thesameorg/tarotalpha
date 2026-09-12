@@ -80,10 +80,11 @@ assert codes("# ---------\n# a\nkey: 1", "h") == []
 
 # --- строка статуса дока
 assert L.DOC_HEADER.match("> актуально · 2026-08-24 · рендерер ходит в Payload только через readFetch")
-assert L.DOC_HEADER.match("> **реализовано** — 2026-01-02 — вердикт")
-assert L.DOC_HEADER.match("> заморожено · 2026-08-24 · статус в Linear")
-assert L.DOC_HEADER.match("> справочник · 2026-08-24 · предметная область")
+assert L.DOC_HEADER.match("> **черновик** — 2026-01-02 — вердикт")
 assert not L.DOC_HEADER.match("> готово · 2026-08-24 · выдуманный статус")
+# Врущий док чинят, а не помечают: статусов для него нет.
+for gone in ("устарело", "заморожено", "реализовано", "справочник"):
+    assert not L.DOC_HEADER.match(f"> {gone} · 2026-08-24 · вердикт"), gone
 assert not L.DOC_HEADER.match("> просто цитата")
 assert not L.DOC_HEADER.match("# Заголовок")
 
@@ -236,8 +237,6 @@ with tempfile.TemporaryDirectory() as _repo:
     put("web/candles.ts", "export const y = 2\n")
     put("docs/README.md", "# Docs\n\n- `flow.md` — поток\n")
     put("docs/flow.md", "# Поток\n\n> актуально · 2026-09-12 · поток.\n\nКод — `web/candles.ts`.\n")
-    put("docs/adr/README.md", "# ADR\n\n- `0001-candles.md` — свечи\n")
-    put("docs/adr/0001-candles.md", "# ADR-0001\n\n> реализовано · 2026-09-12 · свечи.\n\nКод — `web/candles.ts`.\n")
     put("README.md", "# X\n\nСвечи — `web/candles.ts`.\n")
     git(_repo, "init", "-q", "-b", "main")
     git(_repo, "add", ".")
@@ -263,7 +262,7 @@ with tempfile.TemporaryDirectory() as _repo:
     assert "комментарий" not in hook.stderr, hook.stderr  # подсказка про комментарий к имени файла не относится
     os.remove(os.path.join(_repo, "web/utils.ts"))
 
-    # Отставшим от PR считается только живой док: ни замороженный ADR, ни корневой README.
+    # Отставшим от PR считается док из docs/, но не корневой README, который только ссылается.
     put("web/candles.ts", "export const y = 3\n")
     git(_repo, "commit", "-q", "-am", "touch candles")
     code, out = lint(_repo, "--base", "main~1")

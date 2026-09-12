@@ -1,9 +1,9 @@
 /**
  * One step of the forecast: three cards, eight candles each. Every amplitude is a multiple of `A`, the snapshot's
  * NATR times the previous close, so a move is a fraction of price and the scale follows the price as it drifts.
- * Every candle opens at the previous close: crypto never closes, so there is nothing to gap over, and a card that
- * used to gap puts the whole jump into the body of its first candle. Tables and formulas, generator call order
- * included: docs/flows/card-to-candles.md. The shape follows the prototype's `extrapolate`.
+ * Every candle opens at the previous close: crypto never closes, so there is nothing to gap over, and the Tower and
+ * the Sun put their whole jump into the body of the block's first candle. Tables and formulas, generator call order
+ * included: docs/engine.md. The shape follows the prototype's `extrapolate`.
  */
 import type { Candle } from "./atr";
 import { CANDLES_PER_CARD, SUN_JUMP, TOWER_JUMP } from "./card-effect";

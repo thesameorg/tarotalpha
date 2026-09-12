@@ -1,7 +1,7 @@
 /**
  * Mana: what opening a day of a reading costs. The tank refills a point an hour and in full at the viewer's local
  * midnight; it lives in this browser's localStorage and nothing on the server checks it, so a cleared storage is a
- * full tank. Every number to tune sits at the top. Why no server side: docs/adr/0009-mana-lives-in-the-browser.md
+ * full tank. Every number to tune sits at the top. Why no server side: docs/reading-lifecycle.md
  */
 import { HOUR_MS } from "../exchange/closed-candles";
 

@@ -1,7 +1,7 @@
 /**
  * Closed 1H candles straight from the exchange — the same code runs in the browser and in the Worker.
  * Nothing is cached anywhere: a snapshot exists only inside a saved reading.
- * Why the anchor is the last closed candle and why there is no cache: docs/flows/candles-from-exchange.md
+ * Why the anchor is the last closed candle and why there is no cache: docs/exchange.md
  */
 import type { Candle } from "../engine/atr";
 import { binance } from "./binance";

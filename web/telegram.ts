@@ -3,7 +3,7 @@
  * with `#tgWebAppPlatform=…`, and the launch is remembered in sessionStorage so a reload after an in-app navigation
  * still knows its host. The official script loads here, on demand, so a plain browser never fetches it; outside
  * Telegram `telegram()` is null and every helper is a no-op. What the client gives, from which version, and its
- * limits: docs/reference/telegram-mini-app.md.
+ * limits: docs/telegram.md.
  */
 import type { CloudStorage, WebApp } from "@twa-dev/types";
 import { bindSystemScheme, onThemeChange } from "./theme";

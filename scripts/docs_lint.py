@@ -59,9 +59,9 @@ MD_ALLOWED = (
     re.compile(r"^[^/]+/[^/]+/(CLAUDE|README)\.md$"),
 )
 
-# Первая строка дока: статус, дата, вердикт.
+# Строка статуса под заголовком дока: статус, дата, вердикт. Статусов два: док, который врёт, чинят, а не помечают.
 DOC_HEADER = re.compile(
-    r"^>\s*\*{0,2}(актуально|черновик|устарело?|реализовано|заморожено|справочник)"
+    r"^>\s*\*{0,2}(актуально|черновик)"
     r"\*{0,2}\s*[·|,/—-]\s*\d{4}-\d{2}-\d{2}",
     re.IGNORECASE,
 )
@@ -105,9 +105,8 @@ DIRECTIVE = re.compile(
     r"|//\s*(eslint-|@ts-|prettier-|biome-|oxlint-)"
     r"|#\s*(yaml-language-server|checkov:|hadolint|renovate:))",
 )
-# Рамка раздела — не комментарий: ни считать её, ни ругаться на неё незачем.
-# Раньше сюда не попадали ни `# ── Stage 2 ─────`, ни `# --- Настройки ---`,
-# и каждая такая рамка съедала три строки лимита у комментария под собой.
+# Рамка раздела — не комментарий: ни считать её, ни ругаться на неё незачем. Ловит и `# ── Stage 2 ─────`,
+# и `# --- Настройки ---`: иначе каждая рамка съедала бы три строки лимита у комментария под собой.
 FRAME = r"[-=*_#~\u2500-\u257F]"
 BANNER = re.compile(
     rf"^\s*(?:#|//)\s*({FRAME})"
@@ -658,8 +657,8 @@ def collect(root: str, files: list[str], touched: set[str], index: list[str]) ->
                 continue
             md_findings, alive = _collect_md(root, path, lines, index)
             findings += md_findings
-            # Отстать от PR может только живой док. ADR заморожен: его «сейчас» — статус в шапке.
-            if alive and path.startswith(("docs/", "CLAUDE")) and not path.startswith("docs/adr/"):
+            # Отстать от PR могут доки и CLAUDE.md: они описывают устройство. Корневой README только ссылается.
+            if alive and path.startswith(("docs/", "CLAUDE")):
                 doc_map[path] = alive
 
         elif ext in CODE_EXT:
@@ -708,7 +707,7 @@ def print_related(root: str, index: list[str], files: list[str]) -> int:
     print("Перечитай эти доки — они говорят о том же, что изменил PR:\n")
     for doc, score, why in hits:
         print(f"  {doc}  (вес {score}: {', '.join(why)})")
-    print("\nПротиворечие правится в этом же PR или помечается устаревшим.")
+    print("\nПротиворечие правится в этом же PR.")
     return 0
 
 

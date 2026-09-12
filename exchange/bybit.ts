@@ -1,4 +1,4 @@
-/** Bybit spot klines, the fallback when Binance is blocked or down. Format and limits: docs/reference/bybit-kline.md */
+/** Bybit spot klines, first in the queue: it answers the browser and the Worker alike. Limits: docs/exchange.md */
 import type { Candle } from "../engine/atr";
 import { DEADLINE_MS, ExchangeError, type KlineWindow, type Provider } from "./provider";
 

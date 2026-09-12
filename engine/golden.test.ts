@@ -1,5 +1,5 @@
 /**
- * Golden output of the engine for one synthetic BTCUSDT snapshot, plus what still matches tarot-alpha.html: the hash,
+ * Golden output of the engine for one synthetic BTCUSDT snapshot, plus what matches tarot-alpha.html: the hash,
  * the generator and the shuffle. A formula change regenerates engine/golden/btcusdt.ts on purpose; red here without
  * one means what every reading replays changed by accident.
  */

@@ -251,8 +251,8 @@
         <p>The candle, everything in units of <code>A</code>:</p>
         <ul>
           <li>
-            <code>o = last.c</code> — always. There are no gaps: crypto never closes, and the old Tower and Sun gaps now
-            live in the body of the block's first candle as <code>jump</code>.
+            <code>o = last.c</code> — always. There are no gaps: crypto never closes, so the Tower and the Sun put their
+            jump into the body of the block's first candle as <code>jump</code>.
           </li>
           <li><code>c = o + (jump + drift) · A + (r() − 0.5) · v · A + pull · (ma − o)</code></li>
           <li>
@@ -273,7 +273,7 @@
           <li>
             <code>netPct</code> — the last close against the first open, in percent; <code>highPct</code>,
             <code>lowPct</code> — the extremes from the same open. The paragraph prints percentages only: the unit a
-            reader measures in is a technical fact and lives in the tech panel, not in eleven languages.
+            reader measures in is a technical fact and lives on this page, not in eleven languages.
           </li>
           <li>
             Direction: flat when the net move is under half an ATR, otherwise up or down. ATR is the engine's own

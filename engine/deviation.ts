@@ -2,7 +2,7 @@
  * How far the forecast ran from what happened: the mean gap between closes, in ATR of the snapshot. The unit is the
  * market's, not the reader's — measured in each reader's own scale, a reader with a wide unit would look accurate by
  * arithmetic alone, and five readers could not be put side by side. Only candles that already have a real pair count.
- * Where the praise thresholds come from: ../docs/flows/card-to-candles.md
+ * Where the praise thresholds come from: ../docs/engine.md
  */
 import type { Candle } from "./atr";
 

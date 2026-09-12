@@ -2,7 +2,7 @@
  * Generated candles must look like real hourly candles of the same instrument: about one ATR of true range on
  * average, never narrower than 0.3 ATR, rarely a doji, never a gap, and the cards' promises (chop for the Hanged
  * Man, double range for the Moon, the whole crash inside the Tower's first candle) visible in the numbers.
- * Tables and formulas: docs/flows/card-to-candles.md.
+ * Tables and formulas: docs/engine.md.
  */
 import { describe, expect, it } from "vitest";
 import type { Candle } from "./atr";

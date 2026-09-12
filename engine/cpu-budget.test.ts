@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import type { Candle } from "./atr";
-import { computeSteps, deviation, forecastFromCards, MAX_STEPS, natr, READER_IDS } from "./index";
+import { atr, computeSteps, deviation, forecastFromCards, MAX_STEPS, READER_IDS } from "./index";
 import { makeRng } from "./seed";
 
 interface CpuUsage {
@@ -52,7 +52,7 @@ it.each(READER_IDS)("computes the longest %s reading from a 168-candle snapshot 
 });
 
 // The sweep scores a whole table on one reading, and it runs on a Cron Trigger with the same 10 ms of CPU. The sweep
-// is sized from the measured cost, about a millisecond (docs/flows/reading-lifecycle.md); the ceiling here is a
+// is sized from the measured cost, about a millisecond (docs/reading-lifecycle.md); the ceiling here is a
 // regression guard with the same headroom as the step tests, so a slow CI runner (2.0 ms seen) does not trip it.
 it("scores one reading for all five readers in under 5 ms of CPU", () => {
   const anchorTs = 1789020000000;
@@ -65,7 +65,7 @@ it("scores one reading for all five readers in under 5 ms of CPU", () => {
   for (let i = 0; i < 20; i++) {
     const before = node.cpuUsage();
     const parsed = JSON.parse(JSON.stringify(snapshot)) as Candle[];
-    const unit = natr(parsed);
+    const unit = atr(parsed);
     for (const reader of READER_IDS) {
       const forecast = forecastFromCards({ asset: "BTCUSDT", anchorTs, snapshot: parsed, reader, cards }).flatMap(
         (step) => step.candles,
