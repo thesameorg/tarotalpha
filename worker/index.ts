@@ -10,6 +10,7 @@ import { readReaderRatings } from "./reader-ratings";
 import { readingPage } from "./reading-page";
 import { createReading, extendReading, readReading } from "./readings";
 import { sweepMatured } from "./scoring";
+import { claimInvoice, createInvoice, newWallet, readWallet, registerWebhook, telegramWebhook } from "./wallet";
 
 const READING_PAGE = /^\/r\/([^/]+)$/;
 const READING_API = /^\/api\/readings\/([^/]+)$/;
@@ -17,6 +18,10 @@ const READING_API = /^\/api\/readings\/([^/]+)$/;
 export default {
   async fetch(request, env) {
     const { pathname } = new URL(request.url);
+    // Telegram's webhook skips the limiter: it comes from Telegram's own addresses, and a `successful_payment`
+    // dropped as "too many requests" is money taken with no mana behind it.
+    if (pathname === "/api/tg/webhook" && request.method === "POST")
+      return guarded(() => telegramWebhook(request, env));
     if (pathname.startsWith("/api/")) return api(pathname, request, env);
     const page = READING_PAGE.exec(pathname);
     if (page?.[1] !== undefined) return readingPage(page[1], request, env);
@@ -40,8 +45,12 @@ export default {
 async function api(pathname: string, request: Request, env: Env): Promise<Response> {
   const limited = await rateLimited(env.RATE_LIMITER, request);
   if (limited !== null) return limited;
+  return await guarded(() => route(pathname, request, env));
+}
+
+async function guarded(handler: () => Promise<Response> | Response): Promise<Response> {
   try {
-    return await route(pathname, request, env);
+    return await handler();
   } catch (error) {
     if (error instanceof ApiError) return error.response();
     console.error(error);
@@ -58,5 +67,10 @@ function route(pathname: string, request: Request, env: Env): Promise<Response> 
   if (reading?.[1] !== undefined && method === "GET") return readReading(reading[1], env);
   if (reading?.[1] !== undefined && method === "PATCH") return extendReading(reading[1], request, env);
   if (pathname === "/api/events" && method === "POST") return postEvent(request, env);
+  if (pathname === "/api/wallet" && method === "POST") return newWallet();
+  if (pathname === "/api/wallet" && method === "GET") return readWallet(request, env);
+  if (pathname === "/api/wallet/invoice" && method === "POST") return createInvoice(request, env);
+  if (pathname === "/api/wallet/claim" && method === "POST") return claimInvoice(request, env);
+  if (pathname === "/api/tg/register" && method === "POST") return registerWebhook(request, env);
   throw new ApiError(404, "not_found", `no route ${method} ${pathname}`);
 }
