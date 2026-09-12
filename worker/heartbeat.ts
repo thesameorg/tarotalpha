@@ -5,7 +5,7 @@
  * draw beats the whole table. While the track is short the cron fills it backwards, a few slots per run.
  * Why the track is one instrument: ../docs/reading-lifecycle.md
  */
-import { computeSteps, DEFAULT_READER } from "../engine/index";
+import { drawSteps, DEFAULT_READER } from "../engine/index";
 import { fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
 import { insertReading } from "./readings";
 import { shortId } from "./short-id";
@@ -42,14 +42,7 @@ async function draw(db: D1Database, anchorTs: number): Promise<string> {
   const snapshot = await fetchSnapshot(BENCHMARK, anchorTs);
   // Its own entropy, drawn like an id: a reading of the track is as unrepeatable as anybody's, and the row keeps it.
   const nonce = shortId();
-  const cards = computeSteps({
-    asset: BENCHMARK,
-    anchorTs,
-    snapshot: snapshot.candles,
-    reader: DEFAULT_READER,
-    nonce,
-    steps: STEPS,
-  }).map((step) => step.cards);
+  const cards = drawSteps({ asset: BENCHMARK, anchorTs, nonce, steps: STEPS });
   const body = { asset: BENCHMARK, anchorTs, steps: STEPS, source: snapshot.source, reader: DEFAULT_READER, nonce };
   return insertReading(db, body, cards, snapshot, "beat");
 }

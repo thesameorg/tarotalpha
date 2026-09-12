@@ -1,7 +1,7 @@
 import { exports } from "cloudflare:workers";
 import { expect, it } from "vitest";
 
-it("answers /api/health with the engine version label", async () => {
+it("answers /api/health with a plain ok", async () => {
   const response = await exports.default.fetch("https://tarotalpha.test/api/health");
   expect(await response.json()).toEqual({ ok: true });
 });

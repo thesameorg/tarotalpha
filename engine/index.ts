@@ -34,13 +34,26 @@ export interface ReadingInput {
   nonce?: string | null;
 }
 
+/** What the cards are drawn from: no candles and no reader, because neither moves the shuffle. */
+export interface DrawInput {
+  asset: string;
+  anchorTs: number;
+  nonce?: string | null;
+  steps: number;
+}
+
 // The trend looks 24 candles back and ATR(14) needs 15, so the formulas need 25. The product's 168 is the caller's rule.
 const MIN_SNAPSHOT = 25;
 
 export function computeSteps(input: ReadingInput & { steps: number }): StepResult[] {
+  return forecastFromCards({ ...input, cards: drawSteps(input) });
+}
+
+/** The cards of a reading without its candles: all a caller needs to store them or to match a client's draw. */
+export function drawSteps(input: DrawInput): StepCards[] {
   const cards: StepCards[] = [];
   for (let step = 1; step <= input.steps; step++) cards.push(drawCards(stepSeed(input, step)));
-  return forecastFromCards({ ...input, cards });
+  return cards;
 }
 
 export function forecastFromCards(input: ReadingInput & { cards: readonly StepCards[] }): StepResult[] {
@@ -70,7 +83,7 @@ export function forecastFromCards(input: ReadingInput & { cards: readonly StepCa
   return results;
 }
 
-function stepSeed(input: ReadingInput, step: number): string {
+function stepSeed(input: Omit<DrawInput, "steps">, step: number): string {
   return seedString({ asset: input.asset, anchorTs: input.anchorTs, step, nonce: input.nonce });
 }
 

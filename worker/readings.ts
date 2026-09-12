@@ -1,19 +1,11 @@
 /**
  * Writing, extending and reading a reading. The first open step writes the row, the next step extends it in place
- * from the stored snapshot, so the exchange is asked once per reading. The Worker never trusts the client's candles
+ * from the row's own seed, so the exchange is asked once per reading. The Worker never trusts the client's candles
  * or cards: it snapshots the candles itself, from the author's provider when the edge can reach it, and draws the
  * cards with its own engine from the nonce the client sends. The client's cards only have to match what it drew.
  * What is stored and why: docs/reading-lifecycle.md
  */
-import {
-  computeSteps,
-  isReaderId,
-  MAX_STEPS,
-  READER_IDS,
-  type Candle,
-  type ReaderId,
-  type StepCards,
-} from "../engine/index";
+import { drawSteps, isReaderId, MAX_STEPS, READER_IDS, type ReaderId, type StepCards } from "../engine/index";
 import {
   ASSET_PATTERN,
   fetchSnapshot,
@@ -64,45 +56,33 @@ export interface ReadingMeta {
   steps: number;
 }
 
-/** The snapshot is stored a row per candle, not an object per candle: it is the widest column in the table. */
-type SnapshotRow = [t: number, o: number, h: number, l: number, c: number];
-
 interface ExtendRow {
   asset: string;
   anchor_ts: number;
   reader: string;
   seed_nonce: string | null;
   steps: string;
-  candles_snapshot: string;
 }
 
 export async function createReading(request: Request, env: Env): Promise<Response> {
   const body = await parseCreateBody(request);
-  const snapshot = await snapshotOrFail(body, request, env.DB);
-  const steps = computeSteps({
-    asset: body.asset,
-    anchorTs: body.anchorTs,
-    snapshot: snapshot.candles,
-    reader: body.reader,
-    nonce: body.nonce,
-    steps: body.steps,
-  }).map((result) => result.cards);
+  const steps = drawSteps(body);
   // The cards the tab showed must be the cards this engine draws: an older bundle would store a reading its author
-  // never saw. The Worker still stores its own draw, not the client's.
+  // never saw. Checked before the exchange call, so a refusal costs no request from the colocation's shared budget.
   if (JSON.stringify(steps) !== JSON.stringify(body.cards)) {
     throw new ApiError(409, "cards_mismatch", "the cards drawn here are not the ones you sent");
   }
+  const snapshot = await snapshotOrFail(body, request, env.DB);
   const id = await insertReading(env.DB, body, steps, snapshot, "share");
   return Response.json({ id, url: `/r/${id}`, steps: body.steps }, { status: 201 });
 }
 
-/** The next open step, drawn from the stored snapshot; the days already written and the reader stay as they are. */
+/** The next open step, drawn from the row's own seed; the days already written and the reader stay as they are. */
 export async function extendReading(id: string, request: Request, env: Env): Promise<Response> {
   const { steps, reader } = await parseExtendBody(request);
   const row = ID_PATTERN.test(id)
     ? await env.DB.prepare(
-        "SELECT asset, anchor_ts, reader, seed_nonce, steps, candles_snapshot FROM readings" +
-          " WHERE id = ?1 AND origin = 'share'",
+        "SELECT asset, anchor_ts, reader, seed_nonce, steps FROM readings WHERE id = ?1 AND origin = 'share'",
       )
         .bind(id)
         .first<ExtendRow>()
@@ -113,21 +93,7 @@ export async function extendReading(id: string, request: Request, env: Env): Pro
   // A reading never loses a day: a reopen of the same window that asks for fewer steps keeps every one of them.
   const count = Math.max(steps, written.length);
   if (count > written.length) {
-    const snapshot: Candle[] = (JSON.parse(row.candles_snapshot) as SnapshotRow[]).map(([t, o, h, l, c]) => ({
-      t,
-      o,
-      h,
-      l,
-      c,
-    }));
-    const drawn = computeSteps({
-      asset: row.asset,
-      anchorTs: row.anchor_ts,
-      snapshot,
-      reader,
-      nonce: row.seed_nonce,
-      steps: count,
-    }).map((result) => result.cards);
+    const drawn = drawSteps({ asset: row.asset, anchorTs: row.anchor_ts, nonce: row.seed_nonce, steps: count });
     // Written days are the reading (docs/reading-lifecycle.md): this engine draws only the new
     // ones. The guard keeps the shorter of two racing extensions from landing last and taking a day back.
     await env.DB.prepare("UPDATE readings SET steps = ?2 WHERE id = ?1 AND json_array_length(steps) < ?3")

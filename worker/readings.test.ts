@@ -240,7 +240,7 @@ describe("PATCH /api/readings/:id", () => {
     return (await created.json<Created>()).id;
   }
 
-  it("adds the next day from the stored snapshot without asking the exchange again", async () => {
+  it("adds the next day from the row's own seed without asking the exchange again", async () => {
     const id = await opened(1);
     stubBinance(500, "down");
     const extended = await callApi(`/api/readings/${id}`, patch({ steps: 2, reader: "atr" }));
