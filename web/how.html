@@ -6,7 +6,7 @@
     <title>TarotAlpha — how the forecast is computed</title>
     <meta
       name="description"
-      content="How a tarot reading becomes 24 hourly candles: the seed, the deck, the five readers and their formulas, the day summary and the prophecy check. Not financial advice."
+      content="How a tarot reading becomes 24 hourly candles: the seed and its nonce, the deck, the five readers and what every card does to each, the day summary, the prophecy check and the reader rating. Not financial advice."
     />
     <script>
       // The theme lands on <html> before the first paint, so a light-theme viewer never sees a dark flash.
@@ -37,15 +37,66 @@
           financial advice: the cards are a seeded random-number generator in a costume.
         </p>
 
+        <h2>The whole calculation at a glance</h2>
+        <div class="table">
+          <table>
+            <tr>
+              <th>Step</th>
+              <th>What goes in</th>
+              <th>What comes out</th>
+            </tr>
+            <tr>
+              <td>1. Snapshot</td>
+              <td>168 closed hourly candles up to the anchor, straight from the exchange</td>
+              <td>the history every formula reads: the scale and anything indicator-shaped</td>
+            </tr>
+            <tr>
+              <td>2. Seed of the day</td>
+              <td><code>asset|anchor_ts|day|nonce</code></td>
+              <td>the starting number of the generator</td>
+            </tr>
+            <tr>
+              <td>3. Cards of the day</td>
+              <td>the seed's generator</td>
+              <td>three distinct cards, each upright or reversed</td>
+            </tr>
+            <tr>
+              <td>4. Noise of the day</td>
+              <td>a second generator, seeded <code>noise|reader|</code> plus the seed</td>
+              <td>a stream of random numbers of this reader's own</td>
+            </tr>
+            <tr>
+              <td>5. Candles of the day</td>
+              <td>the reader's formula: snapshot, earlier forecast days, cards, noise</td>
+              <td>24 candles, eight per card</td>
+            </tr>
+            <tr>
+              <td>6. Words</td>
+              <td>the cards and the 24 candles</td>
+              <td>the card effects and the day's digest, which the interface turns into prose</td>
+            </tr>
+            <tr>
+              <td>7. Check</td>
+              <td>forecast candles against the real candles of the same hours</td>
+              <td>accuracy and drift</td>
+            </tr>
+            <tr>
+              <td>8. Rating</td>
+              <td>the drift of all five readers on the score's own readings</td>
+              <td>places, ratings, stars</td>
+            </tr>
+          </table>
+        </div>
+
         <h2>1. The seed and the reading's own entropy</h2>
         <p>
-          A reading is fixed by four values: the instrument, the anchor, the step and the nonce. The anchor is the open
-          time of the last <em>closed</em> hourly candle; the nonce is 64 random bits this browser draws for this
+          A reading is fixed by four values: the instrument, the anchor, the day and the nonce. The anchor is the open
+          time of the last <em>closed</em> hourly candle; the nonce is 64 random bits your browser draws for this
           reading, so two readings of the same instrument in the same hour are never the same cards.
         </p>
         <ul>
           <li>
-            Seed string: <code>asset|anchor_ts|step|nonce</code>, for example
+            Seed string: <code>asset|anchor_ts|day|nonce</code>, for example
             <code>BTCUSDT|1789020000000|1|9f3c2b7e41a05d68</code>.
           </li>
           <li>
@@ -54,221 +105,317 @@
             cards.
           </li>
           <li>
-            A stored reading keeps its cards, its nonce and its 168-candle snapshot; its candles are recomputed with the
-            current formulas whenever the link is opened, so a formula change can move the candles of an old link but
-            never its cards.
+            The nonce is stored with the reading, so a link replays the author's cards. A reading shared before nonces
+            existed has none, and its seed is the three fields before it.
           </li>
         </ul>
+        <div class="table">
+          <table>
+            <tr>
+              <th>What changes</th>
+              <th>The cards</th>
+              <th>The candles</th>
+            </tr>
+            <tr>
+              <td>the reader</td>
+              <td>the same</td>
+              <td>different: her own formula and her own noise</td>
+            </tr>
+            <tr>
+              <td>a new reading: a reload, another instrument, one more draw</td>
+              <td>different: another nonce</td>
+              <td>different</td>
+            </tr>
+            <tr>
+              <td>the hour</td>
+              <td>different: another anchor</td>
+              <td>different</td>
+            </tr>
+            <tr>
+              <td>the instrument</td>
+              <td>different</td>
+              <td>different</td>
+            </tr>
+            <tr>
+              <td>the day of the reading</td>
+              <td>different</td>
+              <td>they continue the day before</td>
+            </tr>
+          </table>
+        </div>
 
-        <h2>2. The deck</h2>
+        <h2>2. The deck and the draw</h2>
         <p>
           78 cards of the Rider–Waite–Smith deck. Majors are ids 0–21 in the classic order (0 the Fool … 16 the Tower …
           21 the World); minors are <code>22 + suit × 14 + (rank − 1)</code> with wands, cups, swords, pentacles and
           ranks ace (1) … ten (10), page (11), knight (12), queen (13), king (14).
         </p>
         <p>
-          A step draws three distinct cards: <code>id = floor(r() × 78)</code>, a repeat is skipped without spending a
+          A day draws three distinct cards: <code>id = floor(r() × 78)</code>, a repeat is skipped without spending a
           second number, and an accepted card is reversed when <code>r() &lt; 0.28</code>. The fan of backs on screen is
           theatre: whichever back you pull, the i-th pull reveals card i.
         </p>
 
-        <h2 id="readers">3. The readers</h2>
+        <h2>3. The scale, and what is not in the seed</h2>
         <p>
-          A reader is who computes the forecast. All five draw the same three cards — the reader is not part of the
-          shuffle seed — and turns them into different candles. It is part of the noise seed instead, so one reading
-          never gives two readers the same forecast, and it is stored with a shared reading, so a link replays the
-          reader its author saw.
-        </p>
-        <ul>
-          <li id="reader-atr">
-            <code>atr</code> — Madame Vera. Noise in ATR units: drift, width and jumps are multiples of <code>A</code>.
-            Section 4 has the tables.
-          </li>
-          <li id="reader-reversion">
-            <code>reversion</code> — Sister Anemone. The price is pulled back to the mean of the last 20 closes:
-            <code>close = o + pull × (mean + shove × A − o) + (r() − 0.5) × v × A</code>. The card sets
-            <code>pull</code>, from 0.1 for the Fool to 0.7 for the Hanged Man, and where the mean itself goes: the
-            Wheel moves it to the current price, Death reflects it to the far side, the Tower and the Sun shove past it
-            for one candle. Character: swings in a corridor, almost no trend.
-          </li>
-          <li id="reader-analogy">
-            <code>analogy</code> — Elder Kofi. The last 12 returns are compared with every 12-candle stretch of the
-            snapshot by squared distance in NATR units; the card picks one of the 8 closest, and the eight returns that
-            followed it are replayed on the current price. Centring, stretching, the card's gain and its sign all happen
-            on the logs, because candles chain multiplicatively and returns that merely sum to zero still multiply to
-            less than one. Character: a plausible shape, the market repeating itself.
-          </li>
-          <li id="reader-garch">
-            <code>garch</code> — Mama Ife. Volatility remembers itself:
-            <code>variance = omega + alpha·shock² + beta·variance</code>, so one violent hour makes the next hours
-            violent and a quiet stretch stays quiet. The card sets <code>alpha</code>, from 0.05 for the Hanged Man to
-            0.7 for the Fool, and <code>beta</code>, the length of the memory; the Tower and the Sun feed their jump
-            into the variance, so a shock echoes instead of passing. Character: quiet zones and bursts.
-          </li>
-          <li id="reader-fractal">
-            <code>fractal</code> — The Weaver. Each candle is a weighted sum of the last shocks with the weights of
-            fractional Brownian motion, <code>(k+1)^(H−0.5) − k^(H−0.5)</code>. The card sets the Hurst exponent H:
-            above 0.5 the moves agree and the price travels, below 0.5 they argue and it saws. The weights are
-            normalised, so H changes the character of the walk and never its width. Character: long smooth runs or a
-            fine saw.
-          </li>
-        </ul>
-        <p>
-          The invariants hold whatever the reader: eight candles per card, each one opening at the previous close, no
-          candle narrower than 0.3 ATR, no price at or below zero, and the same seed always giving the same candles.
-        </p>
-
-        <h2>4. The ATR reader: from a card to eight candles</h2>
-        <p>
-          A step is 24 hourly candles; card k rules candles 8k … 8k+7. Inputs: the 168-candle snapshot, the forecast
-          candles of earlier steps, the three cards.
+          The seed gives the cards and the noise. Nothing else: every indicator-shaped number is measured on the
+          snapshot.
         </p>
         <ul>
           <li>
             <code>natr</code> — ATR(14) of the snapshot divided by its last close: the plain mean of the true range over
-            the last 14 candles, no Wilder smoothing, as a fraction of price. Computed once per reading.
+            the last 14 candles, no Wilder smoothing, as a fraction of price. 0.008 means the hour moves 0.8 % on
+            average. Measured once per reading.
           </li>
           <li>
             <code>A</code> — the amplitude unit of a candle: <code>natr × previous close</code>. One ATR is the same
-            fraction of price on every candle, so the price can never cross zero.
+            fraction of price on every candle, so the price can never cross zero, however bad the cards.
           </li>
           <li>
-            <code>ma</code> — mean close of the last 24 candles (snapshot plus earlier forecast), once per step;
-            <code>trend</code> — the sign of <code>last.c − close 24 candles back</code>, zero reads as +1;
-            <code>dir</code> starts as <code>trend</code>.
+            All five readers share that unit: they differ by formula, not by scale. Everything else each one needs — a
+            mean, a trend, a matching stretch of history — she measures herself, listed in section 5.
           </li>
-          <li><code>m</code> — card weight: 1 for a major, <code>rank / 14</code> for a minor.</li>
         </ul>
+
+        <h2>4. What every candle obeys</h2>
+        <ul>
+          <li>A card rules eight candles in a row: the first card hours 1–8, the second 9–16, the third 17–24.</li>
+          <li>
+            A candle opens at the previous close. There are no gaps: crypto never closes, so the Tower and the Sun put
+            their jump into the body of the block's first candle instead.
+          </li>
+          <li>
+            Wicks are a random addition from the noise. A candle narrower than <code>0.3 · A</code> gets both wicks
+            widened to it, which spends no number of the generator.
+          </li>
+          <li>
+            Day 2 continues day 1: the formula sees the snapshot and every forecast candle drawn before it. The same
+            seed always gives the same candles, to the last bit.
+          </li>
+        </ul>
+
+        <h2 id="readers">5. The five readers</h2>
         <p>
-          For every candle the card sets <code>drift</code>, <code>v</code> (volatility), <code>jump</code> and
-          <code>pull</code>; the defaults are 0, 1, 0, 0, and after the card's rules <code>v = max(v, 0.6)</code>.
+          A reader is who computes the forecast. All five draw the same three cards — the reader is not part of the
+          shuffle seed — and turn them into different candles. She is part of the noise seed instead, so one reading
+          never gives two readers the same forecast, and she is stored with a shared reading, so a link replays the
+          reader its author saw.
         </p>
         <div class="table">
           <table>
             <tr>
-              <th>Major</th>
-              <th>jump, first candle of the block</th>
-              <th>drift</th>
-              <th>v</th>
-              <th>Special</th>
+              <th>Reader</th>
+              <th>What she measures on the history</th>
+              <th>The close of a candle</th>
+              <th>What it looks like</th>
+            </tr>
+            <tr>
+              <td id="reader-atr"><code>atr</code> — Madame Vera</td>
+              <td>
+                <code>ma</code>, the mean of the last 24 closes; <code>dir</code>, the sign of the move over 24 candles,
+                zero reads as up
+              </td>
+              <td><code>o + (jump + drift) · A + (r() − 0.5) · v · A + pull · (ma − o)</code></td>
+              <td>an even breath around the trend, rare outliers</td>
+            </tr>
+            <tr>
+              <td id="reader-reversion"><code>reversion</code> — Sister Anemone</td>
+              <td><code>mean</code>, the mean of the last 20 closes, used as a target</td>
+              <td><code>o + pull · (mean + shove · A − o) + (r() − 0.5) · v · A</code></td>
+              <td>swings in a corridor, almost no trend</td>
+            </tr>
+            <tr>
+              <td id="reader-analogy"><code>analogy</code> — Elder Kofi</td>
+              <td>
+                the 8 stretches of the snapshot whose 12 returns are closest to the last 12; <code>flow</code>, the
+                trend sign over 24 candles
+              </td>
+              <td><code>o × exp(sign · gain · move of the copy) + jump · A</code></td>
+              <td>a plausible shape: the market repeating itself</td>
+            </tr>
+            <tr>
+              <td id="reader-garch"><code>garch</code> — Mama Ife</td>
+              <td>nothing beyond the scale</td>
+              <td>
+                <code>o × (1 + shock) + (lean + jump) · A</code>, the shock drawn from the variance
+                <code>omega + alpha · move² + beta · variance</code>
+              </td>
+              <td>quiet zones and bursts in a row</td>
+            </tr>
+            <tr>
+              <td id="reader-fractal"><code>fractal</code> — The Weaver</td>
+              <td>nothing beyond the scale</td>
+              <td><code>o + (0.6 · gain · Σ Hurst weights × the last 12 shocks + lean + jump) · A</code></td>
+              <td>one long smooth run, or a fine saw</td>
+            </tr>
+          </table>
+        </div>
+        <p>The knobs a card turns:</p>
+        <ul>
+          <li>
+            <code>atr</code>: <code>drift</code>, the push per candle in <code>A</code>; <code>v</code>, the width of
+            the noise, never below 0.6; <code>jump</code>; <code>pull</code>, the tug towards <code>ma</code>. Only the
+            Wheel and Death rewrite <code>dir</code>, and it stays rewritten to the end of the day.
+          </li>
+          <li>
+            <code>reversion</code>: <code>pull</code>, the share of the way to the target per candle; <code>v</code>;
+            <code>shove</code>, a one-candle overshoot past the target; <code>shift</code>, a move of the target itself
+            per candle in <code>A</code>. The target does not follow the price on its own — if it did, this reader would
+            slide into a trend and repeat <code>atr</code>.
+          </li>
+          <li>
+            <code>analogy</code>: a number of the noise picks which of the eight matches to take, the Fool takes the
+            farthest one; <code>sign</code> copies the stretch as it is or mirrored; <code>gain</code> is the loudness.
+            The copy is the eight returns that followed the match. Its mean is removed, or a rising week would tilt
+            every forecast up, and it is stretched to a move of 0.7 NATR an hour (between ×0.5 and ×4), or a quiet week
+            of history would draw a flat line of dots.
+          </li>
+          <li>
+            <code>garch</code>: <code>alpha</code>, how sharply the variance answers a move; <code>beta</code>, how long
+            it remembers; <code>lean</code>, the push per candle in <code>A</code>. A calm move is 0.6 NATR an hour, and
+            the variance is clamped between 0.1 and 16 calm ones.
+          </li>
+          <li>
+            <code>fractal</code>: <code>H</code>, the Hurst exponent — above 0.5 the moves agree and the price travels,
+            below 0.5 they argue and it saws. The weights <code>(k+1)^(H−0.5) − k^(H−0.5)</code> are normalised, so
+            <code>H</code> changes the character of the walk and never its width. <code>gain</code> is the loudness,
+            <code>lean</code> the push. The memory of 12 shocks starts full, or the first candles of a reading would be
+            quieter than the rest.
+          </li>
+        </ul>
+
+        <h2>6. What a card does to each reader</h2>
+        <p>
+          The numbers are for an upright card; a reversed one flips the sign of the jump, the push and the direction,
+          and for <code>atr</code> also of the Wheel's, the Moon's and Death's push. <code>m</code> is the weight of a
+          minor card, <code>rank / 14</code>: ace 0.07, king 1. "±" is by orientation, "±rnd" a sign taken from the
+          noise.
+        </p>
+        <div class="table">
+          <table>
+            <tr>
+              <th>Card</th>
+              <th><code>atr</code></th>
+              <th><code>reversion</code></th>
+              <th><code>analogy</code></th>
+              <th><code>garch</code></th>
+              <th><code>fractal</code></th>
+            </tr>
+            <tr>
+              <td>no rule of its own</td>
+              <td>drift 0, v 1</td>
+              <td>pull 0.35, v 1</td>
+              <td>sign +, gain 1</td>
+              <td>alpha 0.25, beta 0.6</td>
+              <td>H 0.5, gain 1</td>
             </tr>
             <tr>
               <td>16 Tower</td>
-              <td>−3</td>
-              <td>−0.3</td>
-              <td>1.0</td>
-              <td></td>
+              <td>jump −3, drift −0.3</td>
+              <td>shove −3, pull 0.2, v 1.3</td>
+              <td>jump −3, sign −, gain 1.3</td>
+              <td>jump −3, alpha 0.45, beta 0.5</td>
+              <td>jump −3, H 0.8, gain 1.2</td>
             </tr>
             <tr>
               <td>19 Sun</td>
-              <td>+2</td>
-              <td>+0.2</td>
-              <td>1.0</td>
-              <td></td>
+              <td>jump +2, drift +0.2</td>
+              <td>shove +2, pull 0.25, v 1.1</td>
+              <td>jump +2, gain 1.1</td>
+              <td>jump +2, alpha 0.35, beta 0.55</td>
+              <td>jump +2, H 0.75</td>
             </tr>
             <tr>
               <td>10 Wheel of Fortune</td>
-              <td>0</td>
-              <td>0.3 · dir</td>
-              <td>1.0</td>
-              <td>dir flips on the block's first candle, drift is taken after</td>
+              <td><code>dir</code> flips, drift 0.3 · <code>dir</code></td>
+              <td>the target moves to the current price, pull 0.3</td>
+              <td><code>flow</code> flips, sign = <code>flow</code></td>
+              <td>alpha 0.3, lean +0.2</td>
+              <td>H 0.7, lean +0.2</td>
             </tr>
             <tr>
               <td>12 Hanged Man</td>
-              <td>0</td>
-              <td>0</td>
-              <td>0.7</td>
-              <td>pull = 0.35: chop around ma</td>
+              <td>pull 0.35, v 0.7</td>
+              <td>pull 0.7, v 0.5</td>
+              <td>gain 0.4</td>
+              <td>alpha 0.05, beta 0.85</td>
+              <td>H 0.2, gain 0.6</td>
             </tr>
             <tr>
               <td>18 Moon</td>
-              <td>0</td>
-              <td>0.1 · dir</td>
-              <td>2.0</td>
-              <td></td>
+              <td>v 2, drift 0.1 · <code>dir</code></td>
+              <td>v 2, pull 0.25</td>
+              <td>gain 1.8</td>
+              <td>alpha 0.6, beta 0.35</td>
+              <td>H 0.35, gain 1.7</td>
             </tr>
             <tr>
               <td>13 Death</td>
-              <td>0</td>
-              <td>0.4 · dir</td>
-              <td>1.0</td>
-              <td>dir flips like the Wheel</td>
+              <td><code>dir</code> flips, drift 0.4 · <code>dir</code></td>
+              <td>the target reflects through the price, v 1.2</td>
+              <td><code>flow</code> flips, sign = <code>flow</code>, gain 1.2</td>
+              <td>alpha 0.4, lean −0.2</td>
+              <td>H 0.7, lean −0.25</td>
             </tr>
             <tr>
               <td>0 Fool</td>
-              <td>0</td>
-              <td>0</td>
-              <td>1.6</td>
-              <td>chaos: a wider range, no direction</td>
+              <td>v 1.6</td>
+              <td>pull 0.1, v 1.6</td>
+              <td>gain 1.5, the farthest match</td>
+              <td>alpha 0.7, beta 0.25</td>
+              <td>gain 1.5</td>
             </tr>
             <tr>
-              <td>any other, index i</td>
-              <td>0</td>
-              <td>(i − 10.5) / 10.5 × 0.4</td>
-              <td>1.0</td>
-              <td></td>
-            </tr>
-          </table>
-        </div>
-        <p>
-          A reversed major flips the sign of <code>drift</code> and <code>jump</code>. The regime is <code>dir</code>:
-          only the Wheel and Death rewrite it, and the rewritten <code>dir</code> lives to the end of the step.
-        </p>
-        <div class="table">
-          <table>
-            <tr>
-              <th>Minor (sg = −1 reversed, +1 upright)</th>
-              <th>drift</th>
-              <th>v</th>
-              <th>pull</th>
+              <td>any other major, index <code>i</code>: up above 10, down below 10</td>
+              <td>drift (<code>i</code> − 10.5) / 10.5 × 0.4</td>
+              <td>shift ±0.25</td>
+              <td>sign ±</td>
+              <td>lean ±0.2</td>
+              <td>H 0.68 up, 0.32 down; lean ±0.15</td>
             </tr>
             <tr>
               <td>wands</td>
-              <td>sg · m · 0.5</td>
-              <td>1.0</td>
-              <td>0</td>
+              <td>drift ±0.5<code>m</code></td>
+              <td>shift ±0.5<code>m</code></td>
+              <td>sign ±, gain 1 + <code>m</code>/8</td>
+              <td>lean ±0.5<code>m</code></td>
+              <td>H 0.65, lean ±0.5<code>m</code></td>
             </tr>
             <tr>
               <td>cups</td>
-              <td>0</td>
-              <td>1.0 + 0.8 · m upright, 0.6 + 0.3 · m reversed</td>
-              <td>0</td>
+              <td>v 1 + 0.8<code>m</code>, reversed 0.6 + 0.3<code>m</code></td>
+              <td>v 1.6, reversed 0.7</td>
+              <td>gain 1.5, reversed 0.7</td>
+              <td>alpha 0.45, beta 0.45; reversed 0.1 and 0.8</td>
+              <td>H 0.45, gain 1.5, reversed 0.7</td>
             </tr>
             <tr>
               <td>swords</td>
-              <td>sg · (±1 from r() &lt; 0.5) · m · 0.35</td>
-              <td>0.8 + 0.6 · m</td>
-              <td>0</td>
+              <td>v 0.8 + 0.6<code>m</code>, drift ±rnd 0.35<code>m</code></td>
+              <td>v 1.2, shift ±rnd 0.2</td>
+              <td>gain 1.2, sign ±rnd</td>
+              <td>alpha 0.35, lean ±rnd 0.15</td>
+              <td>H 0.3, gain 1.2</td>
             </tr>
             <tr>
               <td>pentacles</td>
-              <td>0</td>
-              <td>0.8</td>
-              <td>m · 0.3</td>
+              <td>pull 0.3<code>m</code>, v 0.8</td>
+              <td>pull 0.3 + round(30<code>m</code>)/100, v 0.8</td>
+              <td>gain 0.8</td>
+              <td>alpha 0.1, beta 0.8 + round(30<code>m</code>)/500</td>
+              <td>H 0.4, gain 0.8</td>
             </tr>
           </table>
         </div>
-        <p>The candle, everything in units of <code>A</code>:</p>
-        <ul>
-          <li>
-            <code>o = last.c</code> — always. There are no gaps: crypto never closes, so the Tower and the Sun put their
-            jump into the body of the block's first candle as <code>jump</code>.
-          </li>
-          <li><code>c = o + (jump + drift) · A + (r() − 0.5) · v · A + pull · (ma − o)</code></li>
-          <li>
-            <code>h = max(o, c) + r() · v · A · 0.6</code>, <code>l = min(o, c) − r() · v · A · 0.6</code>; a candle
-            narrower than 0.3 · A gets both wicks widened to it.
-          </li>
-          <li><code>t = last.t + 1 hour</code>; the candle becomes <code>last</code> for the next one.</li>
-        </ul>
         <p>
-          Generator call order per candle: swords take one number for the drift sign, then the close noise, then h, then
-          l. The scale is calibrated so that the mean true range of a forecast candle is about one ATR and no candle is
-          narrower than 0.3 ATR.
+          The wicks of the <code>atr</code> reader are <code>h = max(o, c) + r() · v · A · 0.6</code> and
+          <code>l = min(o, c) − r() · v · A · 0.6</code>. Its generator call order per candle: swords take one number
+          for the sign of the push, then the close noise, then h, then l. The scale is calibrated so that the mean true
+          range of a forecast candle is about one ATR.
         </p>
 
-        <h2>5. The day summary</h2>
-        <p>Under the three cards the interface writes one paragraph from the step's numbers:</p>
+        <h2>7. The day summary</h2>
+        <p>Under the three cards the interface writes one paragraph from the day's numbers:</p>
         <ul>
           <li>
             <code>netPct</code> — the last close against the first open, in percent; <code>highPct</code>,
@@ -290,21 +437,85 @@
           </li>
         </ul>
 
-        <h2>6. The prophecy check</h2>
+        <h2>8. The prophecy check</h2>
         <p>
           When a link is opened after its anchor, the browser fetches the real candles that have closed since and
-          compares each forecast candle with the real candle of the same hour. A hit is a matching sign:
-          <code>(fc.c ≥ fc.o) === (real.c ≥ real.o)</code>. Accuracy is <code>hits / compared</code>, interim until all
-          24 × steps candles have a real pair, and 50 % or more reads as "the prophecy came true". Over many readings it
-          lands, honestly, near one half.
+          compares each forecast candle with the real candle of the same hour. A candle without a real pair does not
+          count.
         </p>
+        <ul>
+          <li>
+            <strong>Accuracy</strong> — the share of candles whose direction matches:
+            <code>(fc.c ≥ fc.o) === (real.c ≥ real.o)</code>, that is <code>hits / compared</code>. It is interim until
+            all 24 × days candles have a real pair, and 50 % or more reads as "the prophecy came true". Over many
+            readings it lands, honestly, near one half.
+          </li>
+          <li>
+            <strong>Drift</strong> — the mean gap between the closes, <code>|fc.c − real.c|</code>, divided by the
+            ATR(14) of the snapshot in price. It ignores the sign, because the sign is what accuracy measures. The unit
+            is the market's and the same for everybody, so five readers and any two instruments are comparable in it.
+          </li>
+          <li>
+            <strong>A word, not a number.</strong> The badge shows the percentage and one word about the reader: close
+            to the market, near it, or wide of it. The judgement is <code>drift / √compared</code>, because two random
+            walks drift apart with the square root of their length. The thresholds 0.35 and 0.9 are the first and third
+            quartiles of that value on live candles (5 instruments × 3 anchors × 5 readers, horizons of 6, 24 and 48
+            candles), so praise and scorn each land on about a quarter of readings.
+          </li>
+        </ul>
 
-        <h2>7. What a link stores</h2>
+        <h2>9. The reader rating</h2>
         <p>
-          The cards drawn per step, the 168-candle snapshot the server took at the moment of sharing, the exchange it
-          came from, the reader that drew it and its nonce. Everything else — forecast candles, summary, accuracy — is
-          recomputed in your browser with the current formulas.
+          The stars on a reader's card are not an opinion. The score keeps its own track — one instrument, one reading
+          every four hours, drawn by a cron and by nobody else — and once a reading's horizon has closed, all five
+          forecasts are rebuilt from that one row and measured against the same real candles. Readings people draw are
+          never scored: otherwise the rating would say which coin was popular this week.
         </p>
+        <ul>
+          <li>
+            <strong>A place, not a threshold.</strong> On one reading the five are sorted by drift: +1 to the first, −1
+            to the last, evenly in between, zero across the table. A fixed threshold would measure the week instead of
+            the reader — on a calm one everybody would pass, on a stormy one everybody would fail.
+          </li>
+          <li>
+            <strong>The rating forgets.</strong> It is an exponential mean of places with a memory of twenty readings: a
+            reading loses half its weight within seven, and 95 % of it after thirty.
+          </li>
+          <li>
+            <strong>Stars are a place on the scale.</strong> <code>3 + rating / spread</code>, where the spread is the
+            root mean square of the table's ratings; clamped to 1…5 in halves. Five similar mechanics all sit near the
+            middle, so on an absolute scale everyone would score three forever; the full five goes to whoever pulls two
+            spreads clear of the rest. Under ten scored readings there are no stars at all: a guessed star reads as a
+            measured one.
+          </li>
+        </ul>
+
+        <h2>10. What a link stores, and what it recomputes</h2>
+        <p>
+          Stored: the cards of every written day, the 168-candle snapshot the server took itself, the exchange it came
+          from, the reader and the nonce. Those are the reading. Recomputed in your browser on every view, with the
+          formulas of today: the forecast candles, the card effects, the day summary, the accuracy and the drift. The
+          verdict behind the stars is computed once, by the cron, and kept.
+        </p>
+        <p>So a link can differ from what its author saw, in exactly these ways:</p>
+        <ul>
+          <li>A formula was edited: the candles and the accuracy are new, the cards and the snapshot are not.</li>
+          <li>
+            The server snapshotted a different exchange than the author's browser did — Binance answers 403 to the
+            Cloudflare edge — so the snapshots differ by hundredths of a percent. The cards are the same, the candles
+            slightly different, and <code>analogy</code> may pick another matching stretch and draw a visibly different
+            shape.
+          </li>
+          <li>
+            A tab open across a deploy that changed the shuffle: the first day is refused with a 409, because the cards
+            it drew are not the ones the server draws. Later days are not checked and are appended by the server's
+            engine.
+          </li>
+          <li>
+            Formulas were edited after a verdict was scored: the stars were counted with the old ones while the badge on
+            a link is counted with the new, until the exponential memory washes the old verdicts out.
+          </li>
+        </ul>
 
         <p><a class="back" href="/">← back to the terminal</a></p>
       </main>
