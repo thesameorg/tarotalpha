@@ -116,6 +116,7 @@ export const zh: Dictionary = {
   disclaimer: "不构成投资建议；牌也这么认为",
   reversed: "逆位",
   day: (n: number): string => `第 ${String(n)} 天`,
+  castHere: "起卦时刻",
   now: "现在",
   drawStep: (n: number): string => `开启牌阵 · 第 ${String(n)} 天`,
   mana: "法力",
@@ -132,6 +133,8 @@ export const zh: Dictionary = {
     too_old: "交易所返回的历史不完整",
   },
   share: {
+    inTelegram: "在 Telegram 里发送",
+    orWeb: "或用网站链接，给不在 Telegram 的人",
     button: "分享",
     copy: "复制链接",
     snapshotFailed: "快照失败，请重试",
@@ -142,7 +145,20 @@ export const zh: Dictionary = {
     title: "牌阵链接",
     lead: "打开后显示相同的蜡烛图和牌。当未来到来，链接会显示预言验证。",
   },
+  manaPanel: {
+    refill: "每小时回复一点，当地午夜回满。",
+    full: "已回满",
+    fullAt: (time: string): string => `${time} 回满`,
+  },
+  paid: {
+    title: "额外魔力",
+    order: "在普通魔力用完后才扣",
+    what: "用真钱购买。不会自动回复，也不会过期：一直留到你用掉。",
+  },
   paywall: {
+    slow: "已支付，魔力马上到账",
+    scan: "用钱包的相机扫一扫",
+    backToReading: "回到牌阵",
     exact: "准确金额",
     wasTon: "原 TON",
     pick: "用什么支付？",
@@ -188,6 +204,7 @@ export const zh: Dictionary = {
     ripensIn: (hours: number): string => `${String(hours)} 小时后成熟`,
   },
   prophecy: {
+    legend: "青色和粉色的空心蜡烛是牌阵的预测，绿色和红色的实心蜡烛是市场的真实走势",
     checking: "正在用交易所的蜡烛图验证预言…",
     notYet: (closesAt: string): string => `未来尚未到来：第一根待验证的蜡烛将于 ${closesAt} 收盘`,
     checkFailed: "交易所无响应，预言验证推迟",

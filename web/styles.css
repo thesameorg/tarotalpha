@@ -18,8 +18,9 @@
   --on-gold: #1a1405;
   --up: #4fbf8b;
   --down: #e05c62;
-  --forecast-up: rgba(121, 214, 168, 0.85);
-  --forecast-down: rgba(240, 138, 143, 0.85);
+  /* Cyan and pink on purpose: green and red belong to the market, and a guess must not borrow them. */
+  --forecast-up: rgba(94, 214, 230, 0.85);
+  --forecast-down: rgba(240, 130, 190, 0.85);
   --crosshair: #5a5f78;
   --zone-tint: rgba(214, 178, 90, 0.05);
   --zone-line: #5a4a20;
@@ -50,8 +51,8 @@
   --on-gold: #fff8e6;
   --up: #1f9d63;
   --down: #c93a41;
-  --forecast-up: rgba(31, 157, 99, 0.55);
-  --forecast-down: rgba(201, 58, 65, 0.55);
+  --forecast-up: rgba(12, 130, 150, 0.8);
+  --forecast-down: rgba(186, 56, 134, 0.8);
   --crosshair: #9a957f;
   --zone-tint: rgba(154, 116, 24, 0.06);
   --zone-line: #c9b26a;
@@ -153,19 +154,15 @@ header {
   gap: 16px;
   min-width: 0;
 }
-/* One dash per day of the horizon on a shared reading; the days the author opened are gold. */
-.steps {
-  display: flex;
-  gap: 4px;
+/* The two kinds of candle, named where the check is read: nothing else on the chart says which is which. */
+.verdict-legend {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--paper-dim);
 }
-.steps span {
-  width: 14px;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--ink-3);
-}
-.steps span.done {
-  background: var(--gold);
+.verdict-legend b {
+  font-weight: normal;
+  color: var(--paper);
 }
 .header-controls {
   margin-left: auto;
@@ -1420,6 +1417,48 @@ main {
     opacity: 1;
   }
 }
+/* The QR is the desktop path: the page is open on a laptop and the wallet is on a phone. White card on purpose —
+   a themed QR is a QR that sometimes does not scan. */
+.pay-qr {
+  text-align: center;
+  margin-bottom: 14px;
+}
+.pay-qr img {
+  width: 200px;
+  height: 200px;
+  padding: 8px;
+  border-radius: 6px;
+  background: #fff;
+}
+.pay-qr-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--paper-dim);
+}
+.pay-gain {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 56px;
+  line-height: 1.1;
+  text-align: center;
+  color: var(--gold);
+  animation: pay-land 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes pay-land {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pay-gain {
+    animation: none;
+  }
+}
 .pay-ok {
   margin: 0;
   font-family: var(--serif);
@@ -1848,6 +1887,37 @@ footer {
 }
 .mana .cork {
   fill: var(--gold-2);
+}
+/* The bought pool wears gold; the free one stays violet, so which flask is which needs no label. */
+.mana-paid .potion {
+  fill: var(--gold);
+}
+.mana-paid .cork {
+  fill: var(--gold-deep);
+}
+.mana,
+.mana-paid {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 3px;
+}
+.mana:hover,
+.mana-paid:hover {
+  background: var(--ink-3);
+}
+.mana-box {
+  text-align: center;
+}
+.mana-panel-count {
+  margin: 12px 0 4px;
+  font-family: var(--mono);
+  font-size: 34px;
+  color: var(--gold);
+}
+.mana-panel-when {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: var(--paper-dim);
 }
 .mana-count {
   color: var(--paper);

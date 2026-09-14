@@ -136,6 +136,7 @@ export const ja: Dictionary = {
   disclaimer: "投資助言ではありません。カードもそう言っています",
   reversed: "逆位置",
   day: (n: number): string => `${String(n)}日目`,
+  castHere: "占った時点",
   now: "現在",
   drawStep: (n: number): string => `リーディングを開く · ${String(n)}日目`,
   mana: "マナ",
@@ -152,6 +153,8 @@ export const ja: Dictionary = {
     too_old: "取引所が返した履歴が不完全です",
   },
   share: {
+    inTelegram: "Telegram で送る",
+    orWeb: "またはサイトのリンクで、Telegram の外の人へ",
     button: "共有",
     copy: "リンクをコピー",
     snapshotFailed: "スナップショットに失敗しました。もう一度お試しください",
@@ -162,7 +165,20 @@ export const ja: Dictionary = {
     title: "リーディングへのリンク",
     lead: "同じローソク足と同じカードで開きます。未来が訪れたら、リンクは予言の検証を表示します。",
   },
+  manaPanel: {
+    refill: "1時間に1ずつ、現地の深夜には満タンまで回復します。",
+    full: "満タンです",
+    fullAt: (time: string): string => `${time} に満タン`,
+  },
+  paid: {
+    title: "エクストラマナ",
+    order: "通常のマナを使い切ってから減ります",
+    what: "実際のお金で購入します。自動では回復せず、失効もしません。使うまで残ります。",
+  },
   paywall: {
+    slow: "支払い済みです。マナはまもなく届きます",
+    scan: "ウォレットのカメラで読み取ってください",
+    backToReading: "占いに戻る",
     exact: "正確な金額",
     wasTon: "旧 TON",
     pick: "何で支払いますか",
@@ -208,6 +224,7 @@ export const ja: Dictionary = {
     ripensIn: (hours: number): string => `${String(hours)}時間後に満期`,
   },
   prophecy: {
+    legend: "水色とピンクの中空のローソクがカードの予想、緑と赤の中身の詰まったローソクが実際の相場です",
     checking: "取引所のローソク足で予言を検証中…",
     notYet: (closesAt: string): string => `未来はまだ来ていません：検証する最初のローソク足は ${closesAt} に確定します`,
     checkFailed: "取引所が応答しないため、予言の検証は延期されました",

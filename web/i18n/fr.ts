@@ -147,6 +147,7 @@ export const fr: Dictionary = {
   disclaimer: "ceci n'est pas un conseil financier ; les cartes sont du même avis",
   reversed: "renversée",
   day: (n: number): string => `jour ${String(n)}`,
+  castHere: "tirage fait",
   now: "maintenant",
   drawStep: (n: number): string => `Ouvrir le tirage · jour ${String(n)}`,
   mana: "Mana",
@@ -163,6 +164,8 @@ export const fr: Dictionary = {
     too_old: "La bourse a renvoyé un historique incomplet",
   },
   share: {
+    inTelegram: "Envoyer sur Telegram",
+    orWeb: "Ou par lien vers le site, pour qui n'est pas sur Telegram",
     button: "Partager",
     copy: "Copier le lien",
     snapshotFailed: "Impossible de prendre l'instantané, réessayez",
@@ -173,7 +176,20 @@ export const fr: Dictionary = {
     title: "Lien vers le tirage",
     lead: "S'ouvre avec les mêmes bougies et les mêmes cartes. Quand le futur sera arrivé, le lien montrera la vérification de la prophétie.",
   },
+  manaPanel: {
+    refill: "Se recharge d'un point par heure et entièrement à minuit.",
+    full: "Le réservoir est plein",
+    fullAt: (time: string): string => `Plein à ${time}`,
+  },
+  paid: {
+    title: "Mana supplémentaire",
+    order: "Dépensée après la mana ordinaire",
+    what: "S'achète avec de l'argent réel. Elle ne se recharge pas et n'expire pas : elle attend d'être dépensée.",
+  },
   paywall: {
+    slow: "Payé. La mana arrive",
+    scan: "Visez avec la caméra du portefeuille",
+    backToReading: "Retour au tirage",
     exact: "Montant exact",
     wasTon: "anciennement TON",
     pick: "Avec quoi payez-vous ?",
@@ -220,6 +236,7 @@ export const fr: Dictionary = {
     ripensIn: (hours: number): string => `prêt dans ${String(hours)} h`,
   },
   prophecy: {
+    legend: "Les bougies creuses cyan et roses sont le tirage ; les pleines vertes et rouges sont le marché",
     checking: "Vérification de la prophétie sur les bougies de la bourse…",
     notYet: (closesAt: string): string =>
       `Le futur n'est pas encore arrivé : la première bougie à vérifier clôture à ${closesAt}`,

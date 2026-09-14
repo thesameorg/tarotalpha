@@ -4,7 +4,7 @@
  */
 import { onLangChange, t } from "./i18n/index";
 import { icons, setIcon } from "./icons";
-import { telegramShare } from "./telegram";
+import { miniAppLink, telegram, telegramShare } from "./telegram";
 import { toast } from "./toast";
 
 function byId(id: string): HTMLElement {
@@ -17,10 +17,25 @@ function linkField(): HTMLInputElement {
   return byId("sharelink") as HTMLInputElement;
 }
 
-export function shareLink(link: string): void {
-  if (telegramShare(link)) return;
+/** Inside Telegram the reading goes as the Mini App itself — a website link takes the reader out of the client —
+ * and the website link stays in the same box for everyone who is not there. */
+export function shareLink(link: string, readingId?: string): void {
   linkField().value = link;
+  const send = byId("share-tg");
+  const or = byId("share-or");
+  send.hidden = true;
+  or.hidden = true;
   byId("sharemodal").classList.add("on");
+  // Outside Telegram the button would open nothing, and asking the Worker for a bot name nobody can use is noise.
+  if (readingId === undefined || telegram() === null) return;
+  void miniAppLink(readingId).then((deepLink) => {
+    if (deepLink === null) return;
+    send.onclick = () => {
+      telegramShare(deepLink);
+    };
+    send.hidden = false;
+    or.hidden = false;
+  });
 }
 
 export function initShareModal(): void {

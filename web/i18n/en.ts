@@ -147,6 +147,7 @@ export const en: Dictionary = {
   disclaimer: "not financial advice; the cards agree",
   reversed: "reversed",
   day: (n: number): string => `day ${String(n)}`,
+  castHere: "reading made",
   now: "now",
   drawStep: (n: number): string => `Open the reading · day ${String(n)}`,
   mana: "Mana",
@@ -163,6 +164,8 @@ export const en: Dictionary = {
     too_old: "The exchange returned an incomplete history",
   },
   share: {
+    inTelegram: "Send in Telegram",
+    orWeb: "Or as a website link, for anyone outside Telegram",
     button: "Share",
     copy: "Copy the link",
     snapshotFailed: "Could not take the snapshot, try again",
@@ -173,7 +176,20 @@ export const en: Dictionary = {
     title: "Link to the reading",
     lead: "Opens with the same candles and cards. Once the future has happened, the link shows the prophecy check.",
   },
+  manaPanel: {
+    refill: "Refills a point an hour and completely at your local midnight.",
+    full: "The tank is full",
+    fullAt: (time: string): string => `Full at ${time}`,
+  },
+  paid: {
+    title: "Extra mana",
+    order: "Spent after the ordinary kind",
+    what: "Bought with real money. It never refills by itself and never expires: it waits until you spend it.",
+  },
   paywall: {
+    slow: "Paid. The mana is on its way",
+    scan: "Point your wallet camera at it",
+    backToReading: "Back to the reading",
     exact: "Exact amount",
     wasTon: "formerly TON",
     pick: "What are you paying with?",
@@ -219,6 +235,7 @@ export const en: Dictionary = {
     ripensIn: (hours: number): string => `ripens in ${String(hours)} h`,
   },
   prophecy: {
+    legend: "Hollow cyan and pink candles are the cards' forecast; the solid green and red ones are the market",
     checking: "Checking the prophecy against the exchange's candles…",
     notYet: (closesAt: string): string =>
       `The future has not happened yet: the first candle to check closes at ${closesAt}`,

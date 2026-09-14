@@ -147,6 +147,7 @@ export const de: Dictionary = {
   disclaimer: "keine Finanzberatung; die Karten sehen das genauso",
   reversed: "umgekehrt",
   day: (n: number): string => `Tag ${String(n)}`,
+  castHere: "Legung erstellt",
   now: "jetzt",
   drawStep: (n: number): string => `Legung öffnen · Tag ${String(n)}`,
   mana: "Mana",
@@ -163,6 +164,8 @@ export const de: Dictionary = {
     too_old: "Die Börse hat eine unvollständige Historie geliefert",
   },
   share: {
+    inTelegram: "In Telegram senden",
+    orWeb: "Oder als Website-Link, für alle außerhalb von Telegram",
     button: "Teilen",
     copy: "Link kopieren",
     snapshotFailed: "Snapshot fehlgeschlagen, bitte erneut versuchen",
@@ -173,7 +176,20 @@ export const de: Dictionary = {
     title: "Link zur Legung",
     lead: "Öffnet sich mit denselben Kerzen und Karten. Wenn die Zukunft eingetreten ist, zeigt der Link die Prüfung der Prophezeiung.",
   },
+  manaPanel: {
+    refill: "Füllt sich stündlich um einen Punkt und um Mitternacht ganz.",
+    full: "Der Tank ist voll",
+    fullAt: (time: string): string => `Voll um ${time}`,
+  },
+  paid: {
+    title: "Extra-Mana",
+    order: "Wird nach dem gewöhnlichen ausgegeben",
+    what: "Wird mit echtem Geld gekauft. Es füllt sich nicht von selbst und verfällt nicht: es wartet.",
+  },
   paywall: {
+    slow: "Bezahlt. Das Mana ist unterwegs",
+    scan: "Mit der Wallet-Kamera scannen",
+    backToReading: "Zurück zur Legung",
     exact: "Genauer Betrag",
     wasTon: "früher TON",
     pick: "Womit zahlen Sie?",
@@ -220,6 +236,7 @@ export const de: Dictionary = {
     ripensIn: (hours: number): string => `reif in ${String(hours)} h`,
   },
   prophecy: {
+    legend: "Die hohlen türkis-rosa Kerzen sind die Legung; die vollen grün-roten sind der Markt",
     checking: "Prophezeiung wird an den Kerzen der Börse geprüft…",
     notYet: (closesAt: string): string =>
       `Die Zukunft ist noch nicht eingetreten: die erste zu prüfende Kerze schließt um ${closesAt}`,

@@ -86,6 +86,17 @@ export async function offerStars(pack: string): Promise<StarsOffer> {
   return await call<StarsOffer>("/api/wallet/invoice", { pack, method: "stars" });
 }
 
+/** What the Worker says is left of this purse's bought mana. */
+export async function walletBalance(): Promise<number> {
+  return (await shelf()).balance;
+}
+
+/** Spends bought mana on the Worker, which is the only side allowed to decide there was enough. */
+export async function spendPaid(mana: number): Promise<number> {
+  const { balance } = await call<{ balance: number }>("/api/wallet/spend", { mana });
+  return balance;
+}
+
 /** The buyer's own jetton wallet for this coin: only a keyed client may ask the chain, so the Worker asks. */
 export async function jettonWalletFor(coin: string, from: string): Promise<string> {
   const { wallet } = await call<{ wallet: string }>("/api/wallet/jetton", { coin, from });

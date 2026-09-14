@@ -14,12 +14,12 @@ export interface Pack {
   stars: number;
 }
 
-// Provisional, the owner sets both price columns. Each step buys more mana per dollar than the one under it, so at
-// every rung topping up reads as cheaper than stopping.
+// Test prices, a hundredth of the real ones, so a rail can be exercised for the cost of nothing. Each step buys
+// more mana per dollar than the one under it, so at every rung topping up reads as cheaper than stopping.
 export const PACKS: readonly Pack[] = [
-  { id: "small", mana: 10, cents: 199, stars: 100 },
-  { id: "mid", mana: 30, cents: 499, stars: 250 },
-  { id: "large", mana: 70, cents: 999, stars: 500 },
+  { id: "small", mana: 10, cents: 2, stars: 1 },
+  { id: "mid", mana: 30, cents: 5, stars: 3 },
+  { id: "large", mana: 70, cents: 10, stars: 7 },
 ];
 
 export function packById(id: unknown): Pack | null {

@@ -149,6 +149,7 @@ export const it: Dictionary = {
   disclaimer: "non è un consiglio finanziario; le carte sono d'accordo",
   reversed: "rovesciata",
   day: (n: number): string => `giorno ${String(n)}`,
+  castHere: "lettura fatta",
   now: "adesso",
   drawStep: (n: number): string => `Apri la lettura · giorno ${String(n)}`,
   mana: "Mana",
@@ -165,6 +166,8 @@ export const it: Dictionary = {
     too_old: "L'exchange ha restituito uno storico incompleto",
   },
   share: {
+    inTelegram: "Invia su Telegram",
+    orWeb: "Oppure col link al sito, per chi non è su Telegram",
     button: "Condividi",
     copy: "Copia il link",
     snapshotFailed: "Impossibile scattare lo snapshot, riprova",
@@ -175,7 +178,20 @@ export const it: Dictionary = {
     title: "Link alla lettura",
     lead: "Si apre con le stesse candele e le stesse carte. Quando il futuro sarà arrivato, il link mostrerà la verifica della profezia.",
   },
+  manaPanel: {
+    refill: "Si ricarica di un punto all'ora e del tutto a mezzanotte.",
+    full: "Il serbatoio è pieno",
+    fullAt: (time: string): string => `Pieno alle ${time}`,
+  },
+  paid: {
+    title: "Mana extra",
+    order: "Si spende dopo quello normale",
+    what: "Si compra con denaro vero. Non si ricarica da solo e non scade: resta finché non lo spendi.",
+  },
   paywall: {
+    slow: "Pagato. Il mana sta arrivando",
+    scan: "Inquadra con la fotocamera del portafoglio",
+    backToReading: "Torna alla lettura",
     exact: "Importo esatto",
     wasTon: "ex TON",
     pick: "Con cosa paghi?",
@@ -222,6 +238,7 @@ export const it: Dictionary = {
     ripensIn: (hours: number): string => `pronta tra ${String(hours)} h`,
   },
   prophecy: {
+    legend: "Le candele vuote ciano e rosa sono la lettura; quelle piene verdi e rosse sono il mercato",
     checking: "Verifica della profezia sulle candele dell'exchange…",
     notYet: (closesAt: string): string =>
       `Il futuro non è ancora arrivato: la prima candela da verificare chiude alle ${closesAt}`,

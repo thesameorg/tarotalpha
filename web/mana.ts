@@ -72,6 +72,16 @@ export function spendMana(cost: number, now = Date.now()): boolean {
   return true;
 }
 
+/** When the tank fills up: an hour a point from the last tick, or the local midnight, whichever comes first. */
+export function fullAt(now = Date.now()): number {
+  const tank = current(now);
+  if (tank.mana >= MANA_CAPACITY) return now;
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  const byHours = tank.at + (MANA_CAPACITY - tank.mana) * HOUR_MS;
+  return Math.min(byHours, midnight.getTime());
+}
+
 export function onManaChange(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);

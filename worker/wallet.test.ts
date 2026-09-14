@@ -93,8 +93,8 @@ describe("the shelf", () => {
     expect(offer.symbol).toBe("USD₮");
     // The comment is the whole mechanism: it is what brings the payment back to this offer.
     expect(offer.comment).toBe(offer.token);
-    // 499 cents at six decimals, no rate anywhere: a dollar coin is already the price.
-    expect(offer.amount).toBe("4990000");
+    // A dollar coin is already the price: cents scale straight into its six decimals, no rate anywhere.
+    expect(offer.amount).toBe(String(PACK.cents * 10 ** (USDT.decimals - 2)));
   });
 
   it("settles a payment a few cents short rather than arguing about it", async () => {
@@ -104,9 +104,14 @@ describe("the shelf", () => {
     const row = await env.DB.prepare("SELECT amount, min_amount FROM invoices WHERE token = ?1")
       .bind(token)
       .first<{ amount: string; min_amount: string }>();
-    expect(row?.amount).toBe("4990000");
-    // Three cents of slack, written into the offer so a claim never needs a rate.
-    expect(row?.min_amount).toBe("4960000");
+    const amount = BigInt(row?.amount ?? "0");
+    const min = BigInt(row?.min_amount ?? "0");
+    expect(amount).toBe(BigInt(PACK.cents * 10 ** (USDT.decimals - 2)));
+    // Slack is written into the offer so a claim never needs a rate, and it is never more than the price allows:
+    // three cents, or three percent when three cents would be most of a test-priced pack.
+    expect(min).toBeLessThan(amount);
+    expect(min).toBeGreaterThanOrEqual((amount * 97n) / 100n);
+    expect(amount - min).toBeLessThanOrEqual((amount * 3n) / BigInt(PACK.cents));
   });
 
   it("refuses a pack nobody sells, a rail that does not exist and a coin we do not take", async () => {

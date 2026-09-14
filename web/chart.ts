@@ -1,10 +1,11 @@
 /**
- * The terminal chart on Lightweight Charts: real candles that draw in left to right, forecast candles that flow
- * in one at a time, hollow real candles over the forecast for the prophecy check, plus the forecast zone, the band
- * between the two sets of closes and the anchor pulse as series primitives. Colours come from the theme's CSS variables and are re-applied on a theme
- * switch; the locale follows the interface language. The library has no timezone, so candle times are shifted by
- * the viewer's offset before they go in: day ticks then land on local midnight and labels read as local wall clock.
- * The frame holds around the anchor: 72 real candles on the left, on the right three days or one past the open ones.
+ * The terminal chart on Lightweight Charts: real candles that draw in left to right, hollow forecast candles
+ * in cyan and pink that flow in one at a time, solid real candles over them for the prophecy check, plus the
+ * forecast zone, the band between the two sets of closes and the anchor pulse as series primitives. Colours come
+ * from the theme's CSS variables and are re-applied on a theme switch; the locale follows the interface language.
+ * The library has no timezone, so candle times are shifted by the viewer's offset before they go in: day ticks
+ * then land on local midnight and labels read as local wall clock. The frame holds around the anchor: 72 real
+ * candles on the left, on the right three days or one past the open ones.
  */
 import {
   CandlestickSeries,
@@ -99,20 +100,24 @@ const realColours = (p: Palette) => ({
   wickDownColor: p.down,
   priceLineColor: p.line,
 });
+// Hollow, and in colours the market never uses: an invented candle should look invented and never pass for a
+// real one. Reality, historical or verified, is always solid green and red.
 const forecastColours = (p: Palette) => ({
-  upColor: p.forecastUp,
-  downColor: p.forecastDown,
+  upColor: TRANSPARENT,
+  downColor: TRANSPARENT,
+  borderUpColor: p.forecastUp,
+  borderDownColor: p.forecastDown,
   wickUpColor: p.forecastUp,
   wickDownColor: p.forecastDown,
 });
 const actualColours = (p: Palette) => ({
-  borderUpColor: p.up,
-  borderDownColor: p.down,
+  upColor: p.up,
+  downColor: p.down,
   wickUpColor: p.up,
   wickDownColor: p.down,
 });
 
-export function createCandleChart(container: HTMLElement): CandleChart {
+export function createCandleChart(container: HTMLElement, anchorWord?: () => string): CandleChart {
   const p = palette();
   const chart: IChartApi = createChart(container, {
     autoSize: true,
@@ -144,20 +149,18 @@ export function createCandleChart(container: HTMLElement): CandleChart {
   const real = chart.addSeries(CandlestickSeries, { ...realColours(p), borderVisible: false });
   const forecast = chart.addSeries(CandlestickSeries, {
     ...forecastColours(p),
-    borderVisible: false,
-    priceLineVisible: false,
-    lastValueVisible: false,
-  });
-  // Hollow bodies with solid outlines: what really happened, drawn over the pale forecast.
-  const actual = chart.addSeries(CandlestickSeries, {
-    ...actualColours(p),
-    upColor: TRANSPARENT,
-    downColor: TRANSPARENT,
     borderVisible: true,
     priceLineVisible: false,
     lastValueVisible: false,
   });
-  const zone = new ForecastZone();
+  // Solid, exactly like the history to its left: what really happened, drawn over the hollow forecast.
+  const actual = chart.addSeries(CandlestickSeries, {
+    ...actualColours(p),
+    borderVisible: false,
+    priceLineVisible: false,
+    lastValueVisible: false,
+  });
+  const zone = new ForecastZone(anchorWord);
   const ribbon = new DeviationRibbon();
   const pulse = new AnchorPulse();
   real.attachPrimitive(zone);

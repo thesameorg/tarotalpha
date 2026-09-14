@@ -134,6 +134,7 @@ export const tr: Dictionary = {
   disclaimer: "yatırım tavsiyesi değildir; kartlar da aynı fikirde",
   reversed: "ters",
   day: (n: number): string => `${String(n)}. gün`,
+  castHere: "açılım yapıldı",
   now: "şimdi",
   drawStep: (n: number): string => `Açılımı aç · ${String(n)}. gün`,
   mana: "Mana",
@@ -150,6 +151,8 @@ export const tr: Dictionary = {
     too_old: "Borsa eksik bir geçmiş döndürdü",
   },
   share: {
+    inTelegram: "Telegram'da gönder",
+    orWeb: "Ya da site bağlantısıyla, Telegram dışındakiler için",
     button: "Paylaş",
     copy: "Bağlantıyı kopyala",
     snapshotFailed: "Anlık görüntü alınamadı, yeniden deneyin",
@@ -160,7 +163,20 @@ export const tr: Dictionary = {
     title: "Açılım bağlantısı",
     lead: "Aynı mumlar ve aynı kartlarla açılır. Gelecek geldiğinde bağlantı kehanet kontrolünü gösterir.",
   },
+  manaPanel: {
+    refill: "Saatte bir puan, gece yarısında ise tamamen dolar.",
+    full: "Depo dolu",
+    fullAt: (time: string): string => `${time} itibarıyla dolu`,
+  },
+  paid: {
+    title: "Ekstra mana",
+    order: "Normal manadan sonra harcanır",
+    what: "Gerçek parayla alınır. Kendiliğinden dolmaz ve yanmaz: harcayana kadar durur.",
+  },
   paywall: {
+    slow: "Ödendi. Mana birazdan gelecek",
+    scan: "Cüzdan kameranızla okutun",
+    backToReading: "Açılıma dön",
     exact: "Tam tutar",
     wasTon: "eski adıyla TON",
     pick: "Neyle ödüyorsunuz?",
@@ -206,6 +222,7 @@ export const tr: Dictionary = {
     ripensIn: (hours: number): string => `${String(hours)} s sonra hazır`,
   },
   prophecy: {
+    legend: "İçi boş camgöbeği ve pembe mumlar açılımın tahmini; dolu yeşil ve kırmızı mumlar piyasanın kendisi",
     checking: "Kehanet borsanın mumlarıyla kontrol ediliyor…",
     notYet: (closesAt: string): string =>
       `Gelecek henüz gelmedi: kontrol edilecek ilk mum saat ${closesAt} itibarıyla kapanır`,

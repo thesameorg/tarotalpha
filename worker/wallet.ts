@@ -7,7 +7,15 @@
 import { ApiError, readJsonBody } from "./json-api";
 import { coinById, COINS, type Coin } from "./coins";
 import { packById, PACKS, type Pack } from "./packs";
-import { approvePreCheckout, paymentOf, preCheckoutOf, setWebhook, starsInvoiceLink, telegramUserId } from "./telegram";
+import {
+  approvePreCheckout,
+  botUsername,
+  paymentOf,
+  preCheckoutOf,
+  setWebhook,
+  starsInvoiceLink,
+  telegramUserId,
+} from "./telegram";
 import { findPayment, jettonWalletOf, quote, tonClient } from "./ton";
 
 /** Secrets the payment side needs. All optional: a rail without its secret is simply not offered. */
@@ -22,9 +30,12 @@ export type WalletEnv = Env & PaymentSecrets;
 
 const WEB_OWNER = /^web:[0-9a-f]{32}$/;
 const TOKEN = /^ta[0-9a-f]{16}$/;
-// The rate drifts between the quote and the signature, and a wallet rounds. Settling a few cents short beats telling
+// The rate drifts between the quote and the signature, and a wallet rounds. Settling a little short beats telling
 // someone who already paid that they are three cents out; the slack is written into the offer, not recomputed later.
-const SLACK_CENTS = 3;
+const SLACK_CENTS = 3n;
+// Three cents of a two-cent pack would be a negative floor, so the slack is whichever is smaller: three cents or
+// three percent. Real prices get the flat three cents, test prices get the percentage.
+const SLACK_PERCENT = 3n;
 
 type Method = "ton" | "stars";
 
@@ -101,7 +112,9 @@ async function priceOf(
   if (key === undefined) throw new ApiError(503, "rail_off", "ton is not configured");
   const amount = await quote(tonClient(key), coin, pack.cents);
   // Scaled from the asked amount rather than quoted twice: one rate for one offer, and no second call to drift.
-  return { amount, min: (amount * BigInt(pack.cents - SLACK_CENTS)) / BigInt(pack.cents) };
+  const flat = (amount * SLACK_CENTS) / BigInt(pack.cents);
+  const share = (amount * SLACK_PERCENT) / 100n;
+  return { amount, min: amount - (flat < share ? flat : share) };
 }
 
 function pickCoin(id: unknown): Coin {
@@ -155,6 +168,27 @@ export async function claimInvoice(request: Request, env: WalletEnv): Promise<Re
   return Response.json({ balance: await balanceOf(owner, env), mana: invoice.mana });
 }
 
+/** Spends bought mana — only what the free tank could not cover. Check and write are one statement, so two tabs
+ * cannot spend the same mana twice. */
+export async function spendMana(request: Request, env: WalletEnv): Promise<Response> {
+  const body = await readJsonBody(request);
+  const owner = await ownerOf(request, env);
+  const mana = typeof body.mana === "number" && Number.isInteger(body.mana) && body.mana > 0 ? body.mana : null;
+  if (mana === null) throw new ApiError(400, "bad_request", "mana must be a positive whole number");
+
+  const written = await env.DB.prepare(
+    "INSERT INTO spends (owner, mana, ts) SELECT ?1, ?2, ?3 WHERE" +
+      " (SELECT COALESCE(SUM(mana), 0) FROM invoices WHERE owner = ?1 AND paid_at IS NOT NULL)" +
+      " - (SELECT COALESCE(SUM(mana), 0) FROM spends WHERE owner = ?1) >= ?2",
+  )
+    .bind(owner, mana, Date.now())
+    .run();
+  if (written.meta.changes !== 1) {
+    throw new ApiError(402, "short", "not enough bought mana", { balance: await balanceOf(owner, env) });
+  }
+  return Response.json({ balance: await balanceOf(owner, env) });
+}
+
 /** Telegram's side of the Stars rail. Pre-checkout has ten seconds to be answered or the charge is cancelled, and
  * only `successful_payment` credits — Telegram documents pre-checkout as no guarantee at all. */
 export async function telegramWebhook(request: Request, env: WalletEnv): Promise<Response> {
@@ -175,6 +209,14 @@ export async function telegramWebhook(request: Request, env: WalletEnv): Promise
   const payment = paymentOf(update);
   if (payment !== null && TOKEN.test(payment.token)) await markPaid(payment.token, payment.chargeId, "stars", env);
   return Response.json({ ok: true });
+}
+
+/** The Mini App's own address: `t.me/<bot>?startapp=<reading>` is what a Telegram user should be handed, not a
+ * website link that leaves the client. Open to anyone — a bot's @name is public the moment it has one. */
+export async function readTelegramApp(env: WalletEnv): Promise<Response> {
+  const botToken = env.TELEGRAM_BOT_TOKEN;
+  if (botToken === undefined) throw new ApiError(503, "rail_off", "telegram is not configured");
+  return Response.json({ bot: await botUsername(botToken) });
 }
 
 /** Registers the bot's webhook on this deployment's own address, using the bot token the Worker already holds, so
@@ -206,9 +248,11 @@ async function markPaid(token: string, extId: string, method: Method, env: Walle
     .run();
 }
 
+/** Bought minus spent. Both halves are append-only sums, so no request can leave a half-written number behind. */
 async function balanceOf(owner: string, env: WalletEnv): Promise<number> {
   const row = await env.DB.prepare(
-    "SELECT COALESCE(SUM(mana), 0) AS mana FROM invoices WHERE owner = ?1 AND paid_at IS NOT NULL",
+    "SELECT (SELECT COALESCE(SUM(mana), 0) FROM invoices WHERE owner = ?1 AND paid_at IS NOT NULL)" +
+      " - (SELECT COALESCE(SUM(mana), 0) FROM spends WHERE owner = ?1) AS mana",
   )
     .bind(owner)
     .first<{ mana: number }>();

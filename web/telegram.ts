@@ -116,12 +116,22 @@ export function telegramSettings(onOpen: () => void): void {
   app?.SettingsButton.onClick(onOpen).show();
 }
 
-/** Telegram's "send to" dialog for a reading link; false outside Telegram, where the caller shows its own. */
+/** Telegram's "send to" dialog for a link; false outside Telegram, where the caller shows its own. */
 export function telegramShare(link: string): boolean {
   if (app === null) return false;
   app.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}`);
   return true;
 }
+
+/** The Mini App's own address for a reading. A Telegram user handed a website link leaves the client to read it. */
+export async function miniAppLink(readingId: string): Promise<string | null> {
+  bot ??= await fetch("/api/tg/app")
+    .then(async (response) => ((await response.json()) as { bot?: string }).bot ?? null)
+    .catch(() => null);
+  return bot === null ? null : `https://t.me/${bot}?startapp=${readingId}`;
+}
+
+let bot: string | null = null;
 
 /** Null when the script fails or is too slow: the boot waits on it, and the plain site beats a blank client. */
 function loadScript(): Promise<WebApp | null> {

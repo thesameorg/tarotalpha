@@ -16,7 +16,9 @@ import {
   newWallet,
   readJettonWallet,
   readWallet,
+  readTelegramApp,
   registerWebhook,
+  spendMana,
   telegramWebhook,
 } from "./wallet";
 
@@ -74,12 +76,14 @@ function route(pathname: string, request: Request, env: Env): Promise<Response> 
   const reading = READING_API.exec(pathname);
   if (reading?.[1] !== undefined && method === "GET") return readReading(reading[1], env);
   if (reading?.[1] !== undefined && method === "PATCH") return extendReading(reading[1], request, env);
-  if (pathname === "/api/events" && method === "POST") return postEvent(request, env);
+  if (pathname === "/api/omen" && method === "POST") return postEvent(request, env);
   if (pathname === "/api/wallet" && method === "POST") return newWallet();
   if (pathname === "/api/wallet" && method === "GET") return readWallet(request, env);
   if (pathname === "/api/wallet/invoice" && method === "POST") return createInvoice(request, env);
   if (pathname === "/api/wallet/claim" && method === "POST") return claimInvoice(request, env);
   if (pathname === "/api/wallet/jetton" && method === "POST") return readJettonWallet(request, env);
+  if (pathname === "/api/wallet/spend" && method === "POST") return spendMana(request, env);
   if (pathname === "/api/tg/register" && method === "POST") return registerWebhook(request, env);
+  if (pathname === "/api/tg/app" && method === "GET") return readTelegramApp(env);
   throw new ApiError(404, "not_found", `no route ${method} ${pathname}`);
 }
