@@ -64,6 +64,15 @@ describe("what an invite pays", () => {
     expect(await balanceOf(sender)).toBe(INVITE_MANA);
   });
 
+  it("pays for every newcomer the one link brings, not once for the link", async () => {
+    const sender = await newOwner();
+    const code = await codeOf(sender);
+    // One code is handed to many: what is paid for is a reader who arrived, and each of them counts once.
+    expect((await bring(code, await newOwner())).status).toBe(200);
+    expect((await bring(code, await newOwner())).status).toBe(200);
+    expect(await balanceOf(sender)).toBe(2 * INVITE_MANA);
+  });
+
   it("refuses an invite that brings its own sender back, and a code nobody sent", async () => {
     const owner = await newOwner();
     expect((await bring(await codeOf(owner), owner)).status).toBe(400);

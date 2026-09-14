@@ -11,8 +11,12 @@ export function clientIp(request: Request): string {
 }
 
 /** `null` when the request may proceed, otherwise the 429 to send back. */
+let __n = 0;
 export async function rateLimited(limiter: RateLimit, request: Request): Promise<Response | null> {
-  const { success } = await limiter.limit({ key: clientIp(request) });
+  const k = clientIp(request);
+  __n++;
+  console.log("HIT", __n, k);
+  const { success } = await limiter.limit({ key: k });
   if (success) return null;
   return Response.json(
     { error: "rate_limited", message: "too many requests from one address, try again in a minute" },
