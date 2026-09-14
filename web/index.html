@@ -72,11 +72,53 @@
       <div class="box">
         <button class="icon-btn modal-close" id="closePayCorner" type="button"></button>
         <h2 data-i18n="paywall.title">Мана кончилась</h2>
-        <p class="lead" data-i18n="paywall.lead">
+        <p class="lead" id="pay-lead" data-i18n="paywall.lead">
           Каждый день расклада стоит маны, и чем он дальше, тем дороже: будущее видно хуже. Мана понемногу возвращается
           каждый час, а с новым днём — целиком.
         </p>
-        <div class="tiers" id="mana-packs"></div>
+        <div class="pay-step" id="pay-packs"><div class="tiers" id="mana-packs"></div></div>
+
+        <div class="pay-step" id="pay-coins" hidden>
+          <p class="pay-ask" data-i18n="paywall.pick">Чем платите?</p>
+          <div class="coins" id="pay-coin-list"></div>
+        </div>
+
+        <div class="pay-step" id="pay-invoice" hidden>
+          <p class="pay-sum"><span id="pay-amount"></span> <span class="pay-sym" id="pay-symbol"></span></p>
+          <button class="pay-go" id="pay-go" type="button" data-i18n="paywall.payWith">Заплатить кошельком</button>
+          <details class="pay-manual">
+            <summary data-i18n="paywall.byHand">Перевести вручную</summary>
+          <div class="pay-field">
+            <span class="pay-label" data-i18n="paywall.exact">Сумма точно</span>
+            <span class="share-field">
+              <input id="pay-exact" readonly spellcheck="false" />
+              <button class="icon-btn" id="pay-copy-exact" type="button"></button>
+            </span>
+          </div>
+          <div class="pay-field">
+            <span class="pay-label" data-i18n="paywall.address">Кошелёк</span>
+            <span class="share-field">
+              <input id="pay-address" readonly spellcheck="false" />
+              <button class="icon-btn" id="pay-copy-address" type="button"></button>
+            </span>
+          </div>
+          <div class="pay-field">
+            <span class="pay-label" data-i18n="paywall.comment">Комментарий</span>
+            <span class="share-field">
+              <input id="pay-comment" readonly spellcheck="false" />
+              <button class="icon-btn" id="pay-copy-comment" type="button"></button>
+            </span>
+          </div>
+          <p class="pay-warn" data-i18n="paywall.commentWarn">
+            Без комментария платёж не найдётся. В кошельках это поле зовут comment, memo или note.
+          </p>
+          <a class="pay-open" id="pay-open" data-i18n="paywall.openWallet" href="#">Открыть кошелёк</a>
+          </details>
+          <p class="pay-wait"><span class="pay-dot"></span><span data-i18n="paywall.waiting">Ждём платёж</span></p>
+        </div>
+
+        <div class="pay-step" id="pay-done" hidden><p class="pay-ok" id="pay-ok"></p></div>
+
         <button class="close" id="closePay" data-i18n="paywall.back">Вернуться к раскладу</button>
       </div>
     </div>

@@ -5,6 +5,14 @@ import { COINS } from "./coins";
 import { PACKS } from "./packs";
 
 const TON = { TON_WALLET: "UQD__TEST__WALLET", TONAPI_KEY: "key" };
+// Absence is stated, never assumed: a developer's own .dev.vars would otherwise decide whether these tests mean
+// anything, and they would quietly pass for the wrong reason.
+const NO_SECRETS = {
+  TON_WALLET: undefined,
+  TONAPI_KEY: undefined,
+  TELEGRAM_BOT_TOKEN: undefined,
+  TELEGRAM_WEBHOOK_SECRET: undefined,
+};
 const STARS = { TELEGRAM_BOT_TOKEN: "bot:token", TELEGRAM_WEBHOOK_SECRET: "hush" };
 const PACK = PACKS.find((pack) => pack.id === "mid");
 if (PACK === undefined) throw new Error("the mid pack is gone from the shelf");
@@ -65,9 +73,10 @@ describe("who is asking", () => {
 describe("the shelf", () => {
   it("offers no rail the deployment has no secret for", async () => {
     const owner = await newOwner();
-    const response = await callApi("/api/wallet", as(owner));
+    const response = await callApi("/api/wallet", as(owner), NO_SECRETS);
     expect(await response.json()).toMatchObject({ rails: { ton: false, stars: false } });
-    const refused = await callApi("/api/wallet/invoice", as(owner, post({ pack: PACK.id, method: "ton" })));
+    const body = post({ pack: PACK.id, method: "ton", coin: "usdt" });
+    const refused = await callApi("/api/wallet/invoice", as(owner, body), NO_SECRETS);
     expect(refused.status).toBe(503);
     expect(await refused.json()).toMatchObject({ error: "rail_off" });
   });
@@ -80,7 +89,7 @@ describe("the shelf", () => {
     const offer = await response.json<Record<string, string>>();
     expect(offer.token).toMatch(/^ta[0-9a-f]{16}$/);
     expect(offer.address).toBe(TON.TON_WALLET);
-    expect(offer.master).toBe(USDT.master);
+    expect(offer.master).toBe(USDT.masterLink);
     expect(offer.symbol).toBe("USD₮");
     // The comment is the whole mechanism: it is what brings the payment back to this offer.
     expect(offer.comment).toBe(offer.token);
@@ -114,6 +123,8 @@ describe("the shelf", () => {
 
   it("pins the stablecoin by its master address, because a forgery can copy the ticker", () => {
     expect(USDT.master).toBe("0:b113a994b5024a16719f69139328eb759596c38a25f59028b146fecdc3621dfe");
+    // The same contract as the raw form above, in the shape a wallet deep link understands.
+    expect(USDT.masterLink).toBe("EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs");
     expect(USDT.decimals).toBe(6);
   });
 });
@@ -176,7 +187,8 @@ describe("the Stars webhook", () => {
   });
 
   it("says nothing at all when the rail has no secrets", async () => {
-    expect((await callApi("/api/tg/webhook", starsPaid("ta0000000000000000", "x"))).status).toBe(503);
+    const response = await callApi("/api/tg/webhook", starsPaid("ta0000000000000000", "x"), NO_SECRETS);
+    expect(response.status).toBe(503);
   });
 });
 

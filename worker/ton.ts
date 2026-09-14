@@ -34,6 +34,17 @@ export async function walletBalance(api: TonApi, wallet: string): Promise<number
   return account.balance;
 }
 
+/** Where this buyer's own jetton wallet lives; a jetton transfer is sent there, never to the master or to us. */
+export async function jettonWalletOf(api: TonApi, owner: string, master: string): Promise<string | null> {
+  try {
+    const held = await api.accounts.getAccountJettonBalance(owner, master);
+    return held.wallet_address.address;
+  } catch {
+    // Never held this jetton, so there is no wallet to send from and nothing to pay with.
+    return null;
+  }
+}
+
 /** What `cents` is worth in `coin`'s smallest unit. A coin pegged to the dollar needs no rate and gets none. */
 export async function quote(api: TonApi, coin: Coin, cents: number): Promise<bigint> {
   const scale = 10n ** BigInt(coin.decimals);

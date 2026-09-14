@@ -1313,6 +1313,126 @@ main {
   background: var(--gold);
   color: var(--on-gold);
 }
+/* Paywall: one box, three steps. Only the step in hand is shown, so the box never grows a scrollbar mid-purchase. */
+.pay-price {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--paper-dim);
+  text-align: center;
+}
+.pay-ask {
+  margin: 0 0 12px;
+  color: var(--paper-dim);
+}
+.coins {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.coin {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 18px 10px;
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--paper);
+}
+.coin small {
+  display: block;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--paper-dim);
+}
+.coin:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.pay-sum {
+  margin: 0 0 14px;
+  font-family: var(--mono);
+  font-size: 30px;
+  text-align: center;
+  color: var(--gold);
+}
+.pay-sym {
+  font-size: 18px;
+  color: var(--paper-dim);
+}
+.pay-go {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  padding: 12px;
+  background: var(--gold);
+  color: var(--on-gold);
+}
+.pay-manual {
+  margin-top: 14px;
+}
+.pay-manual summary {
+  color: var(--paper-dim);
+  cursor: pointer;
+  font-size: 13px;
+}
+.pay-field {
+  margin-top: 12px;
+}
+.pay-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--paper-dim);
+}
+.pay-warn {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--paper-dim);
+}
+.pay-open {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--gold);
+}
+.pay-wait {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 18px 0 0;
+  font-size: 13px;
+  color: var(--paper-dim);
+}
+/* A pulse rather than a spinner: the wait is indexing, not work, and a spinner would promise progress. */
+.pay-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: pay-pulse 1.4s ease-in-out infinite;
+}
+@keyframes pay-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.pay-ok {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 22px;
+  text-align: center;
+  color: var(--gold);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pay-dot {
+    animation: none;
+  }
+}
+
 .box .close {
   margin-top: 16px;
   color: var(--paper-dim);

@@ -8,7 +8,7 @@ import { ApiError, readJsonBody } from "./json-api";
 import { coinById, COINS, type Coin } from "./coins";
 import { packById, PACKS, type Pack } from "./packs";
 import { approvePreCheckout, paymentOf, preCheckoutOf, setWebhook, starsInvoiceLink, telegramUserId } from "./telegram";
-import { findPayment, quote, tonClient } from "./ton";
+import { findPayment, jettonWalletOf, quote, tonClient } from "./ton";
 
 /** Secrets the payment side needs. All optional: a rail without its secret is simply not offered. */
 export interface PaymentSecrets {
@@ -83,7 +83,7 @@ export async function createInvoice(request: Request, env: WalletEnv): Promise<R
     decimals: coin.decimals,
     // A jetton is sent to its own master, not straight to us; the client needs both to build the transfer.
     address: env.TON_WALLET,
-    master: coin.master,
+    master: coin.masterLink,
     amount: String(amount),
     comment: token,
   });
@@ -108,6 +108,23 @@ function pickCoin(id: unknown): Coin {
   const coin = coinById(id);
   if (coin === null) throw new ApiError(400, "bad_request", "coin is not one this rail takes");
   return coin;
+}
+
+/** Where the buyer's own jetton wallet is, which only the chain knows and only a keyed client may ask. */
+export async function readJettonWallet(request: Request, env: WalletEnv): Promise<Response> {
+  const body = await readJsonBody(request);
+  await ownerOf(request, env);
+  const coin = coinById(body.coin);
+  if (coin?.master === undefined || coin.master === null) {
+    throw new ApiError(400, "bad_request", "that coin has no jetton wallet");
+  }
+  const from = typeof body.from === "string" ? body.from : null;
+  if (from === null) throw new ApiError(400, "bad_request", "from must be the buyer's address");
+  const key = env.TONAPI_KEY;
+  if (key === undefined) throw new ApiError(503, "rail_off", "ton is not configured");
+  const wallet = await jettonWalletOf(tonClient(key), from, coin.master);
+  if (wallet === null) throw new ApiError(404, "no_jetton", "this address has never held that coin");
+  return Response.json({ wallet });
 }
 
 /** Asks the chain whether a TON offer has been paid, and credits it if so. Stars never come through here. */
