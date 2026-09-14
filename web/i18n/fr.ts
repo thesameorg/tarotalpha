@@ -173,7 +173,19 @@ export const fr: Dictionary = {
     title: "Lien vers le tirage",
     lead: "S'ouvre avec les mêmes bougies et les mêmes cartes. Quand le futur sera arrivé, le lien montrera la vérification de la prophétie.",
   },
+  manaPanel: {
+    refill: "Se recharge d'un point par heure et entièrement à minuit.",
+    full: "Le réservoir est plein",
+    fullAt: (time: string): string => `Plein à ${time}`,
+  },
+  paid: {
+    title: "Mana supplémentaire",
+    order: "Dépensée après la mana ordinaire",
+    what: "S'achète avec de l'argent réel. Elle ne se recharge pas et n'expire pas : elle attend d'être dépensée.",
+  },
   paywall: {
+    scan: "Visez avec la caméra du portefeuille",
+    backToReading: "Retour au tirage",
     exact: "Montant exact",
     wasTon: "anciennement TON",
     pick: "Avec quoi payez-vous ?",

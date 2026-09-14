@@ -150,7 +150,19 @@ export const ko: Dictionary = {
     title: "리딩 링크",
     lead: "같은 캔들과 같은 카드로 열립니다. 미래가 도착하면 링크는 예언 검증을 보여줍니다.",
   },
+  manaPanel: {
+    refill: "시간당 1씩, 현지 자정에는 가득 찹니다.",
+    full: "가득 찼습니다",
+    fullAt: (time: string): string => `${time}에 가득 참`,
+  },
+  paid: {
+    title: "엑스트라 마나",
+    order: "일반 마나를 다 쓴 뒤에 차감됩니다",
+    what: "실제 돈으로 구매합니다. 저절로 차지 않고 사라지지도 않습니다: 쓸 때까지 남아 있습니다.",
+  },
   paywall: {
+    scan: "지갑 카메라로 스캔하세요",
+    backToReading: "리딩으로 돌아가기",
     exact: "정확한 금액",
     wasTon: "구 TON",
     pick: "무엇으로 결제하시겠습니까",

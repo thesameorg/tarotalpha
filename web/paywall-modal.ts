@@ -6,6 +6,7 @@
  */
 import { applyStatic, onLangChange, t } from "./i18n/index";
 import { icons, setIcon } from "./icons";
+import { refreshPaid } from "./paid-mana";
 import { telegram } from "./telegram";
 import { toast } from "./toast";
 import {
@@ -53,6 +54,7 @@ export function initPaywallModal(): void {
     corner.addEventListener("click", close);
   }
   document.getElementById("closePay")?.addEventListener("click", close);
+  document.getElementById("pay-done-go")?.addEventListener("click", close);
   el.addEventListener("click", (event) => {
     if (event.target === el) close();
   });
@@ -72,7 +74,11 @@ export function initPaywallModal(): void {
       .then(async ({ payWithWallet }) => {
         await payWithWallet(current);
       })
-      .catch(() => undefined);
+      .catch((error: unknown) => {
+        // A wallet the buyer closed is not worth a word; anything else must say something, because a button that
+        // fails in silence reads as a broken button, and the QR beside it would go untried.
+        if (!refused(error)) toast(t().paywall.failed);
+      });
   });
   onLangChange(() => {
     if (loaded !== null) paintPacks(loaded);
@@ -155,8 +161,25 @@ function paintInvoice(offer: ChainOffer): void {
   field("pay-exact", `${humanAmount(offer.amount, offer.decimals)} ${offer.symbol}`);
   field("pay-address", offer.address);
   field("pay-comment", offer.comment);
+  const link = walletLink(offer);
   const open = document.getElementById("pay-open");
-  if (open instanceof HTMLAnchorElement) open.href = walletLink(offer);
+  if (open instanceof HTMLAnchorElement) open.href = link;
+  void paintQr(link);
+}
+
+/** The same link as the button, as a square a phone can read: the page is on a desktop, the wallet is not. */
+async function paintQr(link: string): Promise<void> {
+  const img = document.getElementById("pay-qr");
+  const box = document.getElementById("pay-qr-box");
+  if (!(img instanceof HTMLImageElement) || box === null) return;
+  try {
+    const { toDataURL } = await import("qrcode");
+    img.src = await toDataURL(link, { margin: 1, width: 400, errorCorrectionLevel: "M" });
+    box.hidden = false;
+  } catch {
+    // No square, no loss: the button and the three copyable fields are both still there.
+    box.hidden = true;
+  }
 }
 
 /** Telegram bills Stars itself; the webhook credits, so all this waits for is the client saying the sheet closed. */
@@ -177,9 +200,10 @@ async function payWithStars(pack: string): Promise<void> {
 /** Stars land through the webhook, so the balance is simply read again rather than claimed. */
 async function settle(): Promise<void> {
   try {
+    const before = loaded?.balance ?? 0;
     const now = await shelf();
     loaded = now;
-    done(now.balance);
+    done(now.balance, now.balance - before);
   } catch {
     toast(t().paywall.failed);
   }
@@ -187,6 +211,9 @@ async function settle(): Promise<void> {
 
 function startPolling(token: string): void {
   stopPolling();
+  // What the purse held before this offer: the difference is what the buyer just gained, and that is the number
+  // worth showing large. The balance alone would read the same whether they bought ten or already had ten.
+  const before = loaded?.balance ?? 0;
   let left = POLL_LIMIT;
   polling = window.setInterval(() => {
     left -= 1;
@@ -198,7 +225,7 @@ function startPolling(token: string): void {
       .then((balance) => {
         if (balance === null) return;
         stopPolling();
-        done(balance);
+        done(balance, balance - before);
       })
       .catch(() => {
         // A refusal we cannot act on: keep waiting rather than tearing the screen down under a paying customer.
@@ -211,8 +238,11 @@ function stopPolling(): void {
   polling = null;
 }
 
-function done(balance: number): void {
+function done(balance: number, gained: number): void {
   stopPolling();
+  // The gold flask in the header reads the server, not this screen, so it is told the moment the money lands.
+  void refreshPaid();
+  text("pay-gain", `+${String(gained)}`);
   text("pay-ok", t().paywall.credited(balance));
   show("done");
 }
@@ -248,6 +278,11 @@ function copyButton(buttonId: string, fieldId: string): void {
         toast(t().share.selectToCopy);
       });
   });
+}
+
+/** TON Connect says "user rejected" in its own words; closing a wallet is a choice, not a failure to report. */
+function refused(error: unknown): boolean {
+  return error instanceof Error && /reject|cancel|abort|close/i.test(error.message);
 }
 
 const price = (cents: number): string => `$${(cents / 100).toFixed(2)}`;

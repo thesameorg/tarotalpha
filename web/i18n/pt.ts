@@ -173,7 +173,19 @@ export const pt: Dictionary = {
     title: "Link para a leitura",
     lead: "Abre com os mesmos candles e as mesmas cartas. Quando o futuro chegar, o link mostrará a verificação da profecia.",
   },
+  manaPanel: {
+    refill: "Recupera um ponto por hora e por completo à meia-noite.",
+    full: "O depósito está cheio",
+    fullAt: (time: string): string => `Cheio às ${time}`,
+  },
+  paid: {
+    title: "Mana extra",
+    order: "Gasta-se depois da mana normal",
+    what: "Compra-se com dinheiro real. Não se recupera sozinha nem expira: fica até a gastar.",
+  },
   paywall: {
+    scan: "Aponte a câmara da carteira",
+    backToReading: "Voltar à leitura",
     exact: "Valor exato",
     wasTon: "antes TON",
     pick: "Com o que vai pagar?",

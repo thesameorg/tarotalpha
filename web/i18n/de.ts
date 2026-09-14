@@ -173,7 +173,19 @@ export const de: Dictionary = {
     title: "Link zur Legung",
     lead: "Öffnet sich mit denselben Kerzen und Karten. Wenn die Zukunft eingetreten ist, zeigt der Link die Prüfung der Prophezeiung.",
   },
+  manaPanel: {
+    refill: "Füllt sich stündlich um einen Punkt und um Mitternacht ganz.",
+    full: "Der Tank ist voll",
+    fullAt: (time: string): string => `Voll um ${time}`,
+  },
+  paid: {
+    title: "Extra-Mana",
+    order: "Wird nach dem gewöhnlichen ausgegeben",
+    what: "Wird mit echtem Geld gekauft. Es füllt sich nicht von selbst und verfällt nicht: es wartet.",
+  },
   paywall: {
+    scan: "Mit der Wallet-Kamera scannen",
+    backToReading: "Zurück zur Legung",
     exact: "Genauer Betrag",
     wasTon: "früher TON",
     pick: "Womit zahlen Sie?",

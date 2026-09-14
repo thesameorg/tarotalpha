@@ -160,7 +160,19 @@ export const tr: Dictionary = {
     title: "Açılım bağlantısı",
     lead: "Aynı mumlar ve aynı kartlarla açılır. Gelecek geldiğinde bağlantı kehanet kontrolünü gösterir.",
   },
+  manaPanel: {
+    refill: "Saatte bir puan, gece yarısında ise tamamen dolar.",
+    full: "Depo dolu",
+    fullAt: (time: string): string => `${time} itibarıyla dolu`,
+  },
+  paid: {
+    title: "Ekstra mana",
+    order: "Normal manadan sonra harcanır",
+    what: "Gerçek parayla alınır. Kendiliğinden dolmaz ve yanmaz: harcayana kadar durur.",
+  },
   paywall: {
+    scan: "Cüzdan kameranızla okutun",
+    backToReading: "Açılıma dön",
     exact: "Tam tutar",
     wasTon: "eski adıyla TON",
     pick: "Neyle ödüyorsunuz?",

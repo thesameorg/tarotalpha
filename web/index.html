@@ -36,6 +36,7 @@
         <div class="toolbar" id="toolbar"></div>
         <div class="header-controls">
           <div id="mana"></div>
+          <div id="mana-paid"></div>
           <div id="mine" hidden></div>
           <div id="header-controls" class="switches"></div>
         </div>
@@ -70,6 +71,17 @@
       <div class="box profile" id="reader-card"></div>
     </div>
 
+    <div class="modal" id="mana-panel">
+      <div class="box mana-box">
+        <button class="icon-btn modal-close" id="mana-panel-close" type="button"></button>
+        <h2 id="mana-panel-title">Мана</h2>
+        <p class="mana-panel-count" id="mana-panel-count"></p>
+        <p class="mana-panel-when" id="mana-panel-when"></p>
+        <p class="lead" id="mana-panel-rule"></p>
+        <button class="pay-go" id="mana-panel-buy" type="button" hidden></button>
+      </div>
+    </div>
+
     <div class="modal" id="paywall">
       <div class="box">
         <button class="icon-btn modal-close" id="closePayCorner" type="button"></button>
@@ -87,6 +99,10 @@
 
         <div class="pay-step" id="pay-invoice" hidden>
           <p class="pay-sum"><span id="pay-amount"></span> <span class="pay-sym" id="pay-symbol"></span></p>
+          <div class="pay-qr" id="pay-qr-box">
+            <img id="pay-qr" alt="" />
+            <p class="pay-qr-hint" data-i18n="paywall.scan">Наведите камеру кошелька</p>
+          </div>
           <button class="pay-go" id="pay-go" type="button" data-i18n="paywall.payWith">Заплатить кошельком</button>
           <details class="pay-manual">
             <summary data-i18n="paywall.byHand">Перевести вручную</summary>
@@ -119,7 +135,11 @@
           <p class="pay-wait"><span class="pay-dot"></span><span data-i18n="paywall.waiting">Ждём платёж</span></p>
         </div>
 
-        <div class="pay-step" id="pay-done" hidden><p class="pay-ok" id="pay-ok"></p></div>
+        <div class="pay-step" id="pay-done" hidden>
+          <p class="pay-gain" id="pay-gain"></p>
+          <p class="pay-ok" id="pay-ok"></p>
+          <button class="pay-go" id="pay-done-go" type="button" data-i18n="paywall.backToReading">К раскладу</button>
+        </div>
 
         <button class="close" id="closePay" data-i18n="paywall.back">Вернуться к раскладу</button>
       </div>

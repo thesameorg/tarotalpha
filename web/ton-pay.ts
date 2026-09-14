@@ -4,16 +4,21 @@
  * wallet — never to the master and never straight to us. Either way the token is what brings the payment back to
  * its offer, so a message without it is money we cannot match. What happens after: docs/wallet.md
  */
-import { beginCell, Address, toNano, type Cell } from "@ton/core";
 import { TonConnectUI } from "@tonconnect/ui";
 import { jettonWalletFor, type ChainOffer } from "./wallet";
 
-// The jetton wallet burns gas of its own; this rides along and the unspent part comes back to the sender.
-const JETTON_GAS = toNano("0.05");
-// Anything above zero makes the jetton wallet forward our comment on, which is the only reason the comment survives.
-const FORWARD = toNano("0.01");
+// Gas for the jetton wallet's own execution; whatever it does not burn comes back to the sender.
+const JETTON_GAS = "50000000";
+// Above zero so the jetton wallet forwards our comment on, which is the only reason the comment survives at all.
+const FORWARD = "10000000";
 const TRANSFER_OP = 0x0f8a7ea5;
 const VALID_FOR_S = 600;
+
+interface Message {
+  address: string;
+  amount: string;
+  payload: string;
+}
 
 let ui: TonConnectUI | null = null;
 
@@ -26,7 +31,7 @@ export function tonConnect(): TonConnectUI {
 export async function payWithWallet(offer: ChainOffer): Promise<void> {
   const connect = tonConnect();
   const from = connect.account?.address ?? (await connected(connect));
-  const message = offer.master === null ? nativeMessage(offer) : await jettonMessage(offer, from);
+  const message = offer.master === null ? await nativeMessage(offer) : await jettonMessage(offer, from);
   await connect.sendTransaction({
     validUntil: Math.floor(Date.now() / 1000) + VALID_FOR_S,
     messages: [message],
@@ -41,16 +46,25 @@ async function connected(connect: TonConnectUI): Promise<string> {
   return account.address;
 }
 
-function nativeMessage(offer: ChainOffer): { address: string; amount: string; payload: string } {
-  return { address: offer.address, amount: offer.amount, payload: boc(comment(offer.comment)) };
+/** The cell builder, fetched rather than imported: `@ton/core` reads Node's Buffer while it is still evaluating,
+ * and a static import runs before any line here, so the polyfill would arrive after the throw. */
+async function cells(): Promise<typeof import("@ton/core")> {
+  const { Buffer } = await import("buffer");
+  // Typed loose on purpose: the type checker is told Node's Buffer exists, and the browser is the one that disagrees.
+  const scope = globalThis as { Buffer?: unknown };
+  scope.Buffer ??= Buffer;
+  return await import("@ton/core");
 }
 
-async function jettonMessage(
-  offer: ChainOffer,
-  from: string,
-): Promise<{ address: string; amount: string; payload: string }> {
+async function nativeMessage(offer: ChainOffer): Promise<Message> {
+  const { beginCell } = await cells();
+  return { address: offer.address, amount: offer.amount, payload: boc(comment(beginCell, offer.comment)) };
+}
+
+async function jettonMessage(offer: ChainOffer, from: string): Promise<Message> {
   if (offer.master === null) throw new Error("a jetton offer with no master");
   const wallet = await jettonWalletFor(offer.coin, from);
+  const { beginCell, Address } = await cells();
   const body = beginCell()
     .storeUint(TRANSFER_OP, 32)
     .storeUint(0n, 64)
@@ -59,15 +73,17 @@ async function jettonMessage(
     // Whatever gas is left over goes back to the buyer rather than staying with the jetton wallet.
     .storeAddress(Address.parse(from))
     .storeBit(0)
-    .storeCoins(FORWARD)
+    .storeCoins(BigInt(FORWARD))
     .storeBit(1)
-    .storeRef(comment(offer.comment))
+    .storeRef(comment(beginCell, offer.comment))
     .endCell();
-  return { address: wallet, amount: JETTON_GAS.toString(), payload: boc(body) };
+  return { address: wallet, amount: JETTON_GAS, payload: boc(body) };
 }
 
+type Cell = ReturnType<ReturnType<typeof import("@ton/core").beginCell>["endCell"]>;
+
 /** A text comment cell: op zero and the text, which is what every wallet and explorer reads as "comment". */
-function comment(text: string): Cell {
+function comment(beginCell: typeof import("@ton/core").beginCell, text: string): Cell {
   return beginCell().storeUint(0, 32).storeStringTail(text).endCell();
 }
 

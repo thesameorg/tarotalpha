@@ -142,7 +142,19 @@ export const zh: Dictionary = {
     title: "牌阵链接",
     lead: "打开后显示相同的蜡烛图和牌。当未来到来，链接会显示预言验证。",
   },
+  manaPanel: {
+    refill: "每小时回复一点，当地午夜回满。",
+    full: "已回满",
+    fullAt: (time: string): string => `${time} 回满`,
+  },
+  paid: {
+    title: "额外魔力",
+    order: "在普通魔力用完后才扣",
+    what: "用真钱购买。不会自动回复，也不会过期：一直留到你用掉。",
+  },
   paywall: {
+    scan: "用钱包的相机扫一扫",
+    backToReading: "回到牌阵",
     exact: "准确金额",
     wasTon: "原 TON",
     pick: "用什么支付？",

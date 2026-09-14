@@ -173,7 +173,19 @@ export const en: Dictionary = {
     title: "Link to the reading",
     lead: "Opens with the same candles and cards. Once the future has happened, the link shows the prophecy check.",
   },
+  manaPanel: {
+    refill: "Refills a point an hour and completely at your local midnight.",
+    full: "The tank is full",
+    fullAt: (time: string): string => `Full at ${time}`,
+  },
+  paid: {
+    title: "Extra mana",
+    order: "Spent after the ordinary kind",
+    what: "Bought with real money. It never refills by itself and never expires: it waits until you spend it.",
+  },
   paywall: {
+    scan: "Point your wallet camera at it",
+    backToReading: "Back to the reading",
     exact: "Exact amount",
     wasTon: "formerly TON",
     pick: "What are you paying with?",

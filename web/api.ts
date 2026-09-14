@@ -118,7 +118,7 @@ export async function fetchReaderTable(): Promise<ReaderTable> {
 }
 
 export function postEvent(event: FunnelEvent): void {
-  fetch("/api/events", {
+  fetch("/api/omen", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(event),

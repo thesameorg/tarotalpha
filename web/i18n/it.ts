@@ -175,7 +175,19 @@ export const it: Dictionary = {
     title: "Link alla lettura",
     lead: "Si apre con le stesse candele e le stesse carte. Quando il futuro sarà arrivato, il link mostrerà la verifica della profezia.",
   },
+  manaPanel: {
+    refill: "Si ricarica di un punto all'ora e del tutto a mezzanotte.",
+    full: "Il serbatoio è pieno",
+    fullAt: (time: string): string => `Pieno alle ${time}`,
+  },
+  paid: {
+    title: "Mana extra",
+    order: "Si spende dopo quello normale",
+    what: "Si compra con denaro vero. Non si ricarica da solo e non scade: resta finché non lo spendi.",
+  },
   paywall: {
+    scan: "Inquadra con la fotocamera del portafoglio",
+    backToReading: "Torna alla lettura",
     exact: "Importo esatto",
     wasTon: "ex TON",
     pick: "Con cosa paghi?",

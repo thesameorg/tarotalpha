@@ -162,7 +162,19 @@ export const ja: Dictionary = {
     title: "リーディングへのリンク",
     lead: "同じローソク足と同じカードで開きます。未来が訪れたら、リンクは予言の検証を表示します。",
   },
+  manaPanel: {
+    refill: "1時間に1ずつ、現地の深夜には満タンまで回復します。",
+    full: "満タンです",
+    fullAt: (time: string): string => `${time} に満タン`,
+  },
+  paid: {
+    title: "エクストラマナ",
+    order: "通常のマナを使い切ってから減ります",
+    what: "実際のお金で購入します。自動では回復せず、失効もしません。使うまで残ります。",
+  },
   paywall: {
+    scan: "ウォレットのカメラで読み取ってください",
+    backToReading: "占いに戻る",
     exact: "正確な金額",
     wasTon: "旧 TON",
     pick: "何で支払いますか",

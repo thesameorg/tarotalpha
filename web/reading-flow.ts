@@ -11,7 +11,7 @@
 import { computeSteps, MAX_STEPS, type Candle, type StepResult } from "../engine/index";
 import { ASSET_PATTERN, fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
 import { ExchangeError, type Source } from "../exchange/provider";
-import { ApiError, createReading, extendReading, postEvent } from "./api";
+import { ApiError, createReading, extendReading, fetchReading, postEvent } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
 import { createCoinPicker, type CoinPicker } from "./coin-picker";
 import { required } from "./dom-lookup";
@@ -21,10 +21,12 @@ import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
 import { zoneLabel } from "./local-time-format";
 import { dayCost, manaLeft, spendMana } from "./mana";
+import { paidLeft, spendPaid } from "./paid-mana";
 import { rememberReading } from "./my-readings";
+import { forgetOpen, openReadingFor, rememberOpen } from "./open-reading";
 import { openPaywall } from "./paywall-modal";
 import { formatChange, formatPrice } from "./price-format";
-import { lockReader, onReaderChange, reader } from "./reader-choice";
+import { lockReader, onReaderChange, reader, setReader } from "./reader-choice";
 import { initReaderPicker } from "./reader-picker";
 import { cancelReveal, playReveal } from "./reveal-overlay";
 import type { View } from "./router";
@@ -340,6 +342,11 @@ class LandingPage {
     this.relabel();
     this.panel.clear();
 
+    // A reload within the hour picks the reading back up instead of throwing it away; the row already holds the
+    // snapshot and the nonce, so the days that were open stay exactly the days that were open.
+    const resumable = openReadingFor(asset);
+    if (resumable !== null && (await this.resume(resumable, stale))) return;
+
     const anchorTs = lastClosedAnchor(Date.now());
     let snapshot;
     try {
@@ -377,12 +384,55 @@ class LandingPage {
     postEvent({ type: "chart_loaded", asset });
   }
 
+  /** Rebuilds a reading from its stored row. False when it cannot be had, and the caller loads a fresh chart. */
+  private async resume(id: string, stale: () => boolean): Promise<boolean> {
+    const record = await fetchReading(id).catch((error: unknown) => {
+      // Gone for good rather than unreachable: drop the pointer so every later load does not ask again.
+      if (error instanceof ApiError && error.status === 404) forgetOpen();
+      return null;
+    });
+    if (record === null || record.seed_nonce === null || stale()) return false;
+    const snapshot = record.candles_snapshot.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
+    const steps = computeSteps({
+      asset: record.asset,
+      anchorTs: record.anchor_ts,
+      snapshot,
+      reader: record.reader,
+      nonce: record.seed_nonce,
+      steps: record.steps.length,
+    });
+    this.loaded = {
+      asset: record.asset,
+      anchorTs: record.anchor_ts,
+      snapshot,
+      source: record.source,
+      nonce: record.seed_nonce,
+      steps,
+      saved: Promise.resolve(record.id),
+    };
+    storeAsset(record.asset);
+    setReader(record.reader);
+    lockReader(true);
+    showExchangeLogo(this.el.srcLogo, record.source);
+    this.showPrice();
+    this.chartState(null, false);
+    await this.chart.showSnapshot(snapshot, false);
+    if (stale()) return true;
+    this.chart.setSteps(steps.length);
+    this.panel.setSteps(steps, steps.length - 1);
+    this.enableDraw(true);
+    this.el.share.disabled = false;
+    this.relabel();
+    return true;
+  }
+
   private async openStep(): Promise<void> {
     const loaded = this.loaded;
     if (this.busy || loaded === null || loaded.steps.length >= MAX_STEPS) return;
     const step = loaded.steps.length + 1;
     const cost = this.nextCost();
-    if (manaLeft() < cost) {
+    // The two pools never merge: the free tank pays what it can and the bought one covers the rest.
+    if (manaLeft() + paidLeft() < cost) {
       openPaywall();
       postEvent({ type: "paywall_hit", asset: loaded.asset, step });
       return;
@@ -412,8 +462,17 @@ class LandingPage {
       }
       return;
     }
-    // Paid once the third card is out: a reveal closed before that opened nothing and costs nothing.
-    spendMana(cost);
+    // Paid once the third card is out: a reveal closed before that opened nothing and costs nothing. The bought
+    // pool is asked first because only the server can refuse it; the free tank cannot fail and goes after.
+    const fromFree = Math.min(manaLeft(), cost);
+    if (cost > fromFree && !(await spendPaid(cost - fromFree))) {
+      this.busy = false;
+      this.enableDraw(true);
+      this.el.share.disabled = false;
+      openPaywall();
+      return;
+    }
+    spendMana(fromFree);
     lockReader(true);
     loaded.steps.push(result);
     void this.persist(loaded, step);
@@ -452,6 +511,7 @@ class LandingPage {
               ...body,
             })
           : await extendReading(id, body);
+      rememberOpen(saved.id, loaded.asset);
       await rememberReading({
         id: saved.id,
         asset: loaded.asset,

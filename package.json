@@ -30,6 +30,7 @@
     "@eslint/js": "^9.39.5",
     "@twa-dev/types": "8.0.2",
     "@types/node": "^22.20.2",
+    "@types/qrcode": "^1.5.6",
     "cryptocurrency-icons": "^0.18.1",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
@@ -45,7 +46,9 @@
     "@telegram-apps/init-data-node": "^2.0.10",
     "@ton/core": "^0.63.1",
     "@tonconnect/ui": "^3.0.2",
+    "buffer": "^6.0.3",
     "lightweight-charts": "^5.2.1",
+    "qrcode": "^1.5.4",
     "tonapi-sdk-js": "^2.0.31"
   },
   "packageManager": "pnpm@12.3.4"
