@@ -154,6 +154,8 @@ export const zh: Dictionary = {
     title: "额外魔力",
     order: "在普通魔力用完后才扣",
     what: "用真钱购买。不会自动回复，也不会过期：一直留到你用掉。",
+    invite: (mana: number): string => `邀请一位入门者 · 双方各 +${String(mana)}`,
+    welcomed: (mana: number): string => `有人带你入门：+${String(mana)} 法力`,
   },
   paywall: {
     slow: "已支付，魔力马上到账",

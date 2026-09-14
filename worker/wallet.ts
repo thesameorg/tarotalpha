@@ -30,6 +30,15 @@ export type WalletEnv = Env & PaymentSecrets;
 
 const WEB_OWNER = /^web:[0-9a-f]{32}$/;
 const TOKEN = /^ta[0-9a-f]{16}$/;
+const INVITE_CODE = /^[0-9a-f]{16}$/;
+/** What an invite pays each side: mana costs us nothing, and a newcomer paid to arrive is worth more than a saved
+ *  point. There is no daily cap: every gift already costs a written reading, which is the row that matters. */
+export const INVITE_MANA = 10;
+const HOUR_MS = 60 * 60 * 1000;
+// Neither is a rail. Nothing was paid; the rows exist so the balance, which is the sum of paid offers, counts both
+// gifts. Two names because one newcomer earns two rows, and the unique index keys each of them by that newcomer.
+const INVITE_METHOD = "invite";
+const WELCOME_METHOD = "welcome";
 // The rate drifts between the quote and the signature, and a wallet rounds. Settling a little short beats telling
 // someone who already paid that they are three cents out; the slack is written into the offer, not recomputed later.
 const SLACK_CENTS = 3n;
@@ -266,7 +275,7 @@ async function markPaid(token: string, extId: string, method: Method, env: Walle
   await env.DB.prepare(
     "UPDATE invoices SET paid_at = ?1, ext_id = ?2, mana = mana * CASE WHEN EXISTS" +
       " (SELECT 1 FROM invoices AS earlier WHERE earlier.owner = invoices.owner AND earlier.paid_at IS NOT NULL" +
-      " AND earlier.mana > 0)" +
+      " AND earlier.mana > 0 AND earlier.cents > 0)" +
       " THEN 1 ELSE ?5 END WHERE token = ?3 AND method = ?4 AND paid_at IS NULL",
   )
     .bind(Date.now(), extId, token, method, FIRST_BUY_BONUS)
@@ -313,6 +322,68 @@ function rails(env: WalletEnv): Record<Method, boolean> {
     ton: env.TON_WALLET !== undefined && env.TONAPI_KEY !== undefined,
     stars: env.TELEGRAM_BOT_TOKEN !== undefined,
   };
+}
+
+/** This purse's invite code, minted on the first ask and never rotated: a link already sent has to keep working. */
+export async function readInvite(request: Request, env: WalletEnv): Promise<Response> {
+  const owner = await ownerOf(request, env);
+  await env.DB.prepare(
+    "INSERT INTO invites (code, owner, created_at) VALUES (?1, ?2, ?3) ON CONFLICT (owner) DO NOTHING",
+  )
+    .bind(hex(8), owner, Date.now())
+    .run();
+  const row = await env.DB.prepare("SELECT code FROM invites WHERE owner = ?1").bind(owner).first<{ code: string }>();
+  if (row === null) throw new ApiError(500, "no_invite", "the code did not stick");
+  return Response.json({ code: row.code });
+}
+
+/** Pays the reader whose code brought this purse here. The gift is an offer nobody paid for: the balance is already
+ * the sum of paid offers, so it needs no second ledger, and the unique index makes one newcomer payable exactly
+ * once — by the database, not by a check two requests could pass together. */
+export async function redeemInvite(request: Request, env: WalletEnv): Promise<Response> {
+  const body = await readJsonBody(request);
+  const owner = await ownerOf(request, env);
+  const code = typeof body.code === "string" && INVITE_CODE.test(body.code) ? body.code : null;
+  if (code === null) throw new ApiError(400, "bad_request", "code must match ^[0-9a-f]{16}$");
+  const reading = typeof body.reading === "string" ? body.reading : "";
+  const sender = await env.DB.prepare("SELECT owner FROM invites WHERE code = ?1")
+    .bind(code)
+    .first<{ owner: string }>();
+  if (sender === null) throw new ApiError(404, "no_invite", "no such invite");
+  if (sender.owner === owner) throw new ApiError(400, "bad_request", "an invite cannot bring its own sender back");
+  if (!(await opened(reading, env))) throw new ApiError(400, "no_reading", "no fresh reading to be paid for");
+
+  const now = Date.now();
+  // Both gifts in one batch: the newcomer is keyed into both rows, so either the pair is new or the index refuses
+  // the pair, and nobody ends up paid while the other half is missing.
+  const gift = (to: string, method: string): D1PreparedStatement =>
+    env.DB.prepare(
+      "INSERT INTO invoices (token, owner, mana, cents, method, coin, amount, min_amount, created_at, paid_at," +
+        " ext_id, pack) VALUES (?1, ?2, ?3, 0, ?4, NULL, '0', '0', ?5, ?5, ?6, '')",
+    ).bind(`ta${hex(8)}`, to, INVITE_MANA, method, now, owner);
+  try {
+    await env.DB.batch([gift(sender.owner, INVITE_METHOD), gift(owner, WELCOME_METHOD)]);
+  } catch (error: unknown) {
+    const already = await env.DB.prepare("SELECT 1 AS yes FROM invoices WHERE method = ?1 AND ext_id = ?2")
+      .bind(INVITE_METHOD, owner)
+      .first();
+    // Anything but the unique index refusing is a real failure and is not dressed up as a duplicate.
+    if (already === null) throw error;
+    throw new ApiError(409, "already_paid", "this newcomer has already been counted");
+  }
+  return Response.json({ mana: INVITE_MANA });
+}
+
+/** A reading written in the last hour. It is the only server-side trace that the newcomer reached the cards: mana
+ * lives in the browser and cannot be checked here, so what is paid for is the row a day leaves behind. */
+async function opened(id: string, env: WalletEnv): Promise<boolean> {
+  if (!/^[23456789bcdfghjkmnpqrstvwxz]{8}$/.test(id)) return false;
+  const row = await env.DB.prepare(
+    "SELECT 1 AS yes FROM readings WHERE id = ?1 AND origin = 'share' AND created_at > ?2",
+  )
+    .bind(id, Date.now() - HOUR_MS)
+    .first();
+  return row !== null;
 }
 
 /** Who is asking: a verified Telegram user when the launch data is there, otherwise the browser's own token. */

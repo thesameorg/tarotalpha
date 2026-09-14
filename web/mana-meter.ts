@@ -9,9 +9,15 @@ import { onLangChange, t } from "./i18n/index";
 import { localTime } from "./local-time-format";
 import { fullAt, MANA_CAPACITY, manaLeft, onManaChange } from "./mana";
 import { ENDLESS_SIGN, onPaidChange, paidLeft, paidUnlimited } from "./paid-mana";
+import { myInviteLink } from "./invite";
 import { openPaywall } from "./paywall-modal";
+import { shareLink } from "./share-modal";
+import { telegram } from "./telegram";
+import { toast } from "./toast";
 
 const TICK_MS = 60_000;
+/** What an invite pays its sender; the Worker owns the number, this one only says it on the button. */
+const INVITE_MANA = 10;
 // The liquid's surface in the flask's own units: the bottom of the bowl when empty, the base of the neck when full.
 const LIQUID_BOTTOM = 23;
 const LIQUID_TOP = 7;
@@ -84,7 +90,16 @@ function mount(root: HTMLElement, pool: Pool): () => void {
   };
 }
 
+/** Only the bought pool offers the invite: it is the pool an invite pays into. */
+function showInvite(on: boolean): void {
+  const button = document.getElementById("mana-panel-invite");
+  if (button === null) return;
+  button.hidden = !on;
+  if (on) button.textContent = t().paid.invite(INVITE_MANA);
+}
+
 function openFreePanel(): void {
+  showInvite(false);
   const left = manaLeft();
   const full = left >= MANA_CAPACITY;
   panel(
@@ -99,6 +114,7 @@ function openFreePanel(): void {
 function openPaidPanel(): void {
   const count = paidUnlimited() ? ENDLESS_SIGN : String(paidLeft());
   panel(t().paid.title, count, t().paid.order, t().paid.what, t().paywall.buy);
+  showInvite(true);
 }
 
 /** One box for either pool: the count large, a line about when it changes, and the rule under both. */
@@ -140,5 +156,16 @@ export function initManaPanel(): void {
   document.getElementById("mana-panel-buy")?.addEventListener("click", () => {
     close();
     openPaywall();
+  });
+  document.getElementById("mana-panel-invite")?.addEventListener("click", () => {
+    void myInviteLink()
+      .then(({ url, code }) => {
+        close();
+        // Inside Telegram the invite travels as the Mini App itself, the same way a reading does.
+        shareLink(url, telegram() === null ? undefined : `i${code}`);
+      })
+      .catch(() => {
+        toast(t().share.failed);
+      });
   });
 }

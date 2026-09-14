@@ -15,7 +15,8 @@ export const icons = {
   monitor: svg('<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>', 15),
   external: svg('<path d="M7 17 17 7"/><path d="M8 7h9v9"/>', 12),
   star: svg('<path d="m12 3.8 2.5 5.2 5.7.8-4.1 4 1 5.7-5.1-2.7-5.1 2.7 1-5.7-4.1-4 5.7-.8z"/>', 14),
-  bolt: svg('<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>', 12),
+  // The price of a day is mana, so it wears mana's own flask — the same vessel the header meter fills and empties.
+  mana: svg('<rect x="9" y="1.6" width="6" height="2.6" rx="1"/><path d="M10 4h4v5.6a6.6 6.6 0 1 1-4 0Z"/>', 13),
   history: svg('<path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3.5 3.5V9H9"/><path d="M12 7.5V12l3 2"/>', 15),
   lock: svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>', 13),
 } as const;

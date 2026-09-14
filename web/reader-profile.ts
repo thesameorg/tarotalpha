@@ -63,7 +63,7 @@ function chooseMarkup(id: ReaderId): string {
   }
   if (opinions().includes(id)) return `<div class="profile-current">${t().reader.asked}</div>`;
   if (!opinionsOpen()) return `<div class="profile-current">${t().reader.locked(t().readerName(reader()))}</div>`;
-  return `<button class="draw profile-ask" type="button" data-reader-ask="${id}">${t().reader.ask(t().readerName(id), OPINION_COST)}<span class="mana-glyph">${icons.bolt}</span></button>`;
+  return `<button class="draw profile-ask" type="button" data-reader-ask="${id}">${t().reader.ask(t().readerName(id), OPINION_COST)}<span class="mana-glyph">${icons.mana}</span></button>`;
 }
 
 function paint(): void {

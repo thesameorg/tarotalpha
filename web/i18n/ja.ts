@@ -174,6 +174,8 @@ export const ja: Dictionary = {
     title: "エクストラマナ",
     order: "通常のマナを使い切ってから減ります",
     what: "実際のお金で購入します。自動では回復せず、失効もしません。使うまで残ります。",
+    invite: (mana: number): string => `入門者を招く · 双方に +${String(mana)}`,
+    welcomed: (mana: number): string => `招かれました：マナ +${String(mana)}`,
   },
   paywall: {
     slow: "支払い済みです。マナはまもなく届きます",

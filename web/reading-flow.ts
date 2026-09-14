@@ -20,6 +20,7 @@ import { showExchangeLogo } from "./exchange-logo";
 import type { ZoneLayout } from "./forecast-zone";
 import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
+import { settleInvite } from "./invite";
 import { zoneLabel } from "./local-time-format";
 import { dayCost } from "./mana";
 import { payMana, shortOf } from "./mana-purse";
@@ -268,7 +269,7 @@ class LandingPage {
     const cost = this.nextCost();
     this.el.ctaFull.textContent = t().drawStep(next);
     this.el.ctaShort.textContent = t().day(next);
-    this.el.ctaCost.innerHTML = cost === 0 ? "" : `<span class="mana-glyph">${icons.bolt}</span>${String(cost)}`;
+    this.el.ctaCost.innerHTML = cost === 0 ? "" : `<span class="mana-glyph">${icons.mana}</span>${String(cost)}`;
     const price = cost === 0 ? "" : ` · ${t().mana}: ${String(cost)}`;
     this.el.draw.setAttribute("aria-label", `${t().drawStep(next)}${price}`);
   }
@@ -504,6 +505,9 @@ class LandingPage {
     this.el.share.disabled = false;
     this.enableDraw(true);
     postEvent({ type: "step_opened", asset: loaded.asset, step });
+    // A day is open, and the row it wrote is what the Worker is shown: a write that failed pays nobody yet, and
+    // the invite waits in this browser for the next day.
+    void loaded.saved.then((id) => (id === null ? undefined : settleInvite(id)));
   }
 
   /** Recomputes every bought opinion over the days open now and offers the card the way to buy one more. */

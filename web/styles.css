@@ -1424,6 +1424,21 @@ main {
   background: var(--gold);
   color: var(--on-gold);
 }
+/* The second way out of the same panel: buying is the gold one, inviting stands beside it without competing. */
+.pay-ghost {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px;
+  background: none;
+  color: var(--paper-dim);
+}
+.pay-ghost:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
 .pay-manual {
   margin-top: 14px;
 }

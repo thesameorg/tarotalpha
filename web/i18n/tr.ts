@@ -172,6 +172,8 @@ export const tr: Dictionary = {
     title: "Ekstra mana",
     order: "Normal manadan sonra harcanır",
     what: "Gerçek parayla alınır. Kendiliğinden dolmaz ve yanmaz: harcayana kadar durur.",
+    invite: (mana: number): string => `Bir mürit çağır · ikinize de +${String(mana)}`,
+    welcomed: (mana: number): string => `Sizi getirdiler: +${String(mana)} mana`,
   },
   paywall: {
     slow: "Ödendi. Mana birazdan gelecek",

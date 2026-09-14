@@ -102,6 +102,16 @@ export async function spendPaid(mana: number): Promise<number> {
   return balance;
 }
 
+/** This purse's invite code: the same one every time, because a link already handed out has to keep working. */
+export async function inviteCode(): Promise<string> {
+  return (await call<{ code: string }>("/api/wallet/invite")).code;
+}
+
+/** Tells the Worker which code brought this purse here; the mana goes to whoever sent it, never to the newcomer. */
+export async function redeemInvite(code: string, reading: string): Promise<number> {
+  return (await call<{ mana: number }>("/api/wallet/invited", { code, reading })).mana;
+}
+
 /** The buyer's own jetton wallet for this coin: only a keyed client may ask the chain, so the Worker asks. */
 export async function jettonWalletFor(coin: string, from: string): Promise<string> {
   const { wallet } = await call<{ wallet: string }>("/api/wallet/jetton", { coin, from });
