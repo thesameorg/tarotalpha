@@ -68,6 +68,9 @@ web_modules/
 # dotenv environment variable files
 .env
 .env.*
+# wrangler keeps local secrets here by convention; it must never become a commit.
+.dev.vars
+.dev.vars.*
 !.env.example
 
 # parcel-bundler cache (https://parceljs.org/)

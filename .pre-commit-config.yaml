@@ -22,7 +22,9 @@ repos:
     rev: v3.9.6
     hooks:
       - id: prettier
-        types_or: [ts, tsx, javascript, jsx, json, yaml, markdown, css]
+        # html здесь обязателен: CI гоняет `prettier --check .` по всему дереву, и без него разметка
+        # проходит локальный хук и краснеет только в CI.
+        types_or: [ts, tsx, javascript, jsx, json, yaml, markdown, css, html]
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.11.0.1
