@@ -24,8 +24,21 @@ async function codeOf(owner: string): Promise<string> {
   return (await (await callApi("/api/wallet/invite", as(owner), TON)).json<{ code: string }>()).code;
 }
 
-async function bring(code: string, newcomer: string): Promise<Response> {
-  return await callApi("/api/wallet/invited", as(newcomer, post({ code })), TON);
+/** A reading row, which is the only server-side trace that a newcomer reached the cards. */
+async function opened(): Promise<string> {
+  const alphabet = "23456789bcdfghjkmnpqrstvwxz";
+  const id = Array.from({ length: 8 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
+  await env.DB.prepare(
+    "INSERT INTO readings (id, asset, timeframe, anchor_ts, source, reader, seed_nonce, steps, candles_snapshot," +
+      " created_at, origin) VALUES (?1, 'BTCUSDT', '1H', ?2, 'binance', 'atr', 'nonceabcd', '[]', '[]', ?2, 'share')",
+  )
+    .bind(id, Date.now())
+    .run();
+  return id;
+}
+
+async function bring(code: string, newcomer: string, reading?: string): Promise<Response> {
+  return await callApi("/api/wallet/invited", as(newcomer, post({ code, reading: reading ?? (await opened()) })), TON);
 }
 
 /** A gift written straight to the table: the daily cap needs five of them and they are not worth five round trips. */
@@ -71,6 +84,15 @@ describe("what an invite pays", () => {
     expect((await bring(code, await newOwner())).status).toBe(200);
     expect((await bring(code, await newOwner())).status).toBe(200);
     expect(await balanceOf(sender)).toBe(2 * INVITE_MANA);
+  });
+
+  it("pays for a day that was opened, not for a visit", async () => {
+    const sender = await newOwner();
+    const code = await codeOf(sender);
+    // Mana lives in the browser and the Worker cannot see it, so what it is shown is the row a day leaves behind.
+    expect((await bring(code, await newOwner(), "")).status).toBe(400);
+    expect((await bring(code, await newOwner(), "zzzzzzzz")).status).toBe(400);
+    expect(await balanceOf(sender)).toBe(0);
   });
 
   it("refuses an invite that brings its own sender back, and a code nobody sent", async () => {

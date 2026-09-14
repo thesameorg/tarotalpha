@@ -6,7 +6,7 @@
  * What an invite pays and what stops it being farmed: docs/wallet.md
  */
 import { refreshPaid } from "./paid-mana";
-import { inviteCode, redeemInvite } from "./wallet";
+import { inviteCode, redeemInvite, WalletError } from "./wallet";
 
 const PENDING_KEY = "ta.invite";
 const CODE = /^[0-9a-f]{16}$/;
@@ -21,15 +21,17 @@ export function arrivedBy(code: string | null): void {
   }
 }
 
-/** Pays the sender once this browser has opened a day. Silent either way: it is not this reader's mana. */
-export async function settleInvite(): Promise<void> {
+/** Pays the sender once this browser has opened a day, naming the reading that day wrote: the Worker cannot see
+ * mana, so the row is the only proof the newcomer reached the cards. Silent either way: it is not this reader's
+ * mana. A refusal is final and the code is dropped; a network that blinked is not, and it waits for the next day. */
+export async function settleInvite(reading: string): Promise<void> {
   const code = pending();
   if (code === null) return;
-  forget();
   try {
-    await redeemInvite(code);
-  } catch {
-    // Already counted, unknown, or the sender is full for today: either way there is nothing to say or retry.
+    await redeemInvite(code, reading);
+    forget();
+  } catch (error: unknown) {
+    if (error instanceof WalletError) forget();
   }
 }
 

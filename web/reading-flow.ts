@@ -505,8 +505,9 @@ class LandingPage {
     this.el.share.disabled = false;
     this.enableDraw(true);
     postEvent({ type: "step_opened", asset: loaded.asset, step });
-    // A day is open, so whoever sent this reader here has earned their mana; the call forgets itself after one go.
-    void settleInvite();
+    // A day is open, and the row it wrote is what the Worker is shown: a write that failed pays nobody yet, and
+    // the invite waits in this browser for the next day.
+    void loaded.saved.then((id) => (id === null ? undefined : settleInvite(id)));
   }
 
   /** Recomputes every bought opinion over the days open now and offers the card the way to buy one more. */

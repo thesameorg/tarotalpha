@@ -35,7 +35,8 @@ const INVITE_CODE = /^[0-9a-f]{16}$/;
 export const INVITE_MANA = 12;
 // A browser purse is free to mint, so the faucet gets a lip: farming it costs rows in D1, never money.
 const INVITES_PER_DAY = 5;
-const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 // Not a rail. Nothing was paid; the row exists so that the balance, which is the sum of paid offers, counts the gift.
 const INVITE_METHOD = "invite";
 // The rate drifts between the quote and the signature, and a wallet rounds. Settling a little short beats telling
@@ -344,36 +345,48 @@ export async function redeemInvite(request: Request, env: WalletEnv): Promise<Re
   const owner = await ownerOf(request, env);
   const code = typeof body.code === "string" && INVITE_CODE.test(body.code) ? body.code : null;
   if (code === null) throw new ApiError(400, "bad_request", "code must match ^[0-9a-f]{16}$");
+  const reading = typeof body.reading === "string" ? body.reading : "";
   const sender = await env.DB.prepare("SELECT owner FROM invites WHERE code = ?1")
     .bind(code)
     .first<{ owner: string }>();
   if (sender === null) throw new ApiError(404, "no_invite", "no such invite");
   if (sender.owner === owner) throw new ApiError(400, "bad_request", "an invite cannot bring its own sender back");
-  const today = await env.DB.prepare(
-    "SELECT COUNT(*) AS paid FROM invoices WHERE owner = ?1 AND method = ?2 AND created_at > ?3",
+  if (!(await opened(reading, env))) throw new ApiError(400, "no_reading", "no fresh reading to be paid for");
+
+  const now = Date.now();
+  // Check and write in one statement, like a spend: two newcomers arriving together would both pass a count read
+  // separately and both be paid, and the sixth invite of the day would go through.
+  const written = await env.DB.prepare(
+    "INSERT INTO invoices (token, owner, mana, cents, method, coin, amount, min_amount, created_at, paid_at," +
+      " ext_id, pack) SELECT ?1, ?2, ?3, 0, ?4, NULL, '0', '0', ?5, ?5, ?6, '' WHERE" +
+      " (SELECT COUNT(*) FROM invoices WHERE owner = ?2 AND method = ?4 AND created_at > ?7) < ?8",
   )
-    .bind(sender.owner, INVITE_METHOD, Date.now() - DAY_MS)
-    .first<{ paid: number }>();
-  if ((today?.paid ?? 0) >= INVITES_PER_DAY) {
+    .bind(`ta${hex(8)}`, sender.owner, INVITE_MANA, INVITE_METHOD, now, owner, now - DAY_MS, INVITES_PER_DAY)
+    .run()
+    .catch(async (error: unknown) => {
+      const already = await env.DB.prepare("SELECT 1 AS yes FROM invoices WHERE method = ?1 AND ext_id = ?2")
+        .bind(INVITE_METHOD, owner)
+        .first();
+      // Anything but the unique index refusing is a real failure and is not dressed up as a duplicate.
+      if (already === null) throw error;
+      throw new ApiError(409, "already_paid", "this newcomer has already been counted");
+    });
+  if (written.meta.changes !== 1) {
     throw new ApiError(429, "too_many", "this invite has brought enough for one day");
   }
-  const now = Date.now();
-  try {
-    await env.DB.prepare(
-      "INSERT INTO invoices (token, owner, mana, cents, method, coin, amount, min_amount, created_at, paid_at," +
-        " ext_id, pack) VALUES (?1, ?2, ?3, 0, ?4, NULL, '0', '0', ?5, ?5, ?6, '')",
-    )
-      .bind(`ta${hex(8)}`, sender.owner, INVITE_MANA, INVITE_METHOD, now, owner)
-      .run();
-  } catch (error: unknown) {
-    const already = await env.DB.prepare("SELECT 1 AS yes FROM invoices WHERE method = ?1 AND ext_id = ?2")
-      .bind(INVITE_METHOD, owner)
-      .first();
-    // Anything other than the unique index refusing is a real failure and is not dressed up as a duplicate.
-    if (already === null) throw error;
-    throw new ApiError(409, "already_paid", "this newcomer has already been counted");
-  }
   return Response.json({ mana: INVITE_MANA });
+}
+
+/** A reading written in the last hour. It is the only server-side trace that the newcomer reached the cards: mana
+ * lives in the browser and cannot be checked here, so what is paid for is the row a day leaves behind. */
+async function opened(id: string, env: WalletEnv): Promise<boolean> {
+  if (!/^[23456789bcdfghjkmnpqrstvwxz]{8}$/.test(id)) return false;
+  const row = await env.DB.prepare(
+    "SELECT 1 AS yes FROM readings WHERE id = ?1 AND origin = 'share' AND created_at > ?2",
+  )
+    .bind(id, Date.now() - HOUR_MS)
+    .first();
+  return row !== null;
 }
 
 /** Who is asking: a verified Telegram user when the launch data is there, otherwise the browser's own token. */

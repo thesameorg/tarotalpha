@@ -108,8 +108,8 @@ export async function inviteCode(): Promise<string> {
 }
 
 /** Tells the Worker which code brought this purse here; the mana goes to whoever sent it, never to the newcomer. */
-export async function redeemInvite(code: string): Promise<number> {
-  return (await call<{ mana: number }>("/api/wallet/invited", { code })).mana;
+export async function redeemInvite(code: string, reading: string): Promise<number> {
+  return (await call<{ mana: number }>("/api/wallet/invited", { code, reading })).mana;
 }
 
 /** The buyer's own jetton wallet for this coin: only a keyed client may ask the chain, so the Worker asks. */
