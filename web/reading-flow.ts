@@ -20,6 +20,7 @@ import { showExchangeLogo } from "./exchange-logo";
 import type { ZoneLayout } from "./forecast-zone";
 import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
+import { settleInvite } from "./invite";
 import { zoneLabel } from "./local-time-format";
 import { dayCost } from "./mana";
 import { payMana, shortOf } from "./mana-purse";
@@ -504,6 +505,8 @@ class LandingPage {
     this.el.share.disabled = false;
     this.enableDraw(true);
     postEvent({ type: "step_opened", asset: loaded.asset, step });
+    // A day is open, so whoever sent this reader here has earned their mana; the call forgets itself after one go.
+    void settleInvite();
   }
 
   /** Recomputes every bought opinion over the days open now and offers the card the way to buy one more. */

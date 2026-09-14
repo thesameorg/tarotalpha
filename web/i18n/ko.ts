@@ -162,6 +162,7 @@ export const ko: Dictionary = {
     title: "엑스트라 마나",
     order: "일반 마나를 다 쓴 뒤에 차감됩니다",
     what: "실제 돈으로 구매합니다. 저절로 차지 않고 사라지지도 않습니다: 쓸 때까지 남아 있습니다.",
+    invite: (mana: number): string => `입문자를 초대 · +${String(mana)}`,
   },
   paywall: {
     slow: "결제되었습니다. 마나가 곧 도착합니다",

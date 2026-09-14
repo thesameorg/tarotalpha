@@ -7,6 +7,7 @@
 import "./styles.css";
 import { required } from "./dom-lookup";
 import { initHeaderControls } from "./header-controls";
+import { arrivedBy } from "./invite";
 import { initLang } from "./i18n/index";
 import { initManaPanel, mountManaMeter, mountPaidMeter } from "./mana-meter";
 import { refreshPaid } from "./paid-mana";
@@ -27,6 +28,7 @@ import {
   telegramCloudStorage,
   telegramLanguages,
   telegramReady,
+  telegramStartInvite,
   telegramStartReading,
 } from "./telegram";
 import { initTheme } from "./theme";
@@ -49,6 +51,8 @@ async function boot(): Promise<void> {
   initShareModal();
   initSettingsModal();
 
+  // An invite is checked first: a launch carries one start parameter, and a code is not a reading to open.
+  arrivedBy(telegramStartInvite() ?? new URL(window.location.href).searchParams.get("ref"));
   const start = telegramStartReading();
   if (start !== null) window.history.replaceState(null, "", `/r/${start}`);
   const navigate = startRouter(view, (url, navigate) => {

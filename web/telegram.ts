@@ -19,10 +19,13 @@ const SCRIPT_TIMEOUT_MS = 5000;
 const HOST_KEY = "ta.host";
 const HOST = "telegram";
 const READING_ID = /^[A-Za-z0-9_-]{1,32}$/;
+// An invite wears its own prefix: a start parameter is otherwise indistinguishable from a reading id.
+const INVITE_START = /^i([0-9a-f]{16})$/;
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
 let app: WebApp | null = null;
 let startParam: string | null = null;
+let startInvite: string | null = null;
 let backHandler: (() => void) | null = null;
 
 export function telegram(): WebApp | null {
@@ -51,6 +54,14 @@ export function startReadingOf(hash: string, initDataStartParam: string | undefi
   return param !== undefined && READING_ID.test(param) ? param : null;
 }
 
+// The invite code from `t.me/<bot>?startapp=i<code>`, told apart from a reading id by the prefix and nothing else.
+export function startInviteOf(hash: string, initDataStartParam: string | undefined): string | null {
+  const params = launchParams(hash);
+  if (!params.has("tgWebAppData")) return null;
+  const param = params.get("tgWebAppStartParam") ?? initDataStartParam;
+  return param === undefined ? null : (INVITE_START.exec(param)?.[1] ?? null);
+}
+
 function launchParams(hash: string): URLSearchParams {
   return new URLSearchParams(hash.replace(/^#/, ""));
 }
@@ -62,7 +73,8 @@ export async function initTelegram(): Promise<void> {
   const loaded = await loadScript();
   if (loaded === null) return;
   app = loaded;
-  startParam = startReadingOf(hash, loaded.initDataUnsafe.start_param);
+  startInvite = startInviteOf(hash, loaded.initDataUnsafe.start_param);
+  startParam = startInvite === null ? startReadingOf(hash, loaded.initDataUnsafe.start_param) : null;
   // The launch hash carries initData, the viewer's signed identity: strip it before any link is built from the URL.
   window.history.replaceState(null, "", window.location.pathname + window.location.search);
   loaded.expand();
@@ -102,6 +114,11 @@ export function telegramStartReading(): string | null {
   return app === null ? null : startParam;
 }
 
+/** The invite code the Mini App was launched with, or null: a launch carries one or the other, never both. */
+export function telegramStartInvite(): string | null {
+  return app === null ? null : startInvite;
+}
+
 /** Telegram's own back arrow for a page under the landing; null hides it. */
 export function telegramBack(onBack: (() => void) | null): void {
   if (app === null) return;
@@ -124,11 +141,11 @@ export function telegramShare(link: string): boolean {
 }
 
 /** The Mini App's own address for a reading. A Telegram user handed a website link leaves the client to read it. */
-export async function miniAppLink(readingId: string): Promise<string | null> {
+export async function miniAppLink(startParameter: string): Promise<string | null> {
   bot ??= await fetch("/api/tg/app")
     .then(async (response) => ((await response.json()) as { bot?: string }).bot ?? null)
     .catch(() => null);
-  return bot === null ? null : `https://t.me/${bot}?startapp=${readingId}`;
+  return bot === null ? null : `https://t.me/${bot}?startapp=${startParameter}`;
 }
 
 let bot: string | null = null;

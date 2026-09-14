@@ -20,6 +20,8 @@ import {
   registerWebhook,
   spendMana,
   telegramWebhook,
+  readInvite,
+  redeemInvite,
 } from "./wallet";
 
 const READING_PAGE = /^\/r\/([^/]+)$/;
@@ -83,6 +85,8 @@ function route(pathname: string, request: Request, env: Env): Promise<Response> 
   if (pathname === "/api/wallet/claim" && method === "POST") return claimInvoice(request, env);
   if (pathname === "/api/wallet/jetton" && method === "POST") return readJettonWallet(request, env);
   if (pathname === "/api/wallet/spend" && method === "POST") return spendMana(request, env);
+  if (pathname === "/api/wallet/invite" && method === "GET") return readInvite(request, env);
+  if (pathname === "/api/wallet/invited" && method === "POST") return redeemInvite(request, env);
   if (pathname === "/api/tg/register" && method === "POST") return registerWebhook(request, env);
   if (pathname === "/api/tg/app" && method === "GET") return readTelegramApp(env);
   throw new ApiError(404, "not_found", `no route ${method} ${pathname}`);

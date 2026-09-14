@@ -185,6 +185,7 @@ export const pt: Dictionary = {
     title: "Mana extra",
     order: "Gasta-se depois da mana normal",
     what: "Compra-se com dinheiro real. Não se recupera sozinha nem expira: fica até a gastar.",
+    invite: (mana: number): string => `Convidar um iniciado · +${String(mana)}`,
   },
   paywall: {
     slow: "Pago. A mana está a caminho",
