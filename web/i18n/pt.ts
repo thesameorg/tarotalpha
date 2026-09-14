@@ -220,6 +220,9 @@ export const pt: Dictionary = {
     current: "Lê as cartas para você",
     locked: (name: string): string => `${name} conduz esta leitura até o último dia`,
     choose: (name: string): string => `Que ${name} leia`,
+    ask: (name: string, cost: number): string => `Perguntar a outra · ${name} · ${String(cost)}`,
+    asked: "Já se pronunciou",
+    closest: "A mais próxima",
   },
   reading: {
     notFound: "Leitura não encontrada",

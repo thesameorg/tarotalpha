@@ -10,6 +10,10 @@ import { onLangChange, t } from "./i18n/index";
 import type { ReaderStanding } from "./api";
 import { loadReaderTable, readerStanding } from "./reader-rating";
 import { reader, readerAvatarUrl, readerLocked, setReader } from "./reader-choice";
+import { shortOf } from "./mana-purse";
+import { openPaywall } from "./paywall-modal";
+import { askOpinion, OPINION_COST, opinions, opinionsOpen } from "./second-opinion";
+import { toast } from "./toast";
 
 const STARS = 5;
 
@@ -50,11 +54,16 @@ function othersMarkup(current: ReaderId): string {
   return `<div class="others"><div class="others-title">${t().reader.others}</div><div class="others-row">${options}</div></div>`;
 }
 
-// Once a day is open the forecast is hers to the end: the other readers can still be looked at, not chosen.
+// Once a day is open the forecast is hers to the end: another reader is no longer chosen, she is asked — the cards
+// stay the author's, and what is bought is a second formula over them.
 function chooseMarkup(id: ReaderId): string {
   if (id === reader()) return `<div class="profile-current">${t().reader.current}</div>`;
-  if (readerLocked()) return `<div class="profile-current">${t().reader.locked(t().readerName(reader()))}</div>`;
-  return `<button class="draw profile-choose" type="button" data-reader-pick="${id}">${t().reader.choose(t().readerName(id))}</button>`;
+  if (!readerLocked()) {
+    return `<button class="draw profile-choose" type="button" data-reader-pick="${id}">${t().reader.choose(t().readerName(id))}</button>`;
+  }
+  if (opinions().includes(id)) return `<div class="profile-current">${t().reader.asked}</div>`;
+  if (!opinionsOpen()) return `<div class="profile-current">${t().reader.locked(t().readerName(reader()))}</div>`;
+  return `<button class="draw profile-ask" type="button" data-reader-ask="${id}">${t().reader.ask(t().readerName(id), OPINION_COST)}<span class="mana-glyph">${icons.bolt}</span></button>`;
 }
 
 function paint(): void {
@@ -103,6 +112,23 @@ export function initReaderProfile(): void {
     if (pick !== null && isReaderId(pick.dataset.readerPick)) {
       setReader(pick.dataset.readerPick);
       close();
+      return;
+    }
+    const ask = target.closest<HTMLElement>("[data-reader-ask]");
+    if (ask !== null && isReaderId(ask.dataset.readerAsk)) {
+      const id = ask.dataset.readerAsk;
+      // Short of the price: the same wall a day hits, rather than a button that quietly does nothing.
+      if (shortOf(OPINION_COST)) {
+        close();
+        openPaywall();
+        return;
+      }
+      ask.setAttribute("disabled", "");
+      void askOpinion(id).then((done) => {
+        if (done) close();
+        else toast(t().share.failed);
+        paint();
+      });
     }
   });
   document.addEventListener("keydown", (event) => {

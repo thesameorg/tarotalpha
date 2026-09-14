@@ -188,6 +188,9 @@ export const zh: Dictionary = {
     current: "正在为你占卜",
     locked: (name: string): string => `${name}会主持这次牌阵直到最后一天`,
     choose: (name: string): string => `让${name}来占卜`,
+    ask: (name: string, cost: number): string => `再问一位 · ${name} · ${String(cost)}`,
+    asked: "已经开口",
+    closest: "最接近",
   },
   reading: {
     notFound: "找不到牌阵",

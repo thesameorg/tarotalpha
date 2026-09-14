@@ -219,6 +219,9 @@ export const es: Dictionary = {
     current: "Te lee las cartas",
     locked: (name: string): string => `${name} lleva esta tirada hasta el último día`,
     choose: (name: string): string => `Que lea ${name}`,
+    ask: (name: string, cost: number): string => `Preguntar a otra · ${name} · ${String(cost)}`,
+    asked: "Ya se pronunció",
+    closest: "La más cercana",
   },
   reading: {
     notFound: "Tirada no encontrada",

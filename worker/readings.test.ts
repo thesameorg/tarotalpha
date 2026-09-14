@@ -240,12 +240,47 @@ describe("PATCH /api/readings/:id", () => {
     return (await created.json<Created>()).id;
   }
 
+  // The list is a set, and the database returns it sorted: what matters is who is in it, never in which order.
+  async function opinionsOf(id: string): Promise<string[]> {
+    const body = await (await callApi(`/api/readings/${id}`)).json<ReadingBody & { opinions: string[] }>();
+    return [...body.opinions].sort();
+  }
+
+  it("keeps every reader a second opinion was bought from, and never the author among them", async () => {
+    const id = await opened(1);
+    await callApi(`/api/readings/${id}`, patch({ steps: 1, reader: "atr", opinions: ["garch", "atr"] }));
+    expect(await opinionsOf(id)).toEqual(["garch"]);
+
+    // A second buyer widens the list; a tab that never asked must not take the first opinion away.
+    await callApi(`/api/readings/${id}`, patch({ steps: 1, reader: "atr", opinions: ["fractal"] }));
+    await callApi(`/api/readings/${id}`, patch({ steps: 1, reader: "atr" }));
+    expect(await opinionsOf(id)).toEqual(["fractal", "garch"]);
+  });
+
+  it("loses neither opinion when two payments land together", async () => {
+    const id = await opened(1);
+    // Read-merge-write in the Worker would let the later write land without the earlier reader: the union is the
+    // database's job, and this is the case that tells the two apart.
+    await Promise.all([
+      callApi(`/api/readings/${id}`, patch({ steps: 1, reader: "atr", opinions: ["garch"] })),
+      callApi(`/api/readings/${id}`, patch({ steps: 1, reader: "atr", opinions: ["fractal"] })),
+      callApi(`/api/readings/${id}`, patch({ steps: 1, reader: "atr", opinions: ["reversion"] })),
+    ]);
+    expect(await opinionsOf(id)).toEqual(["fractal", "garch", "reversion"]);
+  });
+
+  it("refuses a reader the table does not seat", async () => {
+    const id = await opened(1);
+    const response = await callApi(`/api/readings/${id}`, patch({ steps: 1, reader: "atr", opinions: ["oracle"] }));
+    expect(response.status).toBe(400);
+  });
+
   it("adds the next day from the row's own seed without asking the exchange again", async () => {
     const id = await opened(1);
     stubBinance(500, "down");
     const extended = await callApi(`/api/readings/${id}`, patch({ steps: 2, reader: "atr" }));
     expect(extended.status).toBe(200);
-    expect(await extended.json()).toEqual({ id, url: `/r/${id}`, steps: 2 });
+    expect(await extended.json()).toEqual({ id, url: `/r/${id}`, steps: 2, opinions: [] });
 
     const body = await (await callApi(`/api/readings/${id}`)).json<ReadingBody>();
     const snapshot = body.candles_snapshot.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));

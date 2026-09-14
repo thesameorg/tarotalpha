@@ -9,6 +9,7 @@
  */
 import {
   CandlestickSeries,
+  LineSeries,
   ColorType,
   createChart,
   CrosshairMode,
@@ -16,12 +17,14 @@ import {
   type CandlestickData,
   type DeepPartial,
   type IChartApi,
+  type ISeriesApi,
   type Time,
   type TimeChartOptions,
   type UTCTimestamp,
 } from "lightweight-charts";
 import type { Candle } from "../engine/atr";
 import { CANDLES_PER_STEP, MAX_STEPS } from "../engine/index";
+import type { ReaderId } from "../engine/readers";
 import { AnchorPulse } from "./anchor-pulse";
 import { DeviationRibbon, type DeviationPair } from "./deviation-ribbon";
 import { ForecastZone, type ZoneLayout } from "./forecast-zone";
@@ -51,6 +54,9 @@ export interface CandleChart {
   appendForecast(candle: Candle): void;
   setForecast(candles: readonly Candle[]): void;
   setActual(candles: readonly Candle[]): void;
+  /** One thin line of closes per reader asked besides the author, in her own colour; drawn over the same hours as
+   *  the forecast. Readers left out of the map lose their line. */
+  setOpinions(opinions: ReadonlyMap<ReaderId, readonly Candle[]>): void;
   /** Hears the forecast zone's pixel layout on every viewport change; the listener lives as long as the chart. */
   onZoneLayout(listener: (layout: ZoneLayout | null) => void): void;
   remove(): void;
@@ -110,6 +116,8 @@ const forecastColours = (p: Palette) => ({
   wickUpColor: p.forecastUp,
   wickDownColor: p.forecastDown,
 });
+// Thin, so the author's candles stay the subject and the second opinions fan out behind them.
+const opinionColours = (p: Palette, id: ReaderId) => ({ color: p.readers[id], lineWidth: 1 as const });
 const actualColours = (p: Palette) => ({
   upColor: p.up,
   downColor: p.down,
@@ -173,6 +181,7 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
     real.applyOptions(realColours(next));
     forecast.applyOptions(forecastColours(next));
     actual.applyOptions(actualColours(next));
+    for (const [id, line] of opinionLines) line.applyOptions(opinionColours(next, id));
   };
   const relocale = (): void => {
     chart.applyOptions(localization());
@@ -232,6 +241,8 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
 
   let forecastCandles: Candle[] = [];
   let actualCandles: readonly Candle[] = [];
+  // Lines, not candles: five sets of bars on the same hour are unreadable, five lines fan out.
+  const opinionLines = new Map<ReaderId, ISeriesApi<"Line">>();
 
   // The band is a function of both sets of candles, so every write to either of them recomputes the pairs.
   const syncRibbon = (): void => {
@@ -254,6 +265,9 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
       anchor = toTime(last.t);
       forecast.setData([]);
       actual.setData([]);
+      // A new snapshot is a new reading: opinions bought about the old one say nothing about these candles.
+      for (const line of opinionLines.values()) chart.removeSeries(line);
+      opinionLines.clear();
       forecastCandles = [];
       actualCandles = [];
       syncRibbon();
@@ -292,6 +306,21 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
       actual.setData(candles.map(toBar));
       actualCandles = candles;
       syncRibbon();
+    },
+    setOpinions(opinions) {
+      for (const [id, line] of opinionLines) {
+        if (opinions.has(id)) continue;
+        chart.removeSeries(line);
+        opinionLines.delete(id);
+      }
+      for (const [id, candles] of opinions) {
+        let line = opinionLines.get(id);
+        if (line === undefined) {
+          line = chart.addSeries(LineSeries, { ...opinionColours(palette(), id), priceLineVisible: false });
+          opinionLines.set(id, line);
+        }
+        line.setData(candles.map((candle) => ({ time: toTime(candle.t), value: candle.c })));
+      }
     },
     onZoneLayout(listener) {
       zone.onLayout(listener);

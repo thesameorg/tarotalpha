@@ -17,6 +17,7 @@ import {
   type Candle,
   type StepResult,
 } from "../engine/index";
+import type { ReaderId } from "../engine/readers";
 import { fetchAfter, HOUR_MS } from "../exchange/closed-candles";
 import { ApiError, fetchReading, postEvent, type ReadingRecord } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
@@ -59,6 +60,15 @@ interface Verdict {
   perStep: readonly Accuracy[];
   total: number;
   reader: string;
+  deviation: number | null;
+  /** The author and every reader bought a second opinion from, each with her own gap; empty when nobody was asked. */
+  table: readonly Opinion[];
+  closest: ReaderId | null;
+}
+
+interface Opinion {
+  id: ReaderId;
+  name: string;
   deviation: number | null;
 }
 
@@ -118,11 +128,49 @@ function lookup(root: HTMLElement, toolbar: HTMLElement): Elements {
   };
 }
 
+/** Every reader the row says was asked, read over the same cards; a reader the engine no longer knows is skipped. */
+function opinionsOf(record: ReadingRecord, snapshot: readonly Candle[]): Map<ReaderId, StepResult[]> {
+  const steps = new Map<ReaderId, StepResult[]>();
+  for (const id of record.opinions) {
+    if (id === record.reader) continue;
+    steps.set(
+      id,
+      forecastFromCards({
+        asset: record.asset,
+        anchorTs: record.anchor_ts,
+        snapshot,
+        reader: id,
+        nonce: record.seed_nonce,
+        cards: record.steps,
+      }),
+    );
+  }
+  return steps;
+}
+
+function candlesByReader(steps: ReadonlyMap<ReaderId, StepResult[]>): Map<ReaderId, Candle[]> {
+  return new Map([...steps].map(([id, days]) => [id, days.flatMap((day) => day.candles)]));
+}
+
 function percent(value: number | null): number | null {
   return value === null ? null : Math.round(value * 100);
 }
 
-function verdictMarkup({ overall, perStep, total, reader, deviation }: Verdict): string {
+// Who came closest, in the gap the scoring uses; only drawn when somebody was asked besides the author, because a
+// table of one says nothing. ATR stays untranslated, like every other unit on the page.
+function tableMarkup(table: readonly Opinion[], closest: ReaderId | null): string {
+  if (table.length < 2) return "";
+  const cells = table
+    .map((one) => {
+      const gap = one.deviation === null ? "—" : one.deviation.toFixed(2);
+      const mark = one.id === closest ? ` <b>${t().reader.closest}</b>` : "";
+      return `<span class="verdict-reader" data-reader="${one.id}">${one.name} · ${gap} ATR${mark}</span>`;
+    })
+    .join("");
+  return `<div class="verdict-readers">${cells}</div>`;
+}
+
+function verdictMarkup({ overall, perStep, total, reader, deviation, table, closest }: Verdict): string {
   const pct = percent(overall.accuracy) ?? 0;
   const hit = (overall.accuracy ?? 0) >= 0.5;
   const title = hit ? t().prophecy.hit(pct) : t().prophecy.miss(pct);
@@ -133,6 +181,7 @@ function verdictMarkup({ overall, perStep, total, reader, deviation }: Verdict):
   <div class="verdict-title">${title}</div>
   <div class="verdict-sub">${status}${word}</div>
   <div class="verdict-steps">${lines}</div>
+  ${tableMarkup(table, closest)}
   <div class="verdict-legend">${t().prophecy.legend}</div>
 </div>`;
 }
@@ -152,6 +201,8 @@ class ReadingPage {
   private panel: SpreadPanel | null = null;
   private picker: CoinPicker | null = null;
   private actual: Candle[] | null = null;
+  /** Second opinions the row carries, recomputed here: the link replays them exactly as their buyer saw them. */
+  private opinionSteps = new Map<ReaderId, StepResult[]>();
   private prophecy: Prophecy = null;
   private noteText: Text | null = null;
   private readonly unsubscribe: () => void;
@@ -222,6 +273,7 @@ class ReadingPage {
       nonce: record.seed_nonce,
       cards: record.steps,
     });
+    this.opinionSteps = opinionsOf(record, snapshot);
     this.record = record;
     this.root.innerHTML = readingMarkup();
     this.toolbar.innerHTML = toolbarMarkup();
@@ -318,6 +370,7 @@ class ReadingPage {
     if (this.gone()) return;
     chart.setSteps(results.length);
     chart.setForecast(results.flatMap((step) => step.candles));
+    chart.setOpinions(candlesByReader(this.opinionSteps));
     await this.checkProphecy(el, chart, results, record, atr(snapshot));
   }
 
@@ -333,6 +386,7 @@ class ReadingPage {
       nonce: record.seed_nonce,
       cards: record.steps,
     });
+    this.opinionSteps = opinionsOf(record, snapshot);
     await this.checkProphecy(el, chart, results, record, atr(snapshot));
   }
 
@@ -376,9 +430,33 @@ class ReadingPage {
       real,
       unit,
     );
+    const table: Opinion[] = [
+      { id: record.reader, name: t().readerName(record.reader), deviation: gap.deviation },
+      ...[...this.opinionSteps].map(([id, steps]) => ({
+        id,
+        name: t().readerName(id),
+        deviation: deviation(
+          steps.flatMap((step) => step.candles),
+          real,
+          unit,
+        ).deviation,
+      })),
+    ];
+    const closest = table.reduce<Opinion | null>(
+      (best, one) => (one.deviation !== null && (best?.deviation ?? Infinity) > one.deviation ? one : best),
+      null,
+    );
     this.setProphecy(el, {
       kind: "verdict",
-      verdict: { overall, perStep, total, reader: t().readerName(record.reader), deviation: gap.deviation },
+      verdict: {
+        overall,
+        perStep,
+        total,
+        reader: t().readerName(record.reader),
+        deviation: gap.deviation,
+        table,
+        closest: closest?.id ?? null,
+      },
     });
   }
 

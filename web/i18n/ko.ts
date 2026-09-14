@@ -196,6 +196,9 @@ export const ko: Dictionary = {
     current: "당신을 위해 점치는 중",
     locked: (name: string): string => `마지막 날까지 이 리딩은 ${name} 담당입니다`,
     choose: (name: string): string => `${name}에게 맡기기`,
+    ask: (name: string, cost: number): string => `한 명 더 묻기 · ${name} · ${String(cost)}`,
+    asked: "이미 말했습니다",
+    closest: "가장 가까움",
   },
   reading: {
     notFound: "리딩을 찾을 수 없습니다",

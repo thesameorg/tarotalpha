@@ -206,6 +206,9 @@ export const tr: Dictionary = {
     current: "Size fal bakıyor",
     locked: (name: string): string => `Bu açılımı son güne kadar ${name} yürütüyor`,
     choose: (name: string): string => `${name} baksın`,
+    ask: (name: string, cost: number): string => `Bir kişiye daha sor · ${name} · ${String(cost)}`,
+    asked: "Zaten konuştu",
+    closest: "En yakını",
   },
   reading: {
     notFound: "Açılım bulunamadı",
