@@ -177,7 +177,13 @@ export async function claimInvoice(request: Request, env: WalletEnv): Promise<Re
   }
 
   await markPaid(token, found.hash, "ton", env);
-  return Response.json({ balance: await balanceOf(owner, env), mana: invoice.mana });
+  // The bonus is applied inside markPaid, so the offered mana is no longer the credited mana: read the row back.
+  const credited = await invoiceOf(token, env);
+  return Response.json({
+    balance: await balanceOf(owner, env),
+    mana: credited?.mana ?? invoice.mana,
+    unlimited: await endlessPurse(owner, env),
+  });
 }
 
 /** Spends bought mana — only what the free tank could not cover. Check and write are one statement, so two tabs
@@ -259,7 +265,8 @@ async function markPaid(token: string, extId: string, method: Method, env: Walle
   // multiplies nothing a second time. The row then holds the mana credited, not the mana offered.
   await env.DB.prepare(
     "UPDATE invoices SET paid_at = ?1, ext_id = ?2, mana = mana * CASE WHEN EXISTS" +
-      " (SELECT 1 FROM invoices AS earlier WHERE earlier.owner = invoices.owner AND earlier.paid_at IS NOT NULL)" +
+      " (SELECT 1 FROM invoices AS earlier WHERE earlier.owner = invoices.owner AND earlier.paid_at IS NOT NULL" +
+      " AND earlier.mana > 0)" +
       " THEN 1 ELSE ?5 END WHERE token = ?3 AND method = ?4 AND paid_at IS NULL",
   )
     .bind(Date.now(), extId, token, method, FIRST_BUY_BONUS)

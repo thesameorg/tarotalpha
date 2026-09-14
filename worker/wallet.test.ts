@@ -156,11 +156,20 @@ describe("the shelf", () => {
 
 describe("the first purchase", () => {
   it("credits double, and only the first one", async () => {
+    expect(FIRST_BUY_BONUS).toBe(2);
     const owner = await newOwner();
     await callApi("/api/tg/webhook", starsPaid(await offer(owner, "stars", 30), "charge-first"), STARS);
     expect(await balanceOf(owner)).toBe(30 * FIRST_BUY_BONUS);
     await callApi("/api/tg/webhook", starsPaid(await offer(owner, "stars", 30), "charge-second"), STARS);
     expect(await balanceOf(owner)).toBe(30 * FIRST_BUY_BONUS + 30);
+  });
+
+  it("is not burnt by a lot that credits no mana at all", async () => {
+    const owner = await newOwner();
+    const endless = await offer(owner, "stars", 0, ENDLESS_PACK);
+    await callApi("/api/tg/webhook", starsPaid(endless, "charge-endless-first"), STARS);
+    await callApi("/api/tg/webhook", starsPaid(await offer(owner, "stars", 30), "charge-after-endless"), STARS);
+    expect(await balanceOf(owner)).toBe(30 * FIRST_BUY_BONUS);
   });
 });
 
