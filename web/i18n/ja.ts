@@ -190,6 +190,7 @@ export const ja: Dictionary = {
     openWallet: "ウォレットを開く",
     waiting: "支払いを待っています",
     credited: (mana: number): string => `入金しました。購入したマナ：${String(mana)}`,
+    endless: "反映されました。財布はもう尽きません",
     failed: "うまくいきませんでした。もう一度お試しください",
     meditating: "決済モジュールはまだ瞑想中です",
     title: "マナが尽きました",

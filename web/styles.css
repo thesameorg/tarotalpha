@@ -1292,8 +1292,13 @@ main {
 }
 .tiers {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
   gap: 10px;
+}
+/* The endless lot is not a quantity like the others, and a row of its own says that before the sign does. */
+.tier-endless {
+  grid-column: 1 / -1;
+  align-items: center;
 }
 .tier {
   border: 1px solid var(--line);

@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { callApi, post, type Init } from "./call-api";
 import { COINS } from "./coins";
-import { PACKS } from "./packs";
+import { ENDLESS_PACK, FIRST_BUY_BONUS, PACKS } from "./packs";
 
 const TON = { TON_WALLET: "UQD__TEST__WALLET", TONAPI_KEY: "key" };
 // Absence is stated, never assumed: a developer's own .dev.vars would otherwise decide whether these tests mean
@@ -14,8 +14,8 @@ const NO_SECRETS = {
   TELEGRAM_WEBHOOK_SECRET: undefined,
 };
 const STARS = { TELEGRAM_BOT_TOKEN: "bot:token", TELEGRAM_WEBHOOK_SECRET: "hush" };
-const PACK = PACKS.find((pack) => pack.id === "mid");
-if (PACK === undefined) throw new Error("the mid pack is gone from the shelf");
+const PACK = PACKS.find((pack) => pack.id === "standard");
+if (PACK === undefined) throw new Error("the standard lot is gone from the shelf");
 const USDT = COINS.find((coin) => coin.id === "usdt");
 if (USDT === undefined) throw new Error("the stablecoin is gone from the rail");
 
@@ -35,13 +35,13 @@ async function balanceOf(owner: string): Promise<number> {
 }
 
 /** An offer written straight to the table: the webhook tests need one without asking Telegram for a link. */
-async function offer(owner: string, method: string, mana = 30): Promise<string> {
+async function offer(owner: string, method: string, mana = 30, pack = "standard"): Promise<string> {
   const token = `ta${Math.random().toString(16).slice(2).padEnd(16, "0").slice(0, 16)}`;
   await env.DB.prepare(
-    "INSERT INTO invoices (token, owner, mana, cents, method, coin, amount, min_amount, created_at)" +
-      " VALUES (?1, ?2, ?3, 499, ?4, 'usdt', '1', '1', ?5)",
+    "INSERT INTO invoices (token, owner, mana, cents, method, coin, amount, min_amount, created_at, pack)" +
+      " VALUES (?1, ?2, ?3, 499, ?4, 'usdt', '1', '1', ?5, ?6)",
   )
-    .bind(token, owner, mana, method, Date.now())
+    .bind(token, owner, mana, method, Date.now(), pack)
     .run();
   return token;
 }
@@ -134,6 +134,70 @@ describe("the shelf", () => {
   });
 });
 
+describe("the shelf", () => {
+  it("sells five lots, the last of them an endless purse", () => {
+    expect(PACKS.map((pack) => [pack.id, pack.mana, pack.cents, pack.stars])).toEqual([
+      ["micro", 40, 199, 120],
+      ["standard", 125, 499, 300],
+      ["block", 300, 999, 600],
+      ["margin", 800, 1999, 1200],
+      [ENDLESS_PACK, 0, 9999, 6000],
+    ]);
+    expect(PACKS.filter((pack) => pack.unlimited === true).map((pack) => pack.id)).toEqual([ENDLESS_PACK]);
+  });
+
+  it("hands the whole shelf over, so the client never has to name a price", async () => {
+    const owner = await newOwner();
+    const shelf = await (await callApi("/api/wallet", as(owner), TON)).json<{ packs: unknown; unlimited: boolean }>();
+    expect(shelf.packs).toEqual(PACKS);
+    expect(shelf.unlimited).toBe(false);
+  });
+});
+
+describe("the first purchase", () => {
+  it("credits double, and only the first one", async () => {
+    expect(FIRST_BUY_BONUS).toBe(2);
+    const owner = await newOwner();
+    await callApi("/api/tg/webhook", starsPaid(await offer(owner, "stars", 30), "charge-first"), STARS);
+    expect(await balanceOf(owner)).toBe(30 * FIRST_BUY_BONUS);
+    await callApi("/api/tg/webhook", starsPaid(await offer(owner, "stars", 30), "charge-second"), STARS);
+    expect(await balanceOf(owner)).toBe(30 * FIRST_BUY_BONUS + 30);
+  });
+
+  it("is not burnt by a lot that credits no mana at all", async () => {
+    const owner = await newOwner();
+    const endless = await offer(owner, "stars", 0, ENDLESS_PACK);
+    await callApi("/api/tg/webhook", starsPaid(endless, "charge-endless-first"), STARS);
+    await callApi("/api/tg/webhook", starsPaid(await offer(owner, "stars", 30), "charge-after-endless"), STARS);
+    expect(await balanceOf(owner)).toBe(30 * FIRST_BUY_BONUS);
+  });
+});
+
+describe("spending", () => {
+  it("draws an ordinary purse down and refuses what it cannot cover", async () => {
+    const owner = await newOwner();
+    await callApi("/api/tg/webhook", starsPaid(await offer(owner, "stars", 30), "charge-to-spend"), STARS);
+    const paid = 30 * FIRST_BUY_BONUS;
+    const spent = await callApi("/api/wallet/spend", as(owner, post({ mana: 10 })), TON);
+    expect(await spent.json()).toMatchObject({ balance: paid - 10 });
+    const short = await callApi("/api/wallet/spend", as(owner, post({ mana: paid })), TON);
+    expect(short.status).toBe(402);
+    expect(await balanceOf(owner)).toBe(paid - 10);
+  });
+
+  it("never draws down an endless purse, however much is spent from it", async () => {
+    const owner = await newOwner();
+    const token = await offer(owner, "stars", 0, ENDLESS_PACK);
+    await callApi("/api/tg/webhook", starsPaid(token, "charge-endless"), STARS);
+    for (const mana of [1, 500, 100_000]) {
+      expect((await callApi("/api/wallet/spend", as(owner, post({ mana })), TON)).status).toBe(200);
+    }
+    expect(await balanceOf(owner)).toBe(0);
+    const shelf = await (await callApi("/api/wallet", as(owner), TON)).json<{ unlimited: boolean }>();
+    expect(shelf.unlimited).toBe(true);
+  });
+});
+
 describe("crediting", () => {
   it("counts the balance as the mana of paid offers only", async () => {
     const owner = await newOwner();
@@ -141,7 +205,7 @@ describe("crediting", () => {
     expect(await balanceOf(owner)).toBe(0);
     const paid = await offer(owner, "stars", 30);
     await callApi("/api/tg/webhook", starsPaid(paid, "charge-counted"), STARS);
-    expect(await balanceOf(owner)).toBe(30);
+    expect(await balanceOf(owner)).toBe(30 * FIRST_BUY_BONUS);
   });
 
   it("takes a repeated webhook for the same offer without flinching", async () => {
@@ -150,7 +214,7 @@ describe("crediting", () => {
     for (let i = 0; i < 4; i++) {
       expect((await callApi("/api/tg/webhook", starsPaid(token, "charge-repeated"), STARS)).status).toBe(200);
     }
-    expect(await balanceOf(owner)).toBe(70);
+    expect(await balanceOf(owner)).toBe(70 * FIRST_BUY_BONUS);
   });
 
   it("lets one charge pay one offer and no more, even across two offers", async () => {
@@ -160,7 +224,7 @@ describe("crediting", () => {
     expect((await callApi("/api/tg/webhook", starsPaid(first, "charge-once"), STARS)).status).toBe(200);
     // Answering 200 is the point: a 500 here would have Telegram redelivering this charge for good.
     expect((await callApi("/api/tg/webhook", starsPaid(second, "charge-once"), STARS)).status).toBe(200);
-    expect(await balanceOf(owner)).toBe(30);
+    expect(await balanceOf(owner)).toBe(30 * FIRST_BUY_BONUS);
   });
 
   it("never lets a charge from one rail settle an offer issued for the other", async () => {
@@ -175,7 +239,7 @@ describe("crediting", () => {
     const yours = await newOwner();
     const token = await offer(yours, "stars", 30);
     await callApi("/api/tg/webhook", starsPaid(token, "charge-not-mine"), STARS);
-    expect(await balanceOf(yours)).toBe(30);
+    expect(await balanceOf(yours)).toBe(30 * FIRST_BUY_BONUS);
     expect(await balanceOf(mine)).toBe(0);
   });
 });
@@ -220,6 +284,6 @@ describe("claiming a TON offer", () => {
     await callApi("/api/tg/webhook", starsPaid(token, "charge-already"), STARS);
     const response = await callApi("/api/wallet/claim", as(owner, post({ token })), TON);
     expect(response.status).toBe(409);
-    expect(await response.json()).toMatchObject({ error: "already_paid", balance: 30 });
+    expect(await response.json()).toMatchObject({ error: "already_paid", balance: 30 * FIRST_BUY_BONUS });
   });
 });

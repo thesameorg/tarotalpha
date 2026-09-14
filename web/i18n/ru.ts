@@ -197,6 +197,7 @@ export const ru = {
     openWallet: "Открыть кошелёк",
     waiting: "Ждём платёж",
     credited: (mana: number): string => `Зачислено. Купленной маны: ${String(mana)}`,
+    endless: "Зачислено. Кошелёк больше не кончается",
     failed: "Не вышло. Попробуйте ещё раз",
     meditating: "Платёжный модуль ещё медитирует",
     title: "Мана кончилась",

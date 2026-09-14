@@ -6,7 +6,7 @@
  */
 import { applyStatic, onLangChange, t } from "./i18n/index";
 import { icons, setIcon } from "./icons";
-import { refreshPaid } from "./paid-mana";
+import { ENDLESS_SIGN, refreshPaid } from "./paid-mana";
 import { telegram } from "./telegram";
 import { toast } from "./toast";
 import {
@@ -107,7 +107,9 @@ function paintPacks(shelfNow: Shelf): void {
   list.innerHTML = shelfNow.packs
     .map(
       (pack) =>
-        `<div class="tier"><div class="t"><span class="mana-glyph">${icons.bolt}</span>${String(pack.mana)}</div>` +
+        `<div class="tier${pack.unlimited === true ? " tier-endless" : ""}">` +
+        `<div class="t"><span class="mana-glyph">${icons.bolt}</span>` +
+        `${pack.unlimited === true ? ENDLESS_SIGN : String(pack.mana)}</div>` +
         `<div class="pay-price">${stars ? `${String(pack.stars)} ★` : price(pack.cents)}</div>` +
         `<button type="button" data-pack="${pack.id}" data-i18n="paywall.buy"></button></div>`,
     )
@@ -204,12 +206,14 @@ async function payWithStars(pack: string): Promise<void> {
  * waited for: read once, it catches the old number and announces a purchase of nothing. */
 async function settle(): Promise<void> {
   const before = loaded?.balance ?? 0;
+  const endless = boughtEndless();
   for (let left = STARS_TRIES; left > 0; left--) {
     try {
       const now = await shelf();
       loaded = now;
-      if (now.balance > before) {
-        done(now.balance, now.balance - before);
+      // An endless lot credits no mana, so a balance that has not moved proves nothing: the right is what lands.
+      if (endless ? now.unlimited : now.balance > before) {
+        done(now.balance, now.balance - before, endless);
         return;
       }
     } catch {
@@ -233,6 +237,7 @@ function startPolling(token: string): void {
   // What the purse held before this offer: the difference is what the buyer just gained, and that is the number
   // worth showing large. The balance alone would read the same whether they bought ten or already had ten.
   const before = loaded?.balance ?? 0;
+  const endless = boughtEndless();
   let left = POLL_LIMIT;
   polling = window.setInterval(() => {
     left -= 1;
@@ -244,7 +249,7 @@ function startPolling(token: string): void {
       .then((balance) => {
         if (balance === null) return;
         stopPolling();
-        done(balance, balance - before);
+        done(balance, balance - before, endless);
       })
       .catch(() => {
         // A refusal we cannot act on: keep waiting rather than tearing the screen down under a paying customer.
@@ -257,12 +262,17 @@ function stopPolling(): void {
   polling = null;
 }
 
-function done(balance: number, gained: number): void {
+/** Whether the lot the buyer just picked sells an endless purse rather than a number of mana. */
+function boughtEndless(): boolean {
+  return loaded?.packs.find((pack) => pack.id === chosen)?.unlimited === true;
+}
+
+function done(balance: number, gained: number, endless: boolean): void {
   stopPolling();
   // The gold flask in the header reads the server, not this screen, so it is told the moment the money lands.
   void refreshPaid();
-  text("pay-gain", `+${String(gained)}`);
-  text("pay-ok", t().paywall.credited(balance));
+  text("pay-gain", endless ? ENDLESS_SIGN : `+${String(gained)}`);
+  text("pay-ok", endless ? t().paywall.endless : t().paywall.credited(balance));
   show("done");
 }
 

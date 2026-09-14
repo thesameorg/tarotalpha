@@ -6,7 +6,7 @@
  */
 import { ApiError, readJsonBody } from "./json-api";
 import { coinById, COINS, type Coin } from "./coins";
-import { packById, PACKS, type Pack } from "./packs";
+import { ENDLESS_PACK, FIRST_BUY_BONUS, packById, PACKS, type Pack } from "./packs";
 import {
   approvePreCheckout,
   botUsername,
@@ -59,6 +59,7 @@ export async function readWallet(request: Request, env: WalletEnv): Promise<Resp
   const owner = await ownerOf(request, env);
   return Response.json({
     balance: await balanceOf(owner, env),
+    unlimited: await endlessPurse(owner, env),
     packs: PACKS,
     coins: COINS.map(({ id, symbol, decimals }) => ({ id, symbol, decimals })),
     rails: rails(env),
@@ -79,10 +80,21 @@ export async function createInvoice(request: Request, env: WalletEnv): Promise<R
   const coin = method === "ton" ? pickCoin(body.coin) : null;
   const { amount, min } = await priceOf(pack, method, coin, env);
   await env.DB.prepare(
-    "INSERT INTO invoices (token, owner, mana, cents, method, coin, amount, min_amount, created_at)" +
-      " VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+    "INSERT INTO invoices (token, owner, mana, cents, method, coin, amount, min_amount, created_at, pack)" +
+      " VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
   )
-    .bind(token, owner, pack.mana, pack.cents, method, coin?.id ?? null, String(amount), String(min), Date.now())
+    .bind(
+      token,
+      owner,
+      pack.mana,
+      pack.cents,
+      method,
+      coin?.id ?? null,
+      String(amount),
+      String(min),
+      Date.now(),
+      pack.id,
+    )
     .run();
 
   if (coin === null) return Response.json({ token, method, invoice_link: await starsLink(env, pack, token) });
@@ -165,7 +177,13 @@ export async function claimInvoice(request: Request, env: WalletEnv): Promise<Re
   }
 
   await markPaid(token, found.hash, "ton", env);
-  return Response.json({ balance: await balanceOf(owner, env), mana: invoice.mana });
+  // The bonus is applied inside markPaid, so the offered mana is no longer the credited mana: read the row back.
+  const credited = await invoiceOf(token, env);
+  return Response.json({
+    balance: await balanceOf(owner, env),
+    mana: credited?.mana ?? invoice.mana,
+    unlimited: await endlessPurse(owner, env),
+  });
 }
 
 /** Spends bought mana — only what the free tank could not cover. Check and write are one statement, so two tabs
@@ -175,6 +193,8 @@ export async function spendMana(request: Request, env: WalletEnv): Promise<Respo
   const owner = await ownerOf(request, env);
   const mana = typeof body.mana === "number" && Number.isInteger(body.mana) && body.mana > 0 ? body.mana : null;
   if (mana === null) throw new ApiError(400, "bad_request", "mana must be a positive whole number");
+  // Nothing is written for an endless purse: a spend row would count against a balance that must not move.
+  if (await endlessPurse(owner, env)) return Response.json({ balance: await balanceOf(owner, env) });
 
   const written = await env.DB.prepare(
     "INSERT INTO spends (owner, mana, ts) SELECT ?1, ?2, ?3 WHERE" +
@@ -241,11 +261,26 @@ async function markPaid(token: string, extId: string, method: Method, env: Walle
     .first<{ token: string }>();
   if (settled !== null) return;
   // Racing this SELECT breaks the unique index instead, which throws, and the retry finds the charge above.
+  // The first-purchase bonus rides inside this one statement: a redelivered charge finds `paid_at` already set and
+  // multiplies nothing a second time. The row then holds the mana credited, not the mana offered.
   await env.DB.prepare(
-    "UPDATE invoices SET paid_at = ?1, ext_id = ?2 WHERE token = ?3 AND method = ?4 AND paid_at IS NULL",
+    "UPDATE invoices SET paid_at = ?1, ext_id = ?2, mana = mana * CASE WHEN EXISTS" +
+      " (SELECT 1 FROM invoices AS earlier WHERE earlier.owner = invoices.owner AND earlier.paid_at IS NOT NULL" +
+      " AND earlier.mana > 0)" +
+      " THEN 1 ELSE ?5 END WHERE token = ?3 AND method = ?4 AND paid_at IS NULL",
   )
-    .bind(Date.now(), extId, token, method)
+    .bind(Date.now(), extId, token, method, FIRST_BUY_BONUS)
     .run();
+}
+
+/** True once this owner has paid for the lot that sells an endless purse; from then on no spend draws it down. */
+async function endlessPurse(owner: string, env: WalletEnv): Promise<boolean> {
+  const row = await env.DB.prepare(
+    "SELECT 1 AS yes FROM invoices WHERE owner = ?1 AND pack = ?2 AND paid_at IS NOT NULL LIMIT 1",
+  )
+    .bind(owner, ENDLESS_PACK)
+    .first<{ yes: number }>();
+  return row !== null;
 }
 
 /** Bought minus spent. Both halves are append-only sums, so no request can leave a half-written number behind. */

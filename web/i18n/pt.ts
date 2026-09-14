@@ -202,6 +202,7 @@ export const pt: Dictionary = {
     openWallet: "Abrir carteira",
     waiting: "À espera do pagamento",
     credited: (mana: number): string => `Creditado. Mana comprada: ${String(mana)}`,
+    endless: "Creditado. Sua bolsa não acaba mais",
     failed: "Não resultou. Tente outra vez",
     meditating: "O módulo de pagamento ainda medita",
     title: "A mana acabou",

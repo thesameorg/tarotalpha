@@ -21,7 +21,7 @@ import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
 import { zoneLabel } from "./local-time-format";
 import { dayCost, manaLeft, spendMana } from "./mana";
-import { paidLeft, spendPaid } from "./paid-mana";
+import { paidLeft, paidUnlimited, spendPaid } from "./paid-mana";
 import { rememberReading } from "./my-readings";
 import { forgetOpen, openReadingFor, rememberOpen } from "./open-reading";
 import { openPaywall } from "./paywall-modal";
@@ -432,7 +432,7 @@ class LandingPage {
     const step = loaded.steps.length + 1;
     const cost = this.nextCost();
     // The two pools never merge: the free tank pays what it can and the bought one covers the rest.
-    if (manaLeft() + paidLeft() < cost) {
+    if (!paidUnlimited() && manaLeft() + paidLeft() < cost) {
       openPaywall();
       postEvent({ type: "paywall_hit", asset: loaded.asset, step });
       return;

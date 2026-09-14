@@ -15,6 +15,8 @@ export interface Pack {
   mana: number;
   cents: number;
   stars: number;
+  /** Sells an endless purse; for this one the mana number means nothing and the shelf shows a sign instead. */
+  unlimited?: boolean;
 }
 
 export interface Coin {
@@ -25,6 +27,8 @@ export interface Coin {
 
 export interface Shelf {
   balance: number;
+  /** This purse cannot run out: spends do not draw it down. */
+  unlimited: boolean;
   packs: readonly Pack[];
   coins: readonly Coin[];
   rails: { ton: boolean; stars: boolean };
@@ -86,9 +90,10 @@ export async function offerStars(pack: string): Promise<StarsOffer> {
   return await call<StarsOffer>("/api/wallet/invoice", { pack, method: "stars" });
 }
 
-/** What the Worker says is left of this purse's bought mana. */
-export async function walletBalance(): Promise<number> {
-  return (await shelf()).balance;
+/** What the Worker says is left of this purse's bought mana, and whether it can run out at all. */
+export async function walletPurse(): Promise<{ balance: number; unlimited: boolean }> {
+  const { balance, unlimited } = await shelf();
+  return { balance, unlimited };
 }
 
 /** Spends bought mana on the Worker, which is the only side allowed to decide there was enough. */
