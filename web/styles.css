@@ -2283,7 +2283,10 @@ footer {
   color: var(--paper-dim);
   word-break: break-all;
 }
+/* The sheet carries its own disclaimer only for paper, where the site's footer does not go: one per screen is the
+   law, and on screen that one is the footer's. */
 .scroll-foot .disclaimer {
+  display: none;
   margin: 0;
   text-align: right;
 }
@@ -2317,12 +2320,27 @@ footer {
     text-align: left;
   }
 }
-/* Print is the PDF: the sheet alone on the page, its colours forced through, and never split across two leaves. */
+/* Print is the PDF, but only the scroll prints as a document: everywhere else the footer must reach the paper,
+   because it carries the one disclaimer that page has. Hence `:has` rather than a bare `.app > footer`, and a named
+   page rather than a bare `@page` — a browser that knows neither simply prints the page as it always did.
+   The sheet's colours are forced through, and it is never split across two leaves. */
+.scroll {
+  page: scroll;
+}
+@page scroll {
+  size: A4 landscape;
+  margin: 10mm;
+}
 @media print {
-  .app > header,
-  .app > footer,
+  .app:has(.scroll) > header,
+  .app:has(.scroll) > footer {
+    display: none;
+  }
   .scroll-actions {
     display: none;
+  }
+  .scroll-foot .disclaimer {
+    display: block;
   }
   .scroll {
     max-width: none;
@@ -2330,9 +2348,5 @@ footer {
     break-inside: avoid;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
-  }
-  @page {
-    size: A4 landscape;
-    margin: 10mm;
   }
 }
