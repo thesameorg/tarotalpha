@@ -243,6 +243,7 @@ export const ja: Dictionary = {
   },
   summaryTitle: "今日を一行で。",
   how: "計算方法",
+  contact: "連絡",
   cardName: (card: Card): string =>
     card.arcana === "major" ? (MAJORS[card.index] ?? "") : `${SUITS[card.suit]}の${RANKS[card.rank - 1] ?? ""}`,
   meaning: (cardId: number, reversed: boolean): string => {

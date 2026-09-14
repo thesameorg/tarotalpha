@@ -572,12 +572,18 @@ main {
   color: var(--gold);
   border-color: var(--gold-deep);
 }
-/* The method page opens in a new tab, from one link in the footer. */
+/* The method page and the developer's address close the footer. They travel as one block, because an `auto` margin on
+   the first of them would eat the rest of its line and strand the second one under it in a wordier language. */
+.footer-links {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
 .how-link {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-left: auto;
   font-size: 11px;
   letter-spacing: 0.08em;
   color: var(--paper-dim);

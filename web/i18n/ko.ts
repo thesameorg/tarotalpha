@@ -231,6 +231,7 @@ export const ko: Dictionary = {
   },
   summaryTitle: "한 줄로 보는 오늘.",
   how: "계산 방식",
+  contact: "문의",
   cardName: (card: Card): string =>
     card.arcana === "major" ? (MAJORS[card.index] ?? "") : `${SUITS[card.suit]} ${RANKS[card.rank - 1] ?? ""}`,
   meaning: (cardId: number, reversed: boolean): string => {

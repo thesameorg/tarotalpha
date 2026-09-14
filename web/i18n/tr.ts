@@ -241,7 +241,8 @@ export const tr: Dictionary = {
       pct === null ? `gün ${String(day)}: henüz değil` : `gün ${String(day)}: %${String(pct)}`,
   },
   summaryTitle: "Gün tek satırda.",
-  how: "Nasıl hesaplanıyor",
+  how: "Yöntem",
+  contact: "İletişim",
   cardName: (card: Card): string =>
     card.arcana === "major" ? (MAJORS[card.index] ?? "") : `${SUITS[card.suit]} ${RANKS[card.rank - 1] ?? ""}`,
   meaning: (cardId: number, reversed: boolean): string => {
