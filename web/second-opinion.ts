@@ -10,7 +10,9 @@ import { payMana } from "./mana-purse";
 /** What one more reader costs on one reading, asked once and good for every day of it, opened or still to come. */
 export const OPINION_COST = 3;
 
-type Asker = (id: ReaderId) => Promise<boolean>;
+/** Consults `id`, paying with `pay` at the last possible moment: everything that can refuse happens before the
+ *  money moves, and once it has moved the reading keeps her whatever else changes on screen. */
+type Asker = (id: ReaderId, pay: () => Promise<boolean>) => Promise<boolean>;
 
 let asked: ReaderId[] = [];
 let ask: Asker | null = null;
@@ -33,13 +35,12 @@ export function setAsker(next: Asker | null, already: readonly ReaderId[] = []):
   announce();
 }
 
-/** Pays for `id` and consults her. False when the purse refused or the consultation itself failed, and the mana
- * is only spent once the reading has actually taken her on. */
+/** Consults `id`, paying only once the reading is certain to take her on: mana that bought nothing cannot be
+ * given back, so nothing that can refuse is left standing after the purse is touched. */
 export async function askOpinion(id: ReaderId): Promise<boolean> {
   const consult = ask;
   if (consult === null || asked.includes(id)) return false;
-  if (!(await payMana(OPINION_COST))) return false;
-  if (!(await consult(id))) return false;
+  if (!(await consult(id, async () => payMana(OPINION_COST)))) return false;
   asked = [...asked, id];
   announce();
   return true;

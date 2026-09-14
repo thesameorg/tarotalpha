@@ -63,7 +63,6 @@ interface ExtendRow {
   reader: string;
   seed_nonce: string | null;
   steps: string;
-  opinions: string | null;
 }
 
 export async function createReading(request: Request, env: Env): Promise<Response> {
@@ -84,8 +83,7 @@ export async function extendReading(id: string, request: Request, env: Env): Pro
   const { steps, reader, opinions } = await parseExtendBody(request);
   const row = ID_PATTERN.test(id)
     ? await env.DB.prepare(
-        "SELECT asset, anchor_ts, reader, seed_nonce, steps, opinions FROM readings WHERE id = ?1" +
-          " AND origin = 'share'",
+        "SELECT asset, anchor_ts, reader, seed_nonce, steps FROM readings WHERE id = ?1 AND origin = 'share'",
       )
         .bind(id)
         .first<ExtendRow>()
@@ -103,7 +101,7 @@ export async function extendReading(id: string, request: Request, env: Env): Pro
       .bind(id, JSON.stringify([...written, ...drawn.slice(written.length)]), count)
       .run();
   }
-  const asked = await widenOpinions(id, row, reader, opinions, env);
+  const asked = await widenOpinions(id, reader, opinions, env);
   return Response.json({ id, url: `/r/${id}`, steps: count, opinions: asked });
 }
 
@@ -176,19 +174,23 @@ function readOpinions(raw: string | null): ReaderId[] {
   }
 }
 
-/** The list only grows, like the days: a tab that never asked must not take another tab's second opinion away. */
-async function widenOpinions(
-  id: string,
-  row: ExtendRow,
-  author: ReaderId,
-  asked: readonly ReaderId[],
-  env: Env,
-): Promise<ReaderId[]> {
-  const known = readOpinions(row.opinions);
-  const wider = [...new Set([...known, ...asked])].filter((one) => one !== author);
-  if (wider.length === known.length) return known;
-  await env.DB.prepare("UPDATE readings SET opinions = ?2 WHERE id = ?1").bind(id, JSON.stringify(wider)).run();
-  return wider;
+/** The list only grows, and the union is the database's job: merging it here would let two payments landing
+ * together each write a list without the other's reader. Why, and what it costs: docs/reading-lifecycle.md */
+async function widenOpinions(id: string, author: ReaderId, asked: readonly ReaderId[], env: Env): Promise<ReaderId[]> {
+  if (asked.length > 0) {
+    await env.DB.prepare(
+      "UPDATE readings SET opinions = (SELECT json_group_array(DISTINCT one) FROM" +
+        " (SELECT value AS one FROM json_each(COALESCE(opinions, '[]'))" +
+        " UNION SELECT value AS one FROM json_each(?2)) WHERE one <> ?3)" +
+        " WHERE id = ?1",
+    )
+      .bind(id, JSON.stringify(asked), author)
+      .run();
+  }
+  const row = await env.DB.prepare("SELECT opinions FROM readings WHERE id = ?1")
+    .bind(id)
+    .first<{ opinions: string | null }>();
+  return readOpinions(row?.opinions ?? null);
 }
 
 async function snapshotOrFail(body: CreateBody, request: Request, db: D1Database): Promise<Snapshot> {

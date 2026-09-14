@@ -515,22 +515,25 @@ class LandingPage {
     this.chart.setOpinions(
       new Map([...loaded.opinions].map(([id, steps]) => [id, steps.flatMap((step) => step.candles)])),
     );
-    setAsker(async (next) => this.consult(loaded, next), [...loaded.opinions.keys()]);
+    setAsker(async (next, pay) => this.consult(loaded, next, pay), [...loaded.opinions.keys()]);
   }
 
-  /** One more reader over the same cards. The reading is already paid for by the time this runs. */
-  private async consult(loaded: Loaded, id: ReaderId): Promise<boolean> {
-    if (this.loaded !== loaded || loaded.steps.length === 0) return false;
-    loaded.opinions.set(
+  /** One more reader over the same cards. Her forecast is computed before a single point is paid, so the purse is
+   *  only touched when the answer is already in hand; after that nothing may refuse. */
+  private async consult(loaded: Loaded, id: ReaderId, pay: () => Promise<boolean>): Promise<boolean> {
+    if (loaded.steps.length === 0 || loaded.opinions.has(id)) return false;
+    const steps = this.forecastBy(
+      loaded,
       id,
-      this.forecastBy(
-        loaded,
-        id,
-        loaded.steps.map((step) => step.cards),
-      ),
+      loaded.steps.map((step) => step.cards),
     );
-    this.takeOpinions(loaded);
-    await this.persist(loaded, loaded.steps.length).catch(() => null);
+    if (!(await pay())) return false;
+    // Bought. Another instrument may have taken the screen while the purse answered, and she still belongs to this
+    // reading: the row keeps her, and the chart is only redrawn if this reading is still the one on it.
+    loaded.opinions.set(id, steps);
+    if (this.loaded === loaded) this.takeOpinions(loaded);
+    // A failed write is not a lost opinion: every later write sends the whole list again, and "Share" writes afresh.
+    void this.persist(loaded, loaded.steps.length).catch(() => null);
     return true;
   }
 
