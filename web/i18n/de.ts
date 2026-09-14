@@ -185,7 +185,8 @@ export const de: Dictionary = {
     title: "Extra-Mana",
     order: "Wird nach dem gewöhnlichen ausgegeben",
     what: "Wird mit echtem Geld gekauft. Es füllt sich nicht von selbst und verfällt nicht: es wartet.",
-    invite: (mana: number): string => `Eingeweihten einladen · +${String(mana)}`,
+    invite: (mana: number): string => `Eingeweihten einladen · +${String(mana)} für beide`,
+    welcomed: (mana: number): string => `Du wurdest gebracht: +${String(mana)} Mana`,
   },
   paywall: {
     slow: "Bezahlt. Das Mana ist unterwegs",

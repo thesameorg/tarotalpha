@@ -5,7 +5,9 @@
  * The mana goes to whoever sent the link, never to the newcomer, so nothing here is announced on screen.
  * What an invite pays and what stops it being farmed: docs/wallet.md
  */
+import { t } from "./i18n/index";
 import { refreshPaid } from "./paid-mana";
+import { toast } from "./toast";
 import { inviteCode, redeemInvite, WalletError } from "./wallet";
 
 const PENDING_KEY = "ta.invite";
@@ -21,15 +23,18 @@ export function arrivedBy(code: string | null): void {
   }
 }
 
-/** Pays the sender once this browser has opened a day, naming the reading that day wrote: the Worker cannot see
- * mana, so the row is the only proof the newcomer reached the cards. Silent either way: it is not this reader's
- * mana. A refusal is final and the code is dropped; a network that blinked is not, and it waits for the next day. */
+/** Pays both sides once this browser has opened a day, naming the reading that day wrote: the Worker cannot see
+ * mana, so the row is the only proof the newcomer reached the cards. A refusal is final and the code is dropped;
+ * a network that blinked is not, and the invite waits for the next day. */
 export async function settleInvite(reading: string): Promise<void> {
   const code = pending();
   if (code === null) return;
   try {
-    await redeemInvite(code, reading);
+    const mana = await redeemInvite(code, reading);
     forget();
+    // Half the gift is this reader's own, and a gold flask that jumps from nothing without a word is a puzzle.
+    toast(t().paid.welcomed(mana));
+    void refreshPaid();
   } catch (error: unknown) {
     if (error instanceof WalletError) forget();
   }

@@ -41,17 +41,6 @@ async function bring(code: string, newcomer: string, reading?: string): Promise<
   return await callApi("/api/wallet/invited", as(newcomer, post({ code, reading: reading ?? (await opened()) })), TON);
 }
 
-/** A gift written straight to the table: the daily cap needs five of them and they are not worth five round trips. */
-async function gift(sender: string, newcomer: string): Promise<void> {
-  const token = `ta${Math.random().toString(16).slice(2).padEnd(16, "0").slice(0, 16)}`;
-  await env.DB.prepare(
-    "INSERT INTO invoices (token, owner, mana, cents, method, coin, amount, min_amount, created_at, paid_at," +
-      " ext_id, pack) VALUES (?1, ?2, ?3, 0, 'invite', NULL, '0', '0', ?4, ?4, ?5, '')",
-  )
-    .bind(token, sender, INVITE_MANA, Date.now(), newcomer)
-    .run();
-}
-
 describe("the invite code", () => {
   it("names the sender without being their purse", async () => {
     const owner = await newOwner();
@@ -65,25 +54,18 @@ describe("the invite code", () => {
 });
 
 describe("what an invite pays", () => {
-  it("pays the sender, never the newcomer, and only once for the same newcomer", async () => {
+  it("pays both sides, and only once for the same newcomer", async () => {
     const sender = await newOwner();
     const code = await codeOf(sender);
     const newcomer = await newOwner();
     expect((await bring(code, newcomer)).status).toBe(200);
     expect(await balanceOf(sender)).toBe(INVITE_MANA);
-    expect(await balanceOf(newcomer)).toBe(0);
+    expect(await balanceOf(newcomer)).toBe(INVITE_MANA);
 
+    // Neither half is paid twice: both rows are keyed by the newcomer, so the pair is refused together.
     expect((await bring(code, newcomer)).status).toBe(409);
     expect(await balanceOf(sender)).toBe(INVITE_MANA);
-  });
-
-  it("pays for every newcomer the one link brings, not once for the link", async () => {
-    const sender = await newOwner();
-    const code = await codeOf(sender);
-    // One code is handed to many: what is paid for is a reader who arrived, and each of them counts once.
-    expect((await bring(code, await newOwner())).status).toBe(200);
-    expect((await bring(code, await newOwner())).status).toBe(200);
-    expect(await balanceOf(sender)).toBe(2 * INVITE_MANA);
+    expect(await balanceOf(newcomer)).toBe(INVITE_MANA);
   });
 
   it("pays for a day that was opened, not for a visit", async () => {
@@ -102,11 +84,12 @@ describe("what an invite pays", () => {
     expect(await balanceOf(owner)).toBe(0);
   });
 
-  it("stops paying one sender after five in a day", async () => {
+  it("keeps paying however many one link brings: there is no daily cap", async () => {
     const sender = await newOwner();
-    for (let i = 0; i < 5; i++) await gift(sender, `web:${String(i)}${Math.random().toString(16).slice(2)}`);
-    expect((await bring(await codeOf(sender), await newOwner())).status).toBe(429);
-    expect(await balanceOf(sender)).toBe(5 * INVITE_MANA);
+    const code = await codeOf(sender);
+    // Mana costs nothing and every gift already costs a written reading, so nothing here turns a newcomer away.
+    for (let i = 0; i < 6; i++) expect((await bring(code, await newOwner())).status).toBe(200);
+    expect(await balanceOf(sender)).toBe(6 * INVITE_MANA);
   });
 
   it("does not spend the first-purchase bonus on a gift", async () => {

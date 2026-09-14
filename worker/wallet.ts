@@ -31,14 +31,14 @@ export type WalletEnv = Env & PaymentSecrets;
 const WEB_OWNER = /^web:[0-9a-f]{32}$/;
 const TOKEN = /^ta[0-9a-f]{16}$/;
 const INVITE_CODE = /^[0-9a-f]{16}$/;
-/** What an invite pays the reader who sent it: one whole seven-day reading, and nothing at all for a mere visit. */
-export const INVITE_MANA = 12;
-// A browser purse is free to mint, so the faucet gets a lip: farming it costs rows in D1, never money.
-const INVITES_PER_DAY = 5;
+/** What an invite pays each side: mana costs us nothing, and a newcomer paid to arrive is worth more than a saved
+ *  point. There is no daily cap: every gift already costs a written reading, which is the row that matters. */
+export const INVITE_MANA = 10;
 const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * HOUR_MS;
-// Not a rail. Nothing was paid; the row exists so that the balance, which is the sum of paid offers, counts the gift.
+// Neither is a rail. Nothing was paid; the rows exist so the balance, which is the sum of paid offers, counts both
+// gifts. Two names because one newcomer earns two rows, and the unique index keys each of them by that newcomer.
 const INVITE_METHOD = "invite";
+const WELCOME_METHOD = "welcome";
 // The rate drifts between the quote and the signature, and a wallet rounds. Settling a little short beats telling
 // someone who already paid that they are three cents out; the slack is written into the offer, not recomputed later.
 const SLACK_CENTS = 3n;
@@ -354,25 +354,22 @@ export async function redeemInvite(request: Request, env: WalletEnv): Promise<Re
   if (!(await opened(reading, env))) throw new ApiError(400, "no_reading", "no fresh reading to be paid for");
 
   const now = Date.now();
-  // Check and write in one statement, like a spend: two newcomers arriving together would both pass a count read
-  // separately and both be paid, and the sixth invite of the day would go through.
-  const written = await env.DB.prepare(
-    "INSERT INTO invoices (token, owner, mana, cents, method, coin, amount, min_amount, created_at, paid_at," +
-      " ext_id, pack) SELECT ?1, ?2, ?3, 0, ?4, NULL, '0', '0', ?5, ?5, ?6, '' WHERE" +
-      " (SELECT COUNT(*) FROM invoices WHERE owner = ?2 AND method = ?4 AND created_at > ?7) < ?8",
-  )
-    .bind(`ta${hex(8)}`, sender.owner, INVITE_MANA, INVITE_METHOD, now, owner, now - DAY_MS, INVITES_PER_DAY)
-    .run()
-    .catch(async (error: unknown) => {
-      const already = await env.DB.prepare("SELECT 1 AS yes FROM invoices WHERE method = ?1 AND ext_id = ?2")
-        .bind(INVITE_METHOD, owner)
-        .first();
-      // Anything but the unique index refusing is a real failure and is not dressed up as a duplicate.
-      if (already === null) throw error;
-      throw new ApiError(409, "already_paid", "this newcomer has already been counted");
-    });
-  if (written.meta.changes !== 1) {
-    throw new ApiError(429, "too_many", "this invite has brought enough for one day");
+  // Both gifts in one batch: the newcomer is keyed into both rows, so either the pair is new or the index refuses
+  // the pair, and nobody ends up paid while the other half is missing.
+  const gift = (to: string, method: string): D1PreparedStatement =>
+    env.DB.prepare(
+      "INSERT INTO invoices (token, owner, mana, cents, method, coin, amount, min_amount, created_at, paid_at," +
+        " ext_id, pack) VALUES (?1, ?2, ?3, 0, ?4, NULL, '0', '0', ?5, ?5, ?6, '')",
+    ).bind(`ta${hex(8)}`, to, INVITE_MANA, method, now, owner);
+  try {
+    await env.DB.batch([gift(sender.owner, INVITE_METHOD), gift(owner, WELCOME_METHOD)]);
+  } catch (error: unknown) {
+    const already = await env.DB.prepare("SELECT 1 AS yes FROM invoices WHERE method = ?1 AND ext_id = ?2")
+      .bind(INVITE_METHOD, owner)
+      .first();
+    // Anything but the unique index refusing is a real failure and is not dressed up as a duplicate.
+    if (already === null) throw error;
+    throw new ApiError(409, "already_paid", "this newcomer has already been counted");
   }
   return Response.json({ mana: INVITE_MANA });
 }

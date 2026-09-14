@@ -17,7 +17,7 @@ import { toast } from "./toast";
 
 const TICK_MS = 60_000;
 /** What an invite pays its sender; the Worker owns the number, this one only says it on the button. */
-const INVITE_MANA = 12;
+const INVITE_MANA = 10;
 // The liquid's surface in the flask's own units: the bottom of the bowl when empty, the base of the neck when full.
 const LIQUID_BOTTOM = 23;
 const LIQUID_TOP = 7;
