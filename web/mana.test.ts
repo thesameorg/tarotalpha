@@ -19,24 +19,25 @@ describe("day cost", () => {
     expect(() => dayCost(MAX_STEPS + 1)).toThrow(RangeError);
   });
 
-  it("lets a full tank open six days of one reading, not the seventh", () => {
+  it("lets a full tank open a whole reading and five days of the next, then stops one point short", () => {
     let tank = full(at(11, 10));
-    for (let day = 1; day <= 6; day++) tank = pay(tank, dayCost(day), at(11, 10));
-    expect(tank.mana).toBe(MANA_CAPACITY - 9);
-    expect(spend(tank, dayCost(7), at(11, 10))).toBeNull();
+    for (let day = 1; day <= MAX_STEPS; day++) tank = pay(tank, dayCost(day), at(11, 10));
+    for (let day = 1; day <= 5; day++) tank = pay(tank, dayCost(day), at(11, 10));
+    expect(tank.mana).toBe(1);
+    expect(spend(tank, dayCost(6), at(11, 10))).toBeNull();
   });
 });
 
 describe("refill", () => {
   it("gives a point back after an hour, and nothing for part of one", () => {
-    const drained = pay(full(at(11, 10)), 5, at(11, 10));
+    const drained = pay(full(at(11, 10)), MANA_CAPACITY - 5, at(11, 10));
     expect(settle(drained, at(11, 10, 59)).mana).toBe(5);
     expect(settle(drained, at(11, 11)).mana).toBe(6);
     expect(settle(drained, at(11, 13, 30)).mana).toBe(8);
   });
 
   it("keeps the part of an hour already waited across a spend", () => {
-    const drained = pay(full(at(11, 10)), 5, at(11, 10));
+    const drained = pay(full(at(11, 10)), MANA_CAPACITY - 5, at(11, 10));
     const again = pay(drained, 1, at(11, 10, 40));
     expect(settle(again, at(11, 11)).mana).toBe(5);
   });
@@ -60,7 +61,7 @@ describe("refill", () => {
   });
 
   it("refuses a day it cannot pay for and leaves the tank as it was", () => {
-    const low = pay(full(at(11, 10)), 9, at(11, 10));
+    const low = pay(full(at(11, 10)), MANA_CAPACITY - 1, at(11, 10));
     expect(spend(low, 2, at(11, 10, 30))).toBeNull();
     expect(pay(low, 2, at(11, 11)).mana).toBe(0);
   });

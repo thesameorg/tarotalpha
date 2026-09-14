@@ -5,7 +5,7 @@
  */
 import { HOUR_MS } from "../exchange/closed-candles";
 
-export const MANA_CAPACITY = 10;
+export const MANA_CAPACITY = 20;
 const REFILL_PER_HOUR = 1;
 // Day n of a reading costs DAY_COST[n - 1]: the further ahead, the harder the future is to see. One per MAX_STEPS.
 export const DAY_COST: readonly number[] = [1, 1, 1, 2, 2, 2, 3];
