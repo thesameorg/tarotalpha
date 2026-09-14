@@ -215,6 +215,9 @@ export const ru = {
     current: "Вам гадает",
     locked: (name: string): string => `${name} ведёт этот расклад до последнего дня`,
     choose: (name: string): string => `Пусть гадает ${name}`,
+    ask: (name: string, cost: number): string => `Спросить ещё · ${name} · ${String(cost)}`,
+    asked: "Уже высказалась",
+    closest: "Ближе всех",
   },
   reading: {
     notFound: "Расклад не найден",

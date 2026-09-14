@@ -240,12 +240,33 @@ describe("PATCH /api/readings/:id", () => {
     return (await created.json<Created>()).id;
   }
 
+  it("keeps every reader a second opinion was bought from, and never the author among them", async () => {
+    const id = await opened(1);
+    const asked = await callApi(`/api/readings/${id}`, patch({ steps: 1, reader: "atr", opinions: ["garch", "atr"] }));
+    expect(await asked.json()).toMatchObject({ opinions: ["garch"] });
+
+    // A second buyer widens the list; a tab that never asked must not take the first opinion away.
+    const more = await callApi(`/api/readings/${id}`, patch({ steps: 1, reader: "atr", opinions: ["fractal"] }));
+    expect(await more.json()).toMatchObject({ opinions: ["garch", "fractal"] });
+    const plain = await callApi(`/api/readings/${id}`, patch({ steps: 1, reader: "atr" }));
+    expect(await plain.json()).toMatchObject({ opinions: ["garch", "fractal"] });
+
+    const body = await (await callApi(`/api/readings/${id}`)).json<ReadingBody & { opinions: string[] }>();
+    expect(body.opinions).toEqual(["garch", "fractal"]);
+  });
+
+  it("refuses a reader the table does not seat", async () => {
+    const id = await opened(1);
+    const response = await callApi(`/api/readings/${id}`, patch({ steps: 1, reader: "atr", opinions: ["oracle"] }));
+    expect(response.status).toBe(400);
+  });
+
   it("adds the next day from the row's own seed without asking the exchange again", async () => {
     const id = await opened(1);
     stubBinance(500, "down");
     const extended = await callApi(`/api/readings/${id}`, patch({ steps: 2, reader: "atr" }));
     expect(extended.status).toBe(200);
-    expect(await extended.json()).toEqual({ id, url: `/r/${id}`, steps: 2 });
+    expect(await extended.json()).toEqual({ id, url: `/r/${id}`, steps: 2, opinions: [] });
 
     const body = await (await callApi(`/api/readings/${id}`)).json<ReadingBody>();
     const snapshot = body.candles_snapshot.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));

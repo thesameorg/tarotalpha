@@ -222,6 +222,9 @@ export const it: Dictionary = {
     current: "Legge le carte per te",
     locked: (name: string): string => `${name} guida questa lettura fino all'ultimo giorno`,
     choose: (name: string): string => `Fai leggere ${name}`,
+    ask: (name: string, cost: number): string => `Chiedere a un'altra · ${name} · ${String(cost)}`,
+    asked: "Ha già parlato",
+    closest: "La più vicina",
   },
   reading: {
     notFound: "Lettura non trovata",

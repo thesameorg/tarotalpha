@@ -220,6 +220,9 @@ export const fr: Dictionary = {
     current: "Tire les cartes pour vous",
     locked: (name: string): string => `${name} mène ce tirage jusqu'au dernier jour`,
     choose: (name: string): string => `Que ${name} tire les cartes`,
+    ask: (name: string, cost: number): string => `Demander à une autre · ${name} · ${String(cost)}`,
+    asked: "A déjà parlé",
+    closest: "La plus proche",
   },
   reading: {
     notFound: "Tirage introuvable",

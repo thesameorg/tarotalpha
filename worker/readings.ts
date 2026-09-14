@@ -48,6 +48,7 @@ interface ReadingRow {
   created_at: number;
   steps: string;
   candles_snapshot: string;
+  opinions: string | null;
 }
 
 export interface ReadingMeta {
@@ -62,6 +63,7 @@ interface ExtendRow {
   reader: string;
   seed_nonce: string | null;
   steps: string;
+  opinions: string | null;
 }
 
 export async function createReading(request: Request, env: Env): Promise<Response> {
@@ -79,10 +81,11 @@ export async function createReading(request: Request, env: Env): Promise<Respons
 
 /** The next open step, drawn from the row's own seed; the days already written and the reader stay as they are. */
 export async function extendReading(id: string, request: Request, env: Env): Promise<Response> {
-  const { steps, reader } = await parseExtendBody(request);
+  const { steps, reader, opinions } = await parseExtendBody(request);
   const row = ID_PATTERN.test(id)
     ? await env.DB.prepare(
-        "SELECT asset, anchor_ts, reader, seed_nonce, steps FROM readings WHERE id = ?1 AND origin = 'share'",
+        "SELECT asset, anchor_ts, reader, seed_nonce, steps, opinions FROM readings WHERE id = ?1" +
+          " AND origin = 'share'",
       )
         .bind(id)
         .first<ExtendRow>()
@@ -100,14 +103,15 @@ export async function extendReading(id: string, request: Request, env: Env): Pro
       .bind(id, JSON.stringify([...written, ...drawn.slice(written.length)]), count)
       .run();
   }
-  return Response.json({ id, url: `/r/${id}`, steps: count });
+  const asked = await widenOpinions(id, row, reader, opinions, env);
+  return Response.json({ id, url: `/r/${id}`, steps: count, opinions: asked });
 }
 
 export async function readReading(id: string, env: Env): Promise<Response> {
   const row = ID_PATTERN.test(id)
     ? await env.DB.prepare(
-        "SELECT id, asset, timeframe, anchor_ts, source, reader, seed_nonce, created_at, steps, candles_snapshot" +
-          " FROM readings WHERE id = ?1",
+        "SELECT id, asset, timeframe, anchor_ts, source, reader, seed_nonce, created_at, steps," +
+          " candles_snapshot, opinions FROM readings WHERE id = ?1",
       )
         .bind(id)
         .first<ReadingRow>()
@@ -118,6 +122,7 @@ export async function readReading(id: string, env: Env): Promise<Response> {
     ...row,
     steps: JSON.parse(row.steps) as unknown,
     candles_snapshot: JSON.parse(row.candles_snapshot) as unknown,
+    opinions: readOpinions(row.opinions),
   });
 }
 
@@ -148,11 +153,42 @@ async function parseCreateBody(request: Request): Promise<CreateRequest> {
   return { asset, anchorTs, steps, source, reader, nonce, cards };
 }
 
-async function parseExtendBody(request: Request): Promise<{ steps: number; reader: ReaderId }> {
-  const { steps, reader } = await readJsonBody(request);
+async function parseExtendBody(
+  request: Request,
+): Promise<{ steps: number; reader: ReaderId; opinions: readonly ReaderId[] }> {
+  const { steps, reader, opinions } = await readJsonBody(request);
   if (!isStepCount(steps)) throw bad(`steps must be an integer from 1 to ${String(MAX_STEPS)}`);
   if (!isReaderId(reader)) throw bad(`reader must be one of ${READER_IDS.join(", ")}`);
-  return { steps, reader };
+  if (opinions !== undefined && !(Array.isArray(opinions) && opinions.every(isReaderId))) {
+    throw bad(`opinions must be a list of ${READER_IDS.join(", ")}`);
+  }
+  return { steps, reader, opinions: opinions ?? [] };
+}
+
+/** The readers asked besides the author, as the row holds them; anything unreadable counts as nobody. */
+function readOpinions(raw: string | null): ReaderId[] {
+  if (raw === null) return [];
+  try {
+    const list: unknown = JSON.parse(raw);
+    return Array.isArray(list) ? list.filter(isReaderId) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** The list only grows, like the days: a tab that never asked must not take another tab's second opinion away. */
+async function widenOpinions(
+  id: string,
+  row: ExtendRow,
+  author: ReaderId,
+  asked: readonly ReaderId[],
+  env: Env,
+): Promise<ReaderId[]> {
+  const known = readOpinions(row.opinions);
+  const wider = [...new Set([...known, ...asked])].filter((one) => one !== author);
+  if (wider.length === known.length) return known;
+  await env.DB.prepare("UPDATE readings SET opinions = ?2 WHERE id = ?1").bind(id, JSON.stringify(wider)).run();
+  return wider;
 }
 
 async function snapshotOrFail(body: CreateBody, request: Request, db: D1Database): Promise<Snapshot> {

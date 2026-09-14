@@ -208,6 +208,9 @@ export const ja: Dictionary = {
     current: "あなたを占っています",
     locked: (name: string): string => `このリーディングは最後の日まで${name}が担当します`,
     choose: (name: string): string => `${name}に占ってもらう`,
+    ask: (name: string, cost: number): string => `もう一人に聞く · ${name} · ${String(cost)}`,
+    asked: "すでに語りました",
+    closest: "最も近い",
   },
   reading: {
     notFound: "リーディングが見つかりません",

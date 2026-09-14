@@ -31,6 +31,8 @@ export interface ReadingRecord {
   created_at: string | number;
   steps: StepCards[];
   candles_snapshot: SnapshotRow[];
+  /** Readers asked about these same cards besides the author; empty in a row nobody paid a second opinion on. */
+  opinions: ReaderId[];
 }
 
 // `steps` is a count: the Worker draws the cards itself, from this nonce. `cards` is only there to be matched
@@ -49,12 +51,15 @@ export interface CreateReadingBody {
 export interface ExtendReadingBody {
   steps: number;
   reader: ReaderId;
+  /** Every reader asked so far, not just the new one: the Worker only ever widens what the row already holds. */
+  opinions?: readonly ReaderId[];
 }
 
 export interface CreatedReading {
   id: string;
   url: string;
   steps: number;
+  opinions?: ReaderId[];
 }
 
 export interface ReaderStanding {

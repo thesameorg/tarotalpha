@@ -219,6 +219,9 @@ export const en: Dictionary = {
     current: "Reading for you",
     locked: (name: string): string => `${name} leads this reading to its last day`,
     choose: (name: string): string => `Let ${name} read`,
+    ask: (name: string, cost: number): string => `Ask one more · ${name} · ${String(cost)}`,
+    asked: "Already spoke",
+    closest: "Closest",
   },
   reading: {
     notFound: "Reading not found",

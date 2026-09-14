@@ -8,7 +8,8 @@
  * language switch relabels in place. The only buttons are the row over the free days of the forecast zone: the next
  * day and, once a day is open, share; on a wide screen the row rides with the chart and shortens to the day alone.
  */
-import { computeSteps, MAX_STEPS, type Candle, type StepResult } from "../engine/index";
+import { computeSteps, forecastFromCards, MAX_STEPS, type Candle, type StepResult } from "../engine/index";
+import type { ReaderId } from "../engine/readers";
 import { ASSET_PATTERN, fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
 import { ExchangeError, type Source } from "../exchange/provider";
 import { ApiError, createReading, extendReading, fetchReading, postEvent } from "./api";
@@ -20,8 +21,8 @@ import type { ZoneLayout } from "./forecast-zone";
 import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
 import { zoneLabel } from "./local-time-format";
-import { dayCost, manaLeft, spendMana } from "./mana";
-import { paidLeft, paidUnlimited, spendPaid } from "./paid-mana";
+import { dayCost } from "./mana";
+import { payMana, shortOf } from "./mana-purse";
 import { rememberReading } from "./my-readings";
 import { forgetOpen, openReadingFor, rememberOpen } from "./open-reading";
 import { openPaywall } from "./paywall-modal";
@@ -31,6 +32,7 @@ import { initReaderPicker } from "./reader-picker";
 import { cancelReveal, playReveal } from "./reveal-overlay";
 import type { View } from "./router";
 import { shareLink } from "./share-modal";
+import { setAsker } from "./second-opinion";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
 import { toast } from "./toast";
@@ -58,6 +60,8 @@ interface Loaded {
   /** This reading's own entropy: it goes into the seed, so the cards are nobody else's. */
   nonce: string;
   steps: StepResult[];
+  /** Second opinions bought on this reading: the same cards read by another formula, recomputed as days are added. */
+  opinions: Map<ReaderId, StepResult[]>;
   /** The stored reading's id once the row holds every open step; null while nothing is stored or a write failed. */
   saved: Promise<string | null>;
 }
@@ -223,6 +227,7 @@ class LandingPage {
   }
 
   dispose(): void {
+    setAsker(null);
     this.alive = false;
     lockReader(false);
     this.unsubscribe();
@@ -334,6 +339,7 @@ class LandingPage {
     }
     this.loaded = null;
     lockReader(false);
+    setAsker(null);
     this.enableDraw(false);
     this.el.share.disabled = true;
     showExchangeLogo(this.el.srcLogo, null);
@@ -371,6 +377,7 @@ class LandingPage {
       source: snapshot.source,
       nonce: newNonce(),
       steps: [],
+      opinions: new Map(),
       saved: Promise.resolve(null),
     };
     storeAsset(asset);
@@ -401,15 +408,18 @@ class LandingPage {
       nonce: record.seed_nonce,
       steps: record.steps.length,
     });
-    this.loaded = {
+    const loaded: Loaded = {
       asset: record.asset,
       anchorTs: record.anchor_ts,
       snapshot,
       source: record.source,
       nonce: record.seed_nonce,
       steps,
+      // Opinions bought before the reload come back with the row: they were paid for, not guessed.
+      opinions: new Map(record.opinions.map((id) => [id, []])),
       saved: Promise.resolve(record.id),
     };
+    this.loaded = loaded;
     storeAsset(record.asset);
     setReader(record.reader);
     lockReader(true);
@@ -419,6 +429,9 @@ class LandingPage {
     await this.chart.showSnapshot(snapshot, false);
     if (stale()) return true;
     this.chart.setSteps(steps.length);
+    // A new snapshot wipes the chart, so the days already open are drawn back on after it, never before.
+    this.chart.setForecast(steps.flatMap((step) => step.candles));
+    this.takeOpinions(loaded);
     this.panel.setSteps(steps, steps.length - 1);
     this.enableDraw(true);
     this.el.share.disabled = false;
@@ -432,7 +445,7 @@ class LandingPage {
     const step = loaded.steps.length + 1;
     const cost = this.nextCost();
     // The two pools never merge: the free tank pays what it can and the bought one covers the rest.
-    if (!paidUnlimited() && manaLeft() + paidLeft() < cost) {
+    if (shortOf(cost)) {
       openPaywall();
       postEvent({ type: "paywall_hit", asset: loaded.asset, step });
       return;
@@ -464,17 +477,16 @@ class LandingPage {
     }
     // Paid once the third card is out: a reveal closed before that opened nothing and costs nothing. The bought
     // pool is asked first because only the server can refuse it; the free tank cannot fail and goes after.
-    const fromFree = Math.min(manaLeft(), cost);
-    if (cost > fromFree && !(await spendPaid(cost - fromFree))) {
+    if (!(await payMana(cost))) {
       this.busy = false;
       this.enableDraw(true);
       this.el.share.disabled = false;
       openPaywall();
       return;
     }
-    spendMana(fromFree);
     lockReader(true);
     loaded.steps.push(result);
+    this.takeOpinions(loaded);
     void this.persist(loaded, step);
     this.panel.setSteps(loaded.steps, step - 1);
     this.chart.setSteps(step);
@@ -494,12 +506,51 @@ class LandingPage {
     postEvent({ type: "step_opened", asset: loaded.asset, step });
   }
 
+  /** Recomputes every bought opinion over the days open now and offers the card the way to buy one more. */
+  private takeOpinions(loaded: Loaded): void {
+    const cards = loaded.steps.map((step) => step.cards);
+    for (const id of [...loaded.opinions.keys()]) {
+      loaded.opinions.set(id, this.forecastBy(loaded, id, cards));
+    }
+    this.chart.setOpinions(
+      new Map([...loaded.opinions].map(([id, steps]) => [id, steps.flatMap((step) => step.candles)])),
+    );
+    setAsker(async (next) => this.consult(loaded, next), [...loaded.opinions.keys()]);
+  }
+
+  /** One more reader over the same cards. The reading is already paid for by the time this runs. */
+  private async consult(loaded: Loaded, id: ReaderId): Promise<boolean> {
+    if (this.loaded !== loaded || loaded.steps.length === 0) return false;
+    loaded.opinions.set(
+      id,
+      this.forecastBy(
+        loaded,
+        id,
+        loaded.steps.map((step) => step.cards),
+      ),
+    );
+    this.takeOpinions(loaded);
+    await this.persist(loaded, loaded.steps.length).catch(() => null);
+    return true;
+  }
+
+  private forecastBy(loaded: Loaded, id: ReaderId, cards: readonly StepResult["cards"][]): StepResult[] {
+    return forecastFromCards({
+      asset: loaded.asset,
+      anchorTs: loaded.anchorTs,
+      snapshot: loaded.snapshot,
+      reader: id,
+      nonce: loaded.nonce,
+      cards,
+    });
+  }
+
   // The row follows the steps in the background: the first one writes it, the next one extends it, and the entry
   // in "my readings" follows. A failed write leaves null behind, and "Share" then writes afresh and shows why.
   private persist(loaded: Loaded, steps: number): Promise<string> {
     const cards = loaded.steps.slice(0, steps).map((step) => step.cards);
     const saving = loaded.saved.then(async (id) => {
-      const body = { steps, reader: reader() };
+      const body = { steps, reader: reader(), opinions: [...loaded.opinions.keys()] };
       const saved =
         id === null
           ? await createReading({

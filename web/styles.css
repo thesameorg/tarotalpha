@@ -25,6 +25,13 @@
   --zone-tint: rgba(214, 178, 90, 0.05);
   --zone-line: #5a4a20;
   --deviation-band: rgba(139, 120, 216, 0.22);
+  /* A line per reader, one hue each and none of them green, red or the forecast's cyan and pink: a second opinion
+     must not read as the market, and two opinions must not read as each other. */
+  --reader-atr: #e2a24c;
+  --reader-reversion: #9b8bff;
+  --reader-analogy: #5fb0e8;
+  --reader-garch: #d97fd2;
+  --reader-fractal: #7fd8c0;
   --violet: #8b78d8;
   --shadow: rgba(0, 0, 0, 0.45);
   --backdrop: rgba(10, 11, 18, 0.82);
@@ -57,6 +64,11 @@
   --zone-tint: rgba(154, 116, 24, 0.06);
   --zone-line: #c9b26a;
   --deviation-band: rgba(106, 85, 196, 0.16);
+  --reader-atr: #b06f10;
+  --reader-reversion: #5f4bc4;
+  --reader-analogy: #1f6fa8;
+  --reader-garch: #a63f9a;
+  --reader-fractal: #1f8f74;
   --violet: #6a55c4;
   --shadow: rgba(40, 36, 28, 0.18);
   --backdrop: rgba(60, 56, 46, 0.55);
@@ -155,6 +167,43 @@ header {
   min-width: 0;
 }
 /* The two kinds of candle, named where the check is read: nothing else on the chart says which is which. */
+/* The gap of every reader asked about this reading, each behind the dot of her own line on the chart above. */
+.verdict-readers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--paper-dim);
+}
+.verdict-reader::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+  background: var(--line);
+}
+.verdict-reader[data-reader="atr"]::before {
+  background: var(--reader-atr);
+}
+.verdict-reader[data-reader="reversion"]::before {
+  background: var(--reader-reversion);
+}
+.verdict-reader[data-reader="analogy"]::before {
+  background: var(--reader-analogy);
+}
+.verdict-reader[data-reader="garch"]::before {
+  background: var(--reader-garch);
+}
+.verdict-reader[data-reader="fractal"]::before {
+  background: var(--reader-fractal);
+}
+.verdict-reader b {
+  font-weight: normal;
+  color: var(--gold);
+}
 .verdict-legend {
   margin-top: 6px;
   font-size: 11px;
@@ -1792,13 +1841,18 @@ footer {
   color: var(--paper-dim);
   margin-bottom: 14px;
 }
-.profile-choose {
+.profile-choose,
+.profile-ask {
   display: block;
   width: 100%;
   margin-top: 16px;
   padding: 10px 18px;
   border-radius: 4px;
   font-weight: 600;
+}
+.profile-ask .mana-glyph {
+  margin-left: 6px;
+  vertical-align: middle;
 }
 .profile-current {
   margin-top: 16px;

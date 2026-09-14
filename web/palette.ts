@@ -2,6 +2,7 @@
  * The theme's colours for the canvas: the chart, the forecast zone and the anchor pulse cannot read CSS variables
  * themselves, so this reads them from <html> once per theme and hands out the same object until the theme changes.
  */
+import { READER_IDS, type ReaderId } from "../engine/readers";
 import { onThemeChange } from "./theme";
 
 export interface Palette {
@@ -19,6 +20,8 @@ export interface Palette {
   deviationBand: string;
   gold: string;
   goldRgb: string;
+  /** One line colour per reader, so a second opinion keeps the same hue on every reading she is asked about. */
+  readers: Record<ReaderId, string>;
 }
 
 let cached: Palette | null = null;
@@ -45,6 +48,7 @@ export function palette(): Palette {
     deviationBand: v("--deviation-band"),
     gold: v("--gold"),
     goldRgb: v("--gold-rgb"),
+    readers: Object.fromEntries(READER_IDS.map((id) => [id, v(`--reader-${id}`)])) as Record<ReaderId, string>,
   };
   return cached;
 }
