@@ -4,10 +4,14 @@
  * The two pools never merge — the free tank empties first and this one covers what it could not. Why the server
  * holds it and the free tank does not: docs/wallet.md
  */
-import { spendPaid as spendOnServer, walletBalance } from "./wallet";
+import { spendPaid as spendOnServer, walletPurse } from "./wallet";
+
+/** What the meter and the shelf show in place of a number when the purse cannot run out. */
+export const ENDLESS_SIGN = "\u221e";
 
 let balance = 0;
 let known = false;
+let endless = false;
 const listeners = new Set<() => void>();
 
 /** What is left of the bought mana. Zero until the first read answers, which is also the honest starting guess. */
@@ -20,6 +24,11 @@ export function paidKnown(): boolean {
   return known;
 }
 
+/** True when this purse cannot run out: the lot that sells one was paid for, and spends stop drawing it down. */
+export function paidUnlimited(): boolean {
+  return endless;
+}
+
 export function onPaidChange(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
@@ -28,7 +37,12 @@ export function onPaidChange(listener: () => void): () => void {
 /** Asks the Worker what the balance is now. Called at startup, after a purchase and after a spend. */
 export async function refreshPaid(): Promise<number> {
   try {
-    set(await walletBalance());
+    const purse = await walletPurse();
+    if (purse.unlimited !== endless) {
+      endless = purse.unlimited;
+      for (const listener of listeners) listener();
+    }
+    set(purse.balance);
   } catch {
     // No wallet yet, or the network is out: the meter keeps the last number it knew rather than flashing zero.
   }

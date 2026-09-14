@@ -8,7 +8,7 @@
 import { onLangChange, t } from "./i18n/index";
 import { localTime } from "./local-time-format";
 import { fullAt, MANA_CAPACITY, manaLeft, onManaChange } from "./mana";
-import { onPaidChange, paidLeft } from "./paid-mana";
+import { ENDLESS_SIGN, onPaidChange, paidLeft, paidUnlimited } from "./paid-mana";
 import { openPaywall } from "./paywall-modal";
 
 const TICK_MS = 60_000;
@@ -28,7 +28,7 @@ function flask(share: number, clipId: string): string {
 
 export function mountManaMeter(root: HTMLElement): () => void {
   return mount(root, {
-    left: () => manaLeft(),
+    count: () => String(manaLeft()),
     share: () => manaLeft() / MANA_CAPACITY,
     label: () => `${t().mana}: ${String(manaLeft())} / ${String(MANA_CAPACITY)}`,
     subscribe: onManaChange,
@@ -39,16 +39,16 @@ export function mountManaMeter(root: HTMLElement): () => void {
 export function mountPaidMeter(root: HTMLElement): () => void {
   root.classList.add("mana-paid");
   return mount(root, {
-    left: () => paidLeft(),
-    share: () => paidLeft() / PAID_SCALE,
-    label: () => `${t().paid.title}: ${String(paidLeft())}`,
+    count: () => (paidUnlimited() ? ENDLESS_SIGN : String(paidLeft())),
+    share: () => (paidUnlimited() ? 1 : paidLeft() / PAID_SCALE),
+    label: () => `${t().paid.title}: ${paidUnlimited() ? ENDLESS_SIGN : String(paidLeft())}`,
     subscribe: onPaidChange,
     open: openPaidPanel,
   });
 }
 
 interface Pool {
-  left: () => number;
+  count: () => string;
   share: () => number;
   label: () => string;
   subscribe: (listener: () => void) => () => void;
@@ -62,7 +62,7 @@ function mount(root: HTMLElement, pool: Pool): () => void {
   root.setAttribute("role", "button");
   root.tabIndex = 0;
   const paint = (): void => {
-    root.innerHTML = `${flask(pool.share(), clipId)}<span class="mana-count">${String(pool.left())}</span>`;
+    root.innerHTML = `${flask(pool.share(), clipId)}<span class="mana-count">${pool.count()}</span>`;
     root.title = pool.label();
     root.setAttribute("aria-label", pool.label());
   };
@@ -97,7 +97,8 @@ function openFreePanel(): void {
 }
 
 function openPaidPanel(): void {
-  panel(t().paid.title, String(paidLeft()), t().paid.order, t().paid.what, t().paywall.buy);
+  const count = paidUnlimited() ? ENDLESS_SIGN : String(paidLeft());
+  panel(t().paid.title, count, t().paid.order, t().paid.what, t().paywall.buy);
 }
 
 /** One box for either pool: the count large, a line about when it changes, and the rule under both. */
