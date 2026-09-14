@@ -140,6 +140,8 @@ export const ko: Dictionary = {
     too_old: "거래소가 불완전한 기록을 반환했습니다",
   },
   share: {
+    inTelegram: "텔레그램으로 보내기",
+    orWeb: "또는 사이트 링크로, 텔레그램 밖의 사람에게",
     button: "공유",
     copy: "링크 복사",
     snapshotFailed: "스냅샷을 찍지 못했습니다. 다시 시도하세요",
@@ -161,6 +163,7 @@ export const ko: Dictionary = {
     what: "실제 돈으로 구매합니다. 저절로 차지 않고 사라지지도 않습니다: 쓸 때까지 남아 있습니다.",
   },
   paywall: {
+    slow: "결제되었습니다. 마나가 곧 도착합니다",
     scan: "지갑 카메라로 스캔하세요",
     backToReading: "리딩으로 돌아가기",
     exact: "정확한 금액",
@@ -208,6 +211,7 @@ export const ko: Dictionary = {
     ripensIn: (hours: number): string => `${String(hours)}시간 후 만기`,
   },
   prophecy: {
+    legend: "옅은 캔들은 카드의 예측, 그 위 테두리 캔들이 실제 시장입니다",
     checking: "거래소 캔들로 예언을 검증하는 중…",
     notYet: (closesAt: string): string => `미래는 아직 오지 않았습니다: 검증할 첫 캔들은 ${closesAt}에 마감됩니다`,
     checkFailed: "거래소가 응답하지 않아 예언 검증이 미뤄졌습니다",

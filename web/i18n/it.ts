@@ -165,6 +165,8 @@ export const it: Dictionary = {
     too_old: "L'exchange ha restituito uno storico incompleto",
   },
   share: {
+    inTelegram: "Invia su Telegram",
+    orWeb: "Oppure col link al sito, per chi non è su Telegram",
     button: "Condividi",
     copy: "Copia il link",
     snapshotFailed: "Impossibile scattare lo snapshot, riprova",
@@ -186,6 +188,7 @@ export const it: Dictionary = {
     what: "Si compra con denaro vero. Non si ricarica da solo e non scade: resta finché non lo spendi.",
   },
   paywall: {
+    slow: "Pagato. Il mana sta arrivando",
     scan: "Inquadra con la fotocamera del portafoglio",
     backToReading: "Torna alla lettura",
     exact: "Importo esatto",
@@ -234,6 +237,7 @@ export const it: Dictionary = {
     ripensIn: (hours: number): string => `pronta tra ${String(hours)} h`,
   },
   prophecy: {
+    legend: "Le candele pallide sono la lettura; quelle a contorno sopra sono il mercato",
     checking: "Verifica della profezia sulle candele dell'exchange…",
     notYet: (closesAt: string): string =>
       `Il futuro non è ancora arrivato: la prima candela da verificare chiude alle ${closesAt}`,

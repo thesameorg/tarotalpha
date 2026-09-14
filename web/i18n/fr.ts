@@ -163,6 +163,8 @@ export const fr: Dictionary = {
     too_old: "La bourse a renvoyé un historique incomplet",
   },
   share: {
+    inTelegram: "Envoyer sur Telegram",
+    orWeb: "Ou par lien vers le site, pour qui n'est pas sur Telegram",
     button: "Partager",
     copy: "Copier le lien",
     snapshotFailed: "Impossible de prendre l'instantané, réessayez",
@@ -184,6 +186,7 @@ export const fr: Dictionary = {
     what: "S'achète avec de l'argent réel. Elle ne se recharge pas et n'expire pas : elle attend d'être dépensée.",
   },
   paywall: {
+    slow: "Payé. La mana arrive",
     scan: "Visez avec la caméra du portefeuille",
     backToReading: "Retour au tirage",
     exact: "Montant exact",
@@ -232,6 +235,7 @@ export const fr: Dictionary = {
     ripensIn: (hours: number): string => `prêt dans ${String(hours)} h`,
   },
   prophecy: {
+    legend: "Les bougies pâles sont le tirage ; celles en contour par-dessus sont le marché",
     checking: "Vérification de la prophétie sur les bougies de la bourse…",
     notYet: (closesAt: string): string =>
       `Le futur n'est pas encore arrivé : la première bougie à vérifier clôture à ${closesAt}`,

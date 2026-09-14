@@ -18,8 +18,8 @@
   --on-gold: #1a1405;
   --up: #4fbf8b;
   --down: #e05c62;
-  --forecast-up: rgba(121, 214, 168, 0.85);
-  --forecast-down: rgba(240, 138, 143, 0.85);
+  --forecast-up: rgba(121, 214, 168, 0.34);
+  --forecast-down: rgba(240, 138, 143, 0.34);
   --crosshair: #5a5f78;
   --zone-tint: rgba(214, 178, 90, 0.05);
   --zone-line: #5a4a20;
@@ -50,8 +50,8 @@
   --on-gold: #fff8e6;
   --up: #1f9d63;
   --down: #c93a41;
-  --forecast-up: rgba(31, 157, 99, 0.55);
-  --forecast-down: rgba(201, 58, 65, 0.55);
+  --forecast-up: rgba(31, 157, 99, 0.26);
+  --forecast-down: rgba(201, 58, 65, 0.26);
   --crosshair: #9a957f;
   --zone-tint: rgba(154, 116, 24, 0.06);
   --zone-line: #c9b26a;
@@ -152,6 +152,16 @@ header {
   align-items: center;
   gap: 16px;
   min-width: 0;
+}
+/* The two kinds of candle, named where the check is read: nothing else on the chart says which is which. */
+.verdict-legend {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--paper-dim);
+}
+.verdict-legend b {
+  font-weight: normal;
+  color: var(--paper);
 }
 /* One dash per day of the horizon on a shared reading; the days the author opened are gold. */
 .steps {

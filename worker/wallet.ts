@@ -7,7 +7,15 @@
 import { ApiError, readJsonBody } from "./json-api";
 import { coinById, COINS, type Coin } from "./coins";
 import { packById, PACKS, type Pack } from "./packs";
-import { approvePreCheckout, paymentOf, preCheckoutOf, setWebhook, starsInvoiceLink, telegramUserId } from "./telegram";
+import {
+  approvePreCheckout,
+  botUsername,
+  paymentOf,
+  preCheckoutOf,
+  setWebhook,
+  starsInvoiceLink,
+  telegramUserId,
+} from "./telegram";
 import { findPayment, jettonWalletOf, quote, tonClient } from "./ton";
 
 /** Secrets the payment side needs. All optional: a rail without its secret is simply not offered. */
@@ -201,6 +209,14 @@ export async function telegramWebhook(request: Request, env: WalletEnv): Promise
   const payment = paymentOf(update);
   if (payment !== null && TOKEN.test(payment.token)) await markPaid(payment.token, payment.chargeId, "stars", env);
   return Response.json({ ok: true });
+}
+
+/** The Mini App's own address: `t.me/<bot>?startapp=<reading>` is what a Telegram user should be handed, not a
+ * website link that leaves the client. Open to anyone — a bot's @name is public the moment it has one. */
+export async function readTelegramApp(env: WalletEnv): Promise<Response> {
+  const botToken = env.TELEGRAM_BOT_TOKEN;
+  if (botToken === undefined) throw new ApiError(503, "rail_off", "telegram is not configured");
+  return Response.json({ bot: await botUsername(botToken) });
 }
 
 /** Registers the bot's webhook on this deployment's own address, using the bot token the Worker already holds, so

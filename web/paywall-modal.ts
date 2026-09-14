@@ -24,6 +24,9 @@ import {
 // How often we ask the chain whether the payment landed. TON settles in about a second; the wait is indexing.
 const POLL_MS = 4000;
 const POLL_LIMIT = 150;
+// Telegram's sheet closes before our webhook runs, so the balance is waited on for a short while after it does.
+const STARS_WAIT_MS = 1200;
+const STARS_TRIES = 20;
 
 type Step = "packs" | "coins" | "invoice" | "done";
 
@@ -197,16 +200,32 @@ async function payWithStars(pack: string): Promise<void> {
   }
 }
 
-/** Stars land through the webhook, so the balance is simply read again rather than claimed. */
+/** Telegram closes its sheet the moment the buyer pays, usually before our webhook has run, so the balance is
+ * waited for: read once, it catches the old number and announces a purchase of nothing. */
 async function settle(): Promise<void> {
-  try {
-    const before = loaded?.balance ?? 0;
-    const now = await shelf();
-    loaded = now;
-    done(now.balance, now.balance - before);
-  } catch {
-    toast(t().paywall.failed);
+  const before = loaded?.balance ?? 0;
+  for (let left = STARS_TRIES; left > 0; left--) {
+    try {
+      const now = await shelf();
+      loaded = now;
+      if (now.balance > before) {
+        done(now.balance, now.balance - before);
+        return;
+      }
+    } catch {
+      // The network blinked mid-wait; the webhook is still coming, so keep asking.
+    }
+    await sleep(STARS_WAIT_MS);
   }
+  // Paid but still not credited: the webhook will land, and the flask reads the server rather than this screen.
+  void refreshPaid();
+  toast(t().paywall.slow);
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 function startPolling(token: string): void {
@@ -255,6 +274,9 @@ function show(step: Step): void {
   // The lead explains how the free tank refills, which is the last thing a buyer mid-payment needs to read.
   const lead = document.getElementById("pay-lead");
   if (lead !== null) lead.hidden = step !== "packs";
+  // The finished screen carries its own way out, and the same words twice under it read as two different doors.
+  const back = document.getElementById("closePay");
+  if (back !== null) back.hidden = step === "done";
 }
 
 function copyButton(buttonId: string, fieldId: string): void {

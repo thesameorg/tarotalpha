@@ -163,6 +163,8 @@ export const es: Dictionary = {
     too_old: "El exchange devolvió un historial incompleto",
   },
   share: {
+    inTelegram: "Enviar por Telegram",
+    orWeb: "O con el enlace al sitio, para quien no esté en Telegram",
     button: "Compartir",
     copy: "Copiar el enlace",
     snapshotFailed: "No se pudo tomar la instantánea, inténtalo de nuevo",
@@ -184,6 +186,7 @@ export const es: Dictionary = {
     what: "Se compra con dinero real. No se recupera sola ni caduca: espera hasta que la gastes.",
   },
   paywall: {
+    slow: "Pagado. El maná está en camino",
     scan: "Apunta la cámara de tu cartera",
     backToReading: "Volver a la tirada",
     exact: "Importe exacto",
@@ -231,6 +234,7 @@ export const es: Dictionary = {
     ripensIn: (hours: number): string => `lista en ${String(hours)} h`,
   },
   prophecy: {
+    legend: "Las velas pálidas son la tirada; las de contorno encima son lo que hizo el mercado",
     checking: "Verificando la profecía con las velas del exchange…",
     notYet: (closesAt: string): string =>
       `El futuro aún no ha llegado: la primera vela a verificar cierra a las ${closesAt}`,

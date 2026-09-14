@@ -150,6 +150,8 @@ export const tr: Dictionary = {
     too_old: "Borsa eksik bir geçmiş döndürdü",
   },
   share: {
+    inTelegram: "Telegram'da gönder",
+    orWeb: "Ya da site bağlantısıyla, Telegram dışındakiler için",
     button: "Paylaş",
     copy: "Bağlantıyı kopyala",
     snapshotFailed: "Anlık görüntü alınamadı, yeniden deneyin",
@@ -171,6 +173,7 @@ export const tr: Dictionary = {
     what: "Gerçek parayla alınır. Kendiliğinden dolmaz ve yanmaz: harcayana kadar durur.",
   },
   paywall: {
+    slow: "Ödendi. Mana birazdan gelecek",
     scan: "Cüzdan kameranızla okutun",
     backToReading: "Açılıma dön",
     exact: "Tam tutar",
@@ -218,6 +221,7 @@ export const tr: Dictionary = {
     ripensIn: (hours: number): string => `${String(hours)} s sonra hazır`,
   },
   prophecy: {
+    legend: "Soluk mumlar açılımın tahmini; üstteki çerçeveli mumlar piyasanın kendisi",
     checking: "Kehanet borsanın mumlarıyla kontrol ediliyor…",
     notYet: (closesAt: string): string =>
       `Gelecek henüz gelmedi: kontrol edilecek ilk mum saat ${closesAt} itibarıyla kapanır`,

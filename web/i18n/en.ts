@@ -163,6 +163,8 @@ export const en: Dictionary = {
     too_old: "The exchange returned an incomplete history",
   },
   share: {
+    inTelegram: "Send in Telegram",
+    orWeb: "Or as a website link, for anyone outside Telegram",
     button: "Share",
     copy: "Copy the link",
     snapshotFailed: "Could not take the snapshot, try again",
@@ -184,6 +186,7 @@ export const en: Dictionary = {
     what: "Bought with real money. It never refills by itself and never expires: it waits until you spend it.",
   },
   paywall: {
+    slow: "Paid. The mana is on its way",
     scan: "Point your wallet camera at it",
     backToReading: "Back to the reading",
     exact: "Exact amount",
@@ -231,6 +234,7 @@ export const en: Dictionary = {
     ripensIn: (hours: number): string => `ripens in ${String(hours)} h`,
   },
   prophecy: {
+    legend: "Pale candles are what the cards drew; the outlined ones over them are what the market did",
     checking: "Checking the prophecy against the exchange's candles…",
     notYet: (closesAt: string): string =>
       `The future has not happened yet: the first candle to check closes at ${closesAt}`,

@@ -43,6 +43,17 @@ export async function starsInvoiceLink(botToken: string, pack: Pack, token: stri
   return link;
 }
 
+let username: string | null = null;
+
+/** The bot's @name, asked of Telegram once per isolate: the deep link to the Mini App is built from it, and it
+ * differs between the real bot and the test one, so it cannot be a constant in the client. */
+export async function botUsername(botToken: string): Promise<string | null> {
+  if (username !== null) return username;
+  const me = (await callBot(botToken, "getMe", {})) as { username?: string };
+  username = me.username ?? null;
+  return username;
+}
+
 /** Points the bot's webhook at `origin`. Run by hand after a deploy to a new address; repeating it is harmless. */
 export async function setWebhook(botToken: string, origin: string, secret: string): Promise<void> {
   await callBot(botToken, "setWebhook", {

@@ -136,6 +136,7 @@ function verdictMarkup({ overall, perStep, total, reader, deviation }: Verdict):
   <div class="verdict-title">${title}</div>
   <div class="verdict-sub">${status}${word}</div>
   <div class="verdict-steps">${lines}</div>
+  <div class="verdict-legend">${t().prophecy.legend}</div>
 </div>`;
 }
 
@@ -253,7 +254,7 @@ class ReadingPage {
     el.share.addEventListener("click", () => {
       const url = new URL(window.location.href);
       url.searchParams.set("lang", lang());
-      shareLink(url.href);
+      shareLink(url.href, record.id);
     });
     this.relabel();
 

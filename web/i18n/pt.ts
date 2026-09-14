@@ -163,6 +163,8 @@ export const pt: Dictionary = {
     too_old: "A corretora devolveu um histórico incompleto",
   },
   share: {
+    inTelegram: "Enviar no Telegram",
+    orWeb: "Ou com a ligação ao site, para quem está fora do Telegram",
     button: "Compartilhar",
     copy: "Copiar o link",
     snapshotFailed: "Não foi possível tirar o snapshot, tente de novo",
@@ -184,6 +186,7 @@ export const pt: Dictionary = {
     what: "Compra-se com dinheiro real. Não se recupera sozinha nem expira: fica até a gastar.",
   },
   paywall: {
+    slow: "Pago. A mana está a caminho",
     scan: "Aponte a câmara da carteira",
     backToReading: "Voltar à leitura",
     exact: "Valor exato",
@@ -232,6 +235,7 @@ export const pt: Dictionary = {
     ripensIn: (hours: number): string => `pronta em ${String(hours)} h`,
   },
   prophecy: {
+    legend: "As velas pálidas são a leitura; as de contorno por cima são o que o mercado fez",
     checking: "Verificando a profecia com os candles da corretora…",
     notYet: (closesAt: string): string =>
       `O futuro ainda não chegou: o primeiro candle a verificar fecha às ${closesAt}`,

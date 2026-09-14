@@ -535,7 +535,7 @@ class LandingPage {
       const url = new URL(`/r/${id}`, window.location.origin);
       url.searchParams.set("lang", lang());
       postEvent({ type: "shared", asset: loaded.asset, reading_id: id, step: loaded.steps.length });
-      shareLink(url.href);
+      shareLink(url.href, id);
     } catch (error: unknown) {
       if (!this.gone()) toast(shareErrorMessage(error));
     } finally {

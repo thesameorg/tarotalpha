@@ -132,6 +132,8 @@ export const zh: Dictionary = {
     too_old: "交易所返回的历史不完整",
   },
   share: {
+    inTelegram: "在 Telegram 里发送",
+    orWeb: "或用网站链接，给不在 Telegram 的人",
     button: "分享",
     copy: "复制链接",
     snapshotFailed: "快照失败，请重试",
@@ -153,6 +155,7 @@ export const zh: Dictionary = {
     what: "用真钱购买。不会自动回复，也不会过期：一直留到你用掉。",
   },
   paywall: {
+    slow: "已支付，魔力马上到账",
     scan: "用钱包的相机扫一扫",
     backToReading: "回到牌阵",
     exact: "准确金额",
@@ -200,6 +203,7 @@ export const zh: Dictionary = {
     ripensIn: (hours: number): string => `${String(hours)} 小时后成熟`,
   },
   prophecy: {
+    legend: "淡色蜡烛是牌阵的预测，叠在上面的空心蜡烛是市场的真实走势",
     checking: "正在用交易所的蜡烛图验证预言…",
     notYet: (closesAt: string): string => `未来尚未到来：第一根待验证的蜡烛将于 ${closesAt} 收盘`,
     checkFailed: "交易所无响应，预言验证推迟",

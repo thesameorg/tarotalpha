@@ -152,6 +152,8 @@ export const ja: Dictionary = {
     too_old: "取引所が返した履歴が不完全です",
   },
   share: {
+    inTelegram: "Telegram で送る",
+    orWeb: "またはサイトのリンクで、Telegram の外の人へ",
     button: "共有",
     copy: "リンクをコピー",
     snapshotFailed: "スナップショットに失敗しました。もう一度お試しください",
@@ -173,6 +175,7 @@ export const ja: Dictionary = {
     what: "実際のお金で購入します。自動では回復せず、失効もしません。使うまで残ります。",
   },
   paywall: {
+    slow: "支払い済みです。マナはまもなく届きます",
     scan: "ウォレットのカメラで読み取ってください",
     backToReading: "占いに戻る",
     exact: "正確な金額",
@@ -220,6 +223,7 @@ export const ja: Dictionary = {
     ripensIn: (hours: number): string => `${String(hours)}時間後に満期`,
   },
   prophecy: {
+    legend: "淡いローソクはカードの予想、その上の枠線だけのローソクが実際の相場です",
     checking: "取引所のローソク足で予言を検証中…",
     notYet: (closesAt: string): string => `未来はまだ来ていません：検証する最初のローソク足は ${closesAt} に確定します`,
     checkFailed: "取引所が応答しないため、予言の検証は延期されました",
