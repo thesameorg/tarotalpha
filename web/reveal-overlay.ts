@@ -105,12 +105,14 @@ async function run(cards: readonly RevealCard[]): Promise<boolean> {
     slot.style.transform = "";
     if (reduced) {
       card?.classList.add("flipped");
+      card?.removeAttribute("aria-hidden");
       await sleep(REDUCED_FADE_MS);
       return;
     }
     await sleep(FLY_MS);
     if (!live) return;
     card?.classList.add("flipped");
+    card?.removeAttribute("aria-hidden");
     const legendary = drawn.card.arcana === "major" && drawn.reversed;
     const at = centreOf(slot);
     sparks.burst(at.x, at.y, legendary ? LEGENDARY_BURST : FLIP_BURST, legendary ? "red" : "gold", 0.7);
