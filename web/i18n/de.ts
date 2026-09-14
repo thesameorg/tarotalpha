@@ -255,7 +255,8 @@ export const de: Dictionary = {
       pct === null ? `Tag ${String(day)}: noch nicht` : `Tag ${String(day)}: ${String(pct)} %`,
   },
   summaryTitle: "Der Tag in einer Zeile.",
-  how: "Wie es berechnet wird",
+  how: "Methode",
+  contact: "Kontakt",
   cardName: (card: Card): string =>
     card.arcana === "major" ? (MAJORS[card.index] ?? "") : `${RANKS[card.rank - 1] ?? ""} ${SUITS[card.suit]}`,
   meaning: (cardId: number, reversed: boolean): string => {

@@ -222,7 +222,8 @@ export const zh: Dictionary = {
       pct === null ? `第 ${String(day)} 天：尚未到来` : `第 ${String(day)} 天：${String(pct)} %`,
   },
   summaryTitle: "一句话看今天。",
-  how: "计算方法",
+  how: "方法",
+  contact: "联系",
   cardName: (card: Card): string =>
     card.arcana === "major" ? (MAJORS[card.index] ?? "") : `${SUITS[card.suit]}${RANKS[card.rank - 1] ?? ""}`,
   meaning: (cardId: number, reversed: boolean): string => {
