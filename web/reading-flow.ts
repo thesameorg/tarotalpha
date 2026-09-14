@@ -269,7 +269,7 @@ class LandingPage {
     const cost = this.nextCost();
     this.el.ctaFull.textContent = t().drawStep(next);
     this.el.ctaShort.textContent = t().day(next);
-    this.el.ctaCost.innerHTML = cost === 0 ? "" : `<span class="mana-glyph">${icons.bolt}</span>${String(cost)}`;
+    this.el.ctaCost.innerHTML = cost === 0 ? "" : `<span class="mana-glyph">${icons.mana}</span>${String(cost)}`;
     const price = cost === 0 ? "" : ` · ${t().mana}: ${String(cost)}`;
     this.el.draw.setAttribute("aria-label", `${t().drawStep(next)}${price}`);
   }
