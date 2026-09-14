@@ -14,8 +14,9 @@
   "assets": {
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    // Without this the asset layer answers `/r/<id>` with index.html itself and the Worker never writes the meta tags.
-    "run_worker_first": ["/api/*", "/r/*"],
+    // Without this the asset layer answers `/r/<id>` and `/s/<id>` with index.html itself and the Worker never
+    // writes the meta tags.
+    "run_worker_first": ["/api/*", "/r/*", "/s/*"],
   },
   // Workers Rate Limiting binding: 60 calls a minute per key (the client address), counted per Cloudflare location.
   // `namespace_id` is any integer unique inside the account; nothing has to be created remotely.

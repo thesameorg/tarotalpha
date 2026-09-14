@@ -236,6 +236,20 @@ export const fr: Dictionary = {
     replay: "Rejouer le tirage",
     own: "Votre propre tirage pour cet instrument",
   },
+  scroll: {
+    open: "Obtenir le parchemin",
+    title: "Parchemin",
+    certify: (id: string, asset: string, pct: number): string =>
+      `Il est certifié que le tirage ${id} a prédit le mouvement de ${asset} à ${String(pct)} %`,
+    instrument: "Instrument",
+    anchor: "Ancre",
+    reader: "Cartomancienne",
+    accuracy: "Précision",
+    print: "Imprimer",
+    reading: "Vers le tirage",
+    notRipe: "Le parchemin est délivré à la clôture de la dernière bougie de la prévision",
+    made: "parchemin",
+  },
   mine: {
     button: "Mes tirages",
     ripe: "prêt",

@@ -19,6 +19,7 @@ import { initReaderProfile } from "./reader-profile";
 import { landingView } from "./reading-flow";
 import { readingView } from "./reading-page";
 import { startRouter } from "./router";
+import { scrollView } from "./scroll-page";
 import { initSettingsModal } from "./settings-modal";
 import { initShareModal } from "./share-modal";
 import {
@@ -34,6 +35,7 @@ import {
 import { initTheme } from "./theme";
 
 const READING_PATH = /^\/r\/([A-Za-z0-9_-]+)\/?$/;
+const SCROLL_PATH = /^\/s\/([A-Za-z0-9_-]+)\/?$/;
 
 async function boot(): Promise<void> {
   const view = document.getElementById("view");
@@ -56,15 +58,24 @@ async function boot(): Promise<void> {
   const start = telegramStartReading();
   if (start !== null) window.history.replaceState(null, "", `/r/${start}`);
   const navigate = startRouter(view, (url, navigate) => {
-    const id = READING_PATH.exec(url.pathname)?.[1];
-    telegramBack(
-      id === undefined
-        ? null
-        : () => {
-            navigate("/");
-          },
-    );
-    return id === undefined ? landingView(url.searchParams) : readingView(id, navigate);
+    const reading = READING_PATH.exec(url.pathname)?.[1];
+    const scroll = SCROLL_PATH.exec(url.pathname)?.[1];
+    // Telegram's own back arrow: nothing to go back to on the landing, home from a reading, and to the reading
+    // itself from its scroll — a scroll is opened from the reading, and that is where the arrow should return.
+    const back = (): (() => void) | null => {
+      if (scroll !== undefined)
+        return () => {
+          navigate(`/r/${scroll}`);
+        };
+      if (reading !== undefined)
+        return () => {
+          navigate("/");
+        };
+      return null;
+    };
+    telegramBack(back());
+    if (scroll !== undefined) return scrollView(scroll, navigate);
+    return reading === undefined ? landingView(url.searchParams) : readingView(reading, navigate);
   });
   initManaPanel();
   mountManaMeter(required(document, "#mana", HTMLElement));

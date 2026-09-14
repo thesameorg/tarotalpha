@@ -7,7 +7,7 @@ import { beat } from "./heartbeat";
 import { ApiError } from "./json-api";
 import { rateLimited } from "./rate-limit";
 import { readReaderRatings } from "./reader-ratings";
-import { readingPage } from "./reading-page";
+import { readingPage, scrollPage } from "./reading-page";
 import { createReading, extendReading, readReading } from "./readings";
 import { sweepMatured } from "./scoring";
 import {
@@ -25,6 +25,7 @@ import {
 } from "./wallet";
 
 const READING_PAGE = /^\/r\/([^/]+)$/;
+const SCROLL_PAGE = /^\/s\/([^/]+)$/;
 const READING_API = /^\/api\/readings\/([^/]+)$/;
 
 export default {
@@ -37,6 +38,8 @@ export default {
     if (pathname.startsWith("/api/")) return api(pathname, request, env);
     const page = READING_PAGE.exec(pathname);
     if (page?.[1] !== undefined) return readingPage(page[1], request, env);
+    const scroll = SCROLL_PAGE.exec(pathname);
+    if (scroll?.[1] !== undefined) return scrollPage(scroll[1], request, env);
     return env.ASSETS.fetch(request);
   },
   async scheduled(_controller, env) {

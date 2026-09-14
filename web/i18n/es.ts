@@ -235,6 +235,20 @@ export const es: Dictionary = {
     replay: "Repetir la tirada",
     own: "Tu propia tirada para este instrumento",
   },
+  scroll: {
+    open: "Obtener el pergamino",
+    title: "Pergamino",
+    certify: (id: string, asset: string, pct: number): string =>
+      `Se certifica que la tirada ${id} predijo el movimiento de ${asset} al ${String(pct)} %`,
+    instrument: "Instrumento",
+    anchor: "Ancla",
+    reader: "Tarotista",
+    accuracy: "Precisión",
+    print: "Imprimir",
+    reading: "A la tirada",
+    notRipe: "El pergamino se emite cuando cierre la última vela del pronóstico",
+    made: "pergamino",
+  },
   mine: {
     button: "Mis tiradas",
     ripe: "lista",

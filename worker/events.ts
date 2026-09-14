@@ -16,6 +16,7 @@ const CLIENT_TYPES = [
   "replayed",
   "shared",
   "rechecked",
+  "scroll_opened",
 ] as const;
 
 type ClientEventType = (typeof CLIENT_TYPES)[number];

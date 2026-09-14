@@ -18,6 +18,8 @@ export interface MyReading {
   created_at: number;
   /** When the viewer opened it from the list after it ripened; null until then. */
   checked_at: number | null;
+  /** When a scroll was drawn up for this reading; null while none ever was. */
+  scrolled_at: number | null;
 }
 
 /** One value per reading id; both storages speak this and the list never needs more. */
@@ -70,12 +72,17 @@ export function onMyReadingsChange(listener: () => void): () => void {
 }
 
 export async function rememberReading(
-  next: Omit<MyReading, "created_at" | "checked_at">,
+  next: Omit<MyReading, "created_at" | "checked_at" | "scrolled_at">,
   now = Date.now(),
 ): Promise<void> {
   await ready;
   const known = entries.find((entry) => entry.id === next.id);
-  const entry: MyReading = { ...next, created_at: known?.created_at ?? now, checked_at: known?.checked_at ?? null };
+  const entry: MyReading = {
+    ...next,
+    created_at: known?.created_at ?? now,
+    checked_at: known?.checked_at ?? null,
+    scrolled_at: known?.scrolled_at ?? null,
+  };
   entries = sorted([entry, ...entries.filter((other) => other.id !== next.id)]);
   const evicted = entries.splice(KEEP);
   notify();
@@ -88,6 +95,17 @@ export async function markChecked(id: string, now = Date.now()): Promise<void> {
   const known = entries.find((entry) => entry.id === id);
   if (known === undefined || known.checked_at !== null) return;
   const entry: MyReading = { ...known, checked_at: now };
+  entries = entries.map((other) => (other.id === id ? entry : other));
+  notify();
+  await persist(entry);
+}
+
+/** A scroll was drawn up for this reading, so the list can say so. Stamped once; a second scroll changes nothing. */
+export async function markScrolled(id: string, now = Date.now()): Promise<void> {
+  await ready;
+  const known = entries.find((entry) => entry.id === id);
+  if (known === undefined || known.scrolled_at !== null) return;
+  const entry: MyReading = { ...known, scrolled_at: now };
   entries = entries.map((other) => (other.id === id ? entry : other));
   notify();
   await persist(entry);
@@ -190,13 +208,23 @@ function parse(value: string): MyReading[] {
     return [];
   }
   if (typeof raw !== "object" || raw === null) return [];
-  const { id, asset, anchor_ts, steps, reader, created_at, checked_at } = raw as Record<string, unknown>;
+  const { id, asset, anchor_ts, steps, reader, created_at, checked_at, scrolled_at } = raw as Record<string, unknown>;
   if (typeof id !== "string" || !READING_ID.test(id) || typeof asset !== "string" || !ASSET_PATTERN.test(asset))
     return [];
   if (!isReaderId(reader)) return [];
   if (typeof anchor_ts !== "number" || typeof steps !== "number" || typeof created_at !== "number") return [];
   return [
-    { id, asset, anchor_ts, steps, reader, created_at, checked_at: typeof checked_at === "number" ? checked_at : null },
+    {
+      id,
+      asset,
+      anchor_ts,
+      steps,
+      reader,
+      created_at,
+      checked_at: typeof checked_at === "number" ? checked_at : null,
+      // Entries written before scrolls existed have no stamp, and an old entry is not a reading without a scroll.
+      scrolled_at: typeof scrolled_at === "number" ? scrolled_at : null,
+    },
   ];
 }
 

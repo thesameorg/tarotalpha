@@ -75,7 +75,14 @@ export interface ReaderTable {
 }
 
 export type EventType =
-  "chart_loaded" | "step_opened" | "paywall_hit" | "own_reading_clicked" | "replayed" | "shared" | "rechecked";
+  | "chart_loaded"
+  | "step_opened"
+  | "paywall_hit"
+  | "own_reading_clicked"
+  | "replayed"
+  | "shared"
+  | "rechecked"
+  | "scroll_opened";
 
 export interface FunnelEvent {
   type: EventType;

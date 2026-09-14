@@ -236,6 +236,20 @@ export const de: Dictionary = {
     replay: "Legung wiederholen",
     own: "Eigene Legung für dieses Instrument",
   },
+  scroll: {
+    open: "Schriftrolle holen",
+    title: "Schriftrolle",
+    certify: (id: string, asset: string, pct: number): string =>
+      `Hiermit wird bescheinigt: Legung ${id} sagte die Bewegung von ${asset} zu ${String(pct)} % voraus`,
+    instrument: "Instrument",
+    anchor: "Anker",
+    reader: "Kartenlegerin",
+    accuracy: "Genauigkeit",
+    print: "Drucken",
+    reading: "Zur Legung",
+    notRipe: "Die Schriftrolle wird ausgestellt, sobald die letzte Prognosekerze geschlossen hat",
+    made: "Schriftrolle",
+  },
   mine: {
     button: "Meine Legungen",
     ripe: "reif",

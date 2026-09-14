@@ -222,6 +222,20 @@ export const tr: Dictionary = {
     replay: "Açılımı yeniden oynat",
     own: "Bu enstrüman için kendi açılımın",
   },
+  scroll: {
+    open: "Tomarı al",
+    title: "Tomar",
+    certify: (id: string, asset: string, pct: number): string =>
+      `İşbu belge, ${id} açılımının ${asset} hareketini %${String(pct)} oranında öngördüğünü onaylar`,
+    instrument: "Enstrüman",
+    anchor: "Çıpa",
+    reader: "Falcı",
+    accuracy: "İsabet",
+    print: "Yazdır",
+    reading: "Açılıma dön",
+    notRipe: "Tomar, tahminin son mumu kapandığında verilir",
+    made: "tomar",
+  },
   mine: {
     button: "Açılımlarım",
     ripe: "hazır",

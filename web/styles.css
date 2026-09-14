@@ -2146,3 +2146,207 @@ footer {
     display: none;
   }
 }
+/* The scroll: a sheet inside the terminal, with a double gold rule for a border and the certifying line in serif.
+   It prints in whatever theme the viewer is in — a dark scroll prints dark, and the colours are forced through
+   rather than dropped, so the sheet on paper is the sheet on screen. */
+.scroll {
+  max-width: 940px;
+  margin: 10px auto 0;
+  padding: 26px 30px 20px;
+  background: var(--ink-2);
+  border: 1px solid var(--gold-deep);
+  outline: 3px double var(--gold-deep);
+  outline-offset: 4px;
+}
+.scroll-head {
+  text-align: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+.scroll-mark {
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  color: var(--gold);
+}
+.scroll-title {
+  margin: 4px 0 0;
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: normal;
+  letter-spacing: 0.12em;
+}
+.scroll-certify {
+  margin: 16px auto 18px;
+  max-width: 44em;
+  text-align: center;
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.5;
+  unicode-bidi: plaintext;
+}
+.scroll-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  gap: 18px;
+  align-items: start;
+}
+.scroll-chart {
+  height: 260px;
+  border: 1px solid var(--line);
+}
+.scroll-facts {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+.scroll-facts .fact {
+  display: grid;
+  gap: 2px;
+  border-left: 2px solid var(--gold-deep);
+  padding-left: 10px;
+}
+.scroll-facts dt {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+}
+.scroll-facts dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 15px;
+  unicode-bidi: plaintext;
+}
+.scroll-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 18px;
+}
+.scroll-day-no {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+  margin-bottom: 5px;
+}
+.scroll-day-cards {
+  display: flex;
+  gap: 7px;
+}
+.scroll-card {
+  margin: 0;
+  width: 64px;
+}
+.scroll-card img {
+  width: 100%;
+  aspect-ratio: 5 / 8;
+  object-fit: cover;
+  border: 1px solid var(--card-border);
+  border-radius: 3px;
+  background: var(--card-bg);
+}
+.scroll-card.rev img {
+  transform: rotate(180deg);
+}
+.scroll-card figcaption {
+  margin-top: 3px;
+  font-size: 9px;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--paper-dim);
+}
+.scroll-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.scroll-qr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.scroll-qr img {
+  width: 76px;
+  height: 76px;
+  background: #fff;
+  padding: 3px;
+}
+.scroll-url {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--paper-dim);
+  word-break: break-all;
+}
+/* The sheet carries its own disclaimer only for paper, where the site's footer does not go: one per screen is the
+   law, and on screen that one is the footer's. */
+.scroll-foot .disclaimer {
+  display: none;
+  margin: 0;
+  text-align: right;
+}
+.scroll-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 16px 0 4px;
+}
+.scroll-go {
+  margin-top: 10px;
+}
+.mine-card.scrolled {
+  border-color: var(--violet);
+}
+.mine-card.scrolled .mine-status {
+  color: var(--violet);
+}
+@media (max-width: 720px) {
+  .scroll {
+    padding: 18px 16px 14px;
+  }
+  .scroll-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .scroll-foot {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .scroll-foot .disclaimer {
+    text-align: left;
+  }
+}
+/* Print is the PDF, but only the scroll prints as a document: everywhere else the footer must reach the paper,
+   because it carries the one disclaimer that page has. Hence `:has` rather than a bare `.app > footer`, and a named
+   page rather than a bare `@page` — a browser that knows neither simply prints the page as it always did.
+   The sheet's colours are forced through, and it is never split across two leaves. */
+.scroll {
+  page: scroll;
+}
+@page scroll {
+  size: A4 landscape;
+  margin: 10mm;
+}
+@media print {
+  .app:has(.scroll) > header,
+  .app:has(.scroll) > footer {
+    display: none;
+  }
+  .scroll-actions {
+    display: none;
+  }
+  .scroll-foot .disclaimer {
+    display: block;
+  }
+  .scroll {
+    max-width: none;
+    margin: 0;
+    break-inside: avoid;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

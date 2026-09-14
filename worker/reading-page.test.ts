@@ -55,3 +55,15 @@ it("serves the untouched shell for an unknown id", async () => {
   expect(await page("/r/zzzzzzzz")).toBe(SHELL);
   expect(await page("/r/not-an-id")).toBe(SHELL);
 });
+
+it("gives the scroll its own title and its own canonical link, and keeps the reading's description", async () => {
+  const html = await page(`/s/${ID}?lang=ru`);
+  expect(html).toContain(`<title>TarotAlpha · ETHUSDT · свиток ${ID}</title>`);
+  expect(html).toContain(`<meta property="og:title" content="TarotAlpha · ETHUSDT · свиток ${ID}" />`);
+  expect(html).toContain(`<meta property="og:url" content="https://tarotalpha.test/s/${ID}" />`);
+  expect(html).toContain(
+    '<meta property="og:description" content="Расклад на 2 дн. вперёд от 2026-09-08 10:00 UTC. Не является финансовой рекомендацией." />',
+  );
+  expect(await page(`/s/${ID}?lang=ja`)).toContain(`<title>TarotAlpha · ETHUSDT · 巻物 ${ID}</title>`);
+  expect(await page("/s/zzzzzzzz")).toBe(SHELL);
+});

@@ -1,7 +1,8 @@
 /**
  * "My readings" in the header: a labelled button with the count, a dot on it while a ripe reading is unchecked, and
  * the window it opens, one card per reading this browser opened — instrument, reader, hour of the anchor and whether
- * the forecast has ripened; a ripe unchecked one is lit. A click opens the reading. The button hides while there is
+ * the forecast has ripened; a ripe unchecked one is lit, and one that already has a scroll says so in its own
+ * colour. A click opens the reading. The button hides while there is
  * nothing to list. Closes on the corner cross, a click outside or Escape.
  */
 import { postEvent } from "./api";
@@ -18,10 +19,12 @@ import type { Navigate } from "./router";
 function cardMarkup(entry: MyReading, now: number): string {
   const ripe = isRipe(entry, now);
   const due = ripe && entry.checked_at === null;
-  const status = ripe ? t().mine.ripe : t().mine.ripensIn(hoursToRipe(entry, now));
+  // A scroll is the end of the road for a reading, so it replaces "ripe" rather than standing next to it.
+  const scrolled = entry.scrolled_at !== null;
+  const status = scrolled ? t().scroll.made : ripe ? t().mine.ripe : t().mine.ripensIn(hoursToRipe(entry, now));
   const icon = COINS.find((coin) => coin.symbol === entry.asset)?.icon;
   const coin = icon === undefined ? "" : `<img src="${icon}" width="18" height="18" alt="">`;
-  return `<li><button type="button" class="mine-card${ripe ? " ripe" : ""}${due ? " due" : ""}" data-id="${entry.id}">
+  return `<li><button type="button" class="mine-card${ripe ? " ripe" : ""}${due ? " due" : ""}${scrolled ? " scrolled" : ""}" data-id="${entry.id}">
 <span class="mine-coin">${coin}${entry.asset}</span><span class="mine-status">${status}</span>
 <span class="mine-reader"><img src="${readerAvatarUrl(entry.reader)}" alt="">${t().readerName(entry.reader)}</span><span class="mine-when">${localDateTime(entry.anchor_ts)}</span></button></li>`;
 }
