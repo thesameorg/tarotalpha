@@ -1,12 +1,15 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { callApi, post, type Init } from "./call-api";
+import { COINS } from "./coins";
 import { PACKS } from "./packs";
 
 const TON = { TON_WALLET: "UQD__TEST__WALLET", TONAPI_KEY: "key" };
 const STARS = { TELEGRAM_BOT_TOKEN: "bot:token", TELEGRAM_WEBHOOK_SECRET: "hush" };
 const PACK = PACKS.find((pack) => pack.id === "mid");
 if (PACK === undefined) throw new Error("the mid pack is gone from the shelf");
+const USDT = COINS.find((coin) => coin.id === "usdt");
+if (USDT === undefined) throw new Error("the stablecoin is gone from the rail");
 
 /** A browser purse, straight from the route that issues one. */
 async function newOwner(): Promise<string> {
@@ -27,7 +30,8 @@ async function balanceOf(owner: string): Promise<number> {
 async function offer(owner: string, method: string, mana = 30): Promise<string> {
   const token = `ta${Math.random().toString(16).slice(2).padEnd(16, "0").slice(0, 16)}`;
   await env.DB.prepare(
-    "INSERT INTO invoices (token, owner, mana, method, amount, created_at) VALUES (?1, ?2, ?3, ?4, '1', ?5)",
+    "INSERT INTO invoices (token, owner, mana, cents, method, coin, amount, min_amount, created_at)" +
+      " VALUES (?1, ?2, ?3, 499, ?4, 'usdt', '1', '1', ?5)",
   )
     .bind(token, owner, mana, method, Date.now())
     .run();
@@ -68,22 +72,49 @@ describe("the shelf", () => {
     expect(await refused.json()).toMatchObject({ error: "rail_off" });
   });
 
-  it("writes an offer and hands back what the wallet needs to pay it", async () => {
+  it("writes a stablecoin offer and hands back everything the wallet needs to pay it", async () => {
     const owner = await newOwner();
-    const response = await callApi("/api/wallet/invoice", as(owner, post({ pack: PACK.id, method: "ton" })), TON);
+    const body = post({ pack: PACK.id, method: "ton", coin: "usdt" });
+    const response = await callApi("/api/wallet/invoice", as(owner, body), TON);
     expect(response.status).toBe(200);
-    const body = await response.json<{ token: string; address: string; amount_nano: string }>();
-    expect(body.token).toMatch(/^ta[0-9a-f]{16}$/);
-    expect(body.address).toBe(TON.TON_WALLET);
-    expect(body.amount_nano).toBe(String(PACK.nano));
+    const offer = await response.json<Record<string, string>>();
+    expect(offer.token).toMatch(/^ta[0-9a-f]{16}$/);
+    expect(offer.address).toBe(TON.TON_WALLET);
+    expect(offer.master).toBe(USDT.master);
+    expect(offer.symbol).toBe("USD₮");
+    // The comment is the whole mechanism: it is what brings the payment back to this offer.
+    expect(offer.comment).toBe(offer.token);
+    // 499 cents at six decimals, no rate anywhere: a dollar coin is already the price.
+    expect(offer.amount).toBe("4990000");
   });
 
-  it("refuses a pack nobody sells and a rail that does not exist", async () => {
+  it("settles a payment a few cents short rather than arguing about it", async () => {
     const owner = await newOwner();
-    const pack = await callApi("/api/wallet/invoice", as(owner, post({ pack: "free", method: "ton" })), TON);
-    expect(pack.status).toBe(400);
-    const rail = await callApi("/api/wallet/invoice", as(owner, post({ pack: PACK.id, method: "barter" })), TON);
-    expect(rail.status).toBe(400);
+    const body = post({ pack: PACK.id, method: "ton", coin: "usdt" });
+    const { token } = await (await callApi("/api/wallet/invoice", as(owner, body), TON)).json<{ token: string }>();
+    const row = await env.DB.prepare("SELECT amount, min_amount FROM invoices WHERE token = ?1")
+      .bind(token)
+      .first<{ amount: string; min_amount: string }>();
+    expect(row?.amount).toBe("4990000");
+    // Three cents of slack, written into the offer so a claim never needs a rate.
+    expect(row?.min_amount).toBe("4960000");
+  });
+
+  it("refuses a pack nobody sells, a rail that does not exist and a coin we do not take", async () => {
+    const owner = await newOwner();
+    const pack = post({ pack: "free", method: "ton", coin: "usdt" });
+    expect((await callApi("/api/wallet/invoice", as(owner, pack), TON)).status).toBe(400);
+    const rail = post({ pack: PACK.id, method: "barter" });
+    expect((await callApi("/api/wallet/invoice", as(owner, rail), TON)).status).toBe(400);
+    const coin = post({ pack: PACK.id, method: "ton", coin: "dogecoin" });
+    expect((await callApi("/api/wallet/invoice", as(owner, coin), TON)).status).toBe(400);
+    const none = post({ pack: PACK.id, method: "ton" });
+    expect((await callApi("/api/wallet/invoice", as(owner, none), TON)).status).toBe(400);
+  });
+
+  it("pins the stablecoin by its master address, because a forgery can copy the ticker", () => {
+    expect(USDT.master).toBe("0:b113a994b5024a16719f69139328eb759596c38a25f59028b146fecdc3621dfe");
+    expect(USDT.decimals).toBe(6);
   });
 });
 

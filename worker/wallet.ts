@@ -5,9 +5,10 @@
  * The rails end to end, the refusals and what was rejected: docs/wallet.md
  */
 import { ApiError, readJsonBody } from "./json-api";
+import { coinById, COINS, type Coin } from "./coins";
 import { packById, PACKS, type Pack } from "./packs";
 import { approvePreCheckout, paymentOf, preCheckoutOf, setWebhook, starsInvoiceLink, telegramUserId } from "./telegram";
-import { findTransfer, tonClient } from "./ton";
+import { findPayment, quote, tonClient } from "./ton";
 
 /** Secrets the payment side needs. All optional: a rail without its secret is simply not offered. */
 export interface PaymentSecrets {
@@ -21,8 +22,9 @@ export type WalletEnv = Env & PaymentSecrets;
 
 const WEB_OWNER = /^web:[0-9a-f]{32}$/;
 const TOKEN = /^ta[0-9a-f]{16}$/;
-// The rate that was quoted can drift before the buyer signs; two cents are cheaper to eat than to argue about.
-const UNDERPAY_TOLERANCE = 0.98;
+// The rate drifts between the quote and the signature, and a wallet rounds. Settling a few cents short beats telling
+// someone who already paid that they are three cents out; the slack is written into the offer, not recomputed later.
+const SLACK_CENTS = 3;
 
 type Method = "ton" | "stars";
 
@@ -31,7 +33,8 @@ interface InvoiceRow {
   owner: string;
   mana: number;
   method: string;
-  amount: string;
+  coin: string | null;
+  min_amount: string;
   paid_at: number | null;
 }
 
@@ -46,6 +49,7 @@ export async function readWallet(request: Request, env: WalletEnv): Promise<Resp
   return Response.json({
     balance: await balanceOf(owner, env),
     packs: PACKS,
+    coins: COINS.map(({ id, symbol, decimals }) => ({ id, symbol, decimals })),
     rails: rails(env),
   });
 }
@@ -61,18 +65,49 @@ export async function createInvoice(request: Request, env: WalletEnv): Promise<R
   if (!rails(env)[method]) throw new ApiError(503, "rail_off", `${method} is not configured`);
 
   const token = `ta${hex(8)}`;
-  const amount = method === "ton" ? pack.nano : pack.stars;
+  const coin = method === "ton" ? pickCoin(body.coin) : null;
+  const { amount, min } = await priceOf(pack, method, coin, env);
   await env.DB.prepare(
-    "INSERT INTO invoices (token, owner, mana, method, amount, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+    "INSERT INTO invoices (token, owner, mana, cents, method, coin, amount, min_amount, created_at)" +
+      " VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
   )
-    .bind(token, owner, pack.mana, method, String(amount), Date.now())
+    .bind(token, owner, pack.mana, pack.cents, method, coin?.id ?? null, String(amount), String(min), Date.now())
     .run();
 
-  return Response.json(
-    method === "ton"
-      ? { token, method, address: env.TON_WALLET, amount_nano: String(pack.nano) }
-      : { token, method, invoice_link: await starsLink(env, pack, token) },
-  );
+  if (coin === null) return Response.json({ token, method, invoice_link: await starsLink(env, pack, token) });
+  return Response.json({
+    token,
+    method,
+    coin: coin.id,
+    symbol: coin.symbol,
+    decimals: coin.decimals,
+    // A jetton is sent to its own master, not straight to us; the client needs both to build the transfer.
+    address: env.TON_WALLET,
+    master: coin.master,
+    amount: String(amount),
+    comment: token,
+  });
+}
+
+/** What this offer asks for and the least it settles for, both in the rail's own smallest unit. */
+async function priceOf(
+  pack: Pack,
+  method: Method,
+  coin: Coin | null,
+  env: WalletEnv,
+): Promise<{ amount: bigint; min: bigint }> {
+  if (coin === null) return { amount: BigInt(pack.stars), min: BigInt(pack.stars) };
+  const key = env.TONAPI_KEY;
+  if (key === undefined) throw new ApiError(503, "rail_off", "ton is not configured");
+  const amount = await quote(tonClient(key), coin, pack.cents);
+  // Scaled from the asked amount rather than quoted twice: one rate for one offer, and no second call to drift.
+  return { amount, min: (amount * BigInt(pack.cents - SLACK_CENTS)) / BigInt(pack.cents) };
+}
+
+function pickCoin(id: unknown): Coin {
+  const coin = coinById(id);
+  if (coin === null) throw new ApiError(400, "bad_request", "coin is not one this rail takes");
+  return coin;
 }
 
 /** Asks the chain whether a TON offer has been paid, and credits it if so. Stars never come through here. */
@@ -91,10 +126,12 @@ export async function claimInvoice(request: Request, env: WalletEnv): Promise<Re
 
   const { TON_WALLET: wallet, TONAPI_KEY: key } = env;
   if (wallet === undefined || key === undefined) throw new ApiError(503, "rail_off", "ton is not configured");
-  const found = await findTransfer(tonClient(key), wallet, token);
-  if (found === null) throw new ApiError(402, "not_found_yet", "no transfer with this comment yet");
-  if (found.nano < Number(invoice.amount) * UNDERPAY_TOLERANCE) {
-    throw new ApiError(402, "underpaid", "the transfer is smaller than the offer");
+  const coin = coinById(invoice.coin);
+  if (coin === null) throw new ApiError(400, "bad_request", "this offer names a coin the rail no longer takes");
+  const found = await findPayment(tonClient(key), wallet, token, coin);
+  if (found === null) throw new ApiError(402, "not_found_yet", "no payment with this comment yet");
+  if (found.units < BigInt(invoice.min_amount)) {
+    throw new ApiError(402, "underpaid", "the payment is smaller than the offer allows");
   }
 
   await markPaid(token, found.hash, "ton", env);
@@ -162,7 +199,9 @@ async function balanceOf(owner: string, env: WalletEnv): Promise<number> {
 }
 
 async function invoiceOf(token: string, env: WalletEnv): Promise<InvoiceRow | null> {
-  return await env.DB.prepare("SELECT token, owner, mana, method, amount, paid_at FROM invoices WHERE token = ?1")
+  return await env.DB.prepare(
+    "SELECT token, owner, mana, method, coin, min_amount, paid_at FROM invoices WHERE token = ?1",
+  )
     .bind(token)
     .first<InvoiceRow>();
 }

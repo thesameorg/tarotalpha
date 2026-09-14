@@ -10,14 +10,17 @@ CREATE TABLE invoices (
   token TEXT PRIMARY KEY,
   owner TEXT NOT NULL,
   mana INTEGER NOT NULL,
+  cents INTEGER NOT NULL,
   method TEXT NOT NULL,
+  coin TEXT,
   amount TEXT NOT NULL,
+  min_amount TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   paid_at INTEGER,
   ext_id TEXT
 );
 
--- The one guard against double credit: a blockchain transfer and a Telegram charge each pay exactly one offer.
+-- The one guard against double credit: a blockchain payment and a Telegram charge each settle exactly one offer.
 CREATE UNIQUE INDEX invoices_ext ON invoices (method, ext_id) WHERE ext_id IS NOT NULL;
 -- Reading a balance sums this owner's paid offers, so the index carries the balance query as well as the history.
 CREATE INDEX invoices_owner ON invoices (owner, paid_at);
