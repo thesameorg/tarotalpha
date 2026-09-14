@@ -14,9 +14,11 @@ export function frontMarkup(card: Card, reversed: boolean, eager: boolean): stri
   return `<div class="${classes}"><img class="art" src="${cardImageUrl(card.id)}" alt="" loading="${loading}" decoding="async" draggable="false"><div class="caption"><div class="name">${t().cardName(card)}</div>${reversedTag}</div></div>`;
 }
 
-/** A slot with the back and, when given, a front face; `flipped` shows the front at once. */
+/** A slot: back, plus a front when given; `flipped` shows it at once. Face-down stays out of the accessibility
+ * tree — the name sits in the markup from the start, and `reveal-overlay.ts` lifts the attribute with the flip. */
 export function slotMarkup(front: string | null, flipped: boolean): string {
   const slotClass = front === null ? "slot empty" : "slot";
   const cardClass = flipped ? "card flipped" : "card";
-  return `<div class="${slotClass}"><div class="${cardClass}"><div class="face back"></div>${front ?? ""}</div></div>`;
+  const muted = flipped ? "" : ' aria-hidden="true"';
+  return `<div class="${slotClass}"><div class="${cardClass}"${muted}><div class="face back"></div>${front ?? ""}</div></div>`;
 }
