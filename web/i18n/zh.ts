@@ -204,6 +204,20 @@ export const zh: Dictionary = {
     replay: "重演牌阵",
     own: "为这个标的开启自己的牌阵",
   },
+  scroll: {
+    open: "领取卷轴",
+    title: "卷轴",
+    certify: (id: string, asset: string, pct: number): string =>
+      `兹证明牌阵 ${id} 对 ${asset} 走势的预测准确率为 ${String(pct)} %`,
+    instrument: "品种",
+    anchor: "锚点",
+    reader: "占卜师",
+    accuracy: "准确率",
+    print: "打印",
+    reading: "返回牌阵",
+    notRipe: "预测的最后一根蜡烛收盘后方可领取卷轴",
+    made: "卷轴",
+  },
   mine: {
     button: "我的牌阵",
     ripe: "已成熟",

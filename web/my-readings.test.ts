@@ -7,6 +7,7 @@ import {
   initMyReadings,
   isRipe,
   markChecked,
+  markScrolled,
   myReadings,
   rememberReading,
   ripensAt,
@@ -89,6 +90,23 @@ describe("my readings", () => {
     expect(JSON.parse(store.values.get("bcdfghjk") ?? "")).toMatchObject({ checked_at: 5000 });
   });
 
+  it("stamps the scroll once and keeps the stamp when the reading is remembered again", async () => {
+    await rememberReading(BASE, 1000);
+    await markScrolled("bcdfghjk", 5000);
+    await markScrolled("bcdfghjk", 6000);
+    expect((await myReadings())[0]?.scrolled_at).toBe(5000);
+    expect(JSON.parse(store.values.get("bcdfghjk") ?? "")).toMatchObject({ scrolled_at: 5000 });
+    // The reading flow rewrites the entry on every step opened, and it knows nothing about scrolls.
+    await rememberReading({ ...BASE, steps: 2 }, 7000);
+    expect((await myReadings())[0]?.scrolled_at).toBe(5000);
+  });
+
+  it("reads an entry written before scrolls existed as a reading without one", async () => {
+    const old = JSON.stringify({ ...BASE, created_at: 7, checked_at: null });
+    initMyReadings(cloudOf(fakeStore([old])));
+    expect((await myReadings())[0]?.scrolled_at).toBeNull();
+  });
+
   it("keeps two hundred readings and drops the oldest from the storage", async () => {
     for (let i = 0; i < 201; i++) await rememberReading({ ...BASE, id: `id${String(i)}` }, i);
     const list = await myReadings();
@@ -98,7 +116,7 @@ describe("my readings", () => {
   });
 
   it("reads what the storage holds and skips what is not a reading", async () => {
-    const stored: MyReading = { ...BASE, created_at: 7, checked_at: null };
+    const stored: MyReading = { ...BASE, created_at: 7, checked_at: null, scrolled_at: null };
     const odd = [
       JSON.stringify(stored),
       "garbage",
@@ -148,7 +166,7 @@ describe("ripeness", () => {
   });
 
   it("says whether a ripe reading is still unchecked", () => {
-    const ripe: MyReading = { ...BASE, created_at: 0, checked_at: null };
+    const ripe: MyReading = { ...BASE, created_at: 0, checked_at: null, scrolled_at: null };
     const now = ANCHOR + 30 * HOUR_MS;
     expect(hasUnchecked([ripe], now)).toBe(true);
     expect(hasUnchecked([{ ...ripe, checked_at: now }], now)).toBe(false);

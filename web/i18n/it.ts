@@ -238,6 +238,20 @@ export const it: Dictionary = {
     replay: "Ripeti la lettura",
     own: "La tua lettura per questo strumento",
   },
+  scroll: {
+    open: "Ottieni la pergamena",
+    title: "Pergamena",
+    certify: (id: string, asset: string, pct: number): string =>
+      `Si certifica che la lettura ${id} ha previsto il movimento di ${asset} al ${String(pct)} %`,
+    instrument: "Strumento",
+    anchor: "Ancora",
+    reader: "Cartomante",
+    accuracy: "Precisione",
+    print: "Stampa",
+    reading: "Alla lettura",
+    notRipe: "La pergamena viene rilasciata alla chiusura dell'ultima candela della previsione",
+    made: "pergamena",
+  },
   mine: {
     button: "Le mie letture",
     ripe: "pronta",

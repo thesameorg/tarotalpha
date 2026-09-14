@@ -235,6 +235,20 @@ export const en: Dictionary = {
     replay: "Replay the reading",
     own: "Your own reading for this instrument",
   },
+  scroll: {
+    open: "Get the scroll",
+    title: "Scroll",
+    certify: (id: string, asset: string, pct: number): string =>
+      `This is to certify that reading ${id} foretold the movement of ${asset} to ${String(pct)} %`,
+    instrument: "Instrument",
+    anchor: "Anchor",
+    reader: "Reader",
+    accuracy: "Accuracy",
+    print: "Print",
+    reading: "To the reading",
+    notRipe: "The scroll is issued once the last forecast candle has closed",
+    made: "scroll",
+  },
   mine: {
     button: "My readings",
     ripe: "ripe",

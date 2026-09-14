@@ -224,6 +224,20 @@ export const ja: Dictionary = {
     replay: "リーディングを再生",
     own: "この銘柄で自分のリーディング",
   },
+  scroll: {
+    open: "巻物を受け取る",
+    title: "巻物",
+    certify: (id: string, asset: string, pct: number): string =>
+      `本書は、リーディング ${id} が ${asset} の値動きを ${String(pct)} % の精度で予言したことを証明します`,
+    instrument: "銘柄",
+    anchor: "アンカー",
+    reader: "占い師",
+    accuracy: "的中率",
+    print: "印刷",
+    reading: "リーディングへ",
+    notRipe: "予測の最後のローソク足が確定すると巻物が発行されます",
+    made: "巻物",
+  },
   mine: {
     button: "自分のリーディング",
     ripe: "満期",

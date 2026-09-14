@@ -231,6 +231,20 @@ export const ru = {
     replay: "Воспроизвести расклад",
     own: "Свой расклад по этому инструменту",
   },
+  scroll: {
+    open: "Получить свиток",
+    title: "Свиток",
+    certify: (id: string, asset: string, pct: number): string =>
+      `Настоящим удостоверяется, что расклад ${id} предсказал движение ${asset} на ${String(pct)} %`,
+    instrument: "Инструмент",
+    anchor: "Якорь",
+    reader: "Гадалка",
+    accuracy: "Точность",
+    print: "Печать",
+    reading: "К раскладу",
+    notRipe: "Свиток выдаётся, когда закроется последняя свеча прогноза",
+    made: "свиток",
+  },
   mine: {
     button: "Мои расклады",
     ripe: "созрел",

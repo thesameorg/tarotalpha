@@ -174,7 +174,10 @@ function verdictMarkup({ overall, perStep, total, reader, deviation, table, clos
   const pct = percent(overall.accuracy) ?? 0;
   const hit = (overall.accuracy ?? 0) >= 0.5;
   const title = hit ? t().prophecy.hit(pct) : t().prophecy.miss(pct);
-  const status = overall.compared === total ? t().prophecy.final : t().prophecy.interim;
+  const final = overall.compared === total;
+  const status = final ? t().prophecy.final : t().prophecy.interim;
+  // Only a finished story is worth certifying: an interim number would be a document that changes tomorrow.
+  const scroll = final ? `<button class="go scroll-go" type="button" id="scroll-go">${t().scroll.open}</button>` : "";
   const word = deviation === null ? "" : ` · ${t().prophecy.praise[praise(deviation, overall.compared)](reader)}`;
   const lines = perStep.map((step, index) => t().prophecy.stepLine(index + 1, percent(step.accuracy))).join(" · ");
   return `<div class="verdict ${hit ? "hit" : "miss"}">
@@ -183,6 +186,7 @@ function verdictMarkup({ overall, perStep, total, reader, deviation, table, clos
   <div class="verdict-steps">${lines}</div>
   ${tableMarkup(table, closest)}
   <div class="verdict-legend">${t().prophecy.legend}</div>
+  ${scroll}
 </div>`;
 }
 
@@ -349,6 +353,11 @@ class ReadingPage {
     }
     if (prophecy.kind === "verdict") {
       el.prophecy.innerHTML = verdictMarkup(prophecy.verdict);
+      const scroll = el.prophecy.querySelector("#scroll-go");
+      if (scroll instanceof HTMLButtonElement)
+        scroll.addEventListener("click", () => {
+          this.navigate(`/s/${this.id}`);
+        });
       return;
     }
     el.prophecy.innerHTML = pendingMarkup(prophecy.text(), prophecy.retry);

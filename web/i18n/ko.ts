@@ -212,6 +212,20 @@ export const ko: Dictionary = {
     replay: "리딩 다시 보기",
     own: "이 종목으로 나만의 리딩",
   },
+  scroll: {
+    open: "두루마리 받기",
+    title: "두루마리",
+    certify: (id: string, asset: string, pct: number): string =>
+      `본 문서는 리딩 ${id} 이(가) ${asset} 의 움직임을 ${String(pct)} % 로 예언했음을 증명합니다`,
+    instrument: "종목",
+    anchor: "기준점",
+    reader: "점술가",
+    accuracy: "정확도",
+    print: "인쇄",
+    reading: "리딩으로",
+    notRipe: "예측의 마지막 캔들이 마감되면 두루마리가 발급됩니다",
+    made: "두루마리",
+  },
   mine: {
     button: "나의 리딩",
     ripe: "만기",
