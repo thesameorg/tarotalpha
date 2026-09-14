@@ -1,10 +1,11 @@
 /**
- * The terminal chart on Lightweight Charts: real candles that draw in left to right, forecast candles that flow
- * in one at a time, hollow real candles over the forecast for the prophecy check, plus the forecast zone, the band
- * between the two sets of closes and the anchor pulse as series primitives. Colours come from the theme's CSS variables and are re-applied on a theme
- * switch; the locale follows the interface language. The library has no timezone, so candle times are shifted by
- * the viewer's offset before they go in: day ticks then land on local midnight and labels read as local wall clock.
- * The frame holds around the anchor: 72 real candles on the left, on the right three days or one past the open ones.
+ * The terminal chart on Lightweight Charts: real candles that draw in left to right, hollow forecast candles
+ * in cyan and pink that flow in one at a time, solid real candles over them for the prophecy check, plus the
+ * forecast zone, the band between the two sets of closes and the anchor pulse as series primitives. Colours come
+ * from the theme's CSS variables and are re-applied on a theme switch; the locale follows the interface language.
+ * The library has no timezone, so candle times are shifted by the viewer's offset before they go in: day ticks
+ * then land on local midnight and labels read as local wall clock. The frame holds around the anchor: 72 real
+ * candles on the left, on the right three days or one past the open ones.
  */
 import {
   CandlestickSeries,
@@ -99,7 +100,8 @@ const realColours = (p: Palette) => ({
   wickDownColor: p.down,
   priceLineColor: p.line,
 });
-// Hollow and pale: an invented candle should look invented. Reality, historical or verified, is always solid.
+// Hollow, and in colours the market never uses: an invented candle should look invented and never pass for a
+// real one. Reality, historical or verified, is always solid green and red.
 const forecastColours = (p: Palette) => ({
   upColor: TRANSPARENT,
   downColor: TRANSPARENT,

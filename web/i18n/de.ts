@@ -236,7 +236,7 @@ export const de: Dictionary = {
     ripensIn: (hours: number): string => `reif in ${String(hours)} h`,
   },
   prophecy: {
-    legend: "Die hohlen, durchscheinenden Kerzen sind die Legung; die vollen sind der Markt",
+    legend: "Die hohlen türkis-rosa Kerzen sind die Legung; die vollen grün-roten sind der Markt",
     checking: "Prophezeiung wird an den Kerzen der Börse geprüft…",
     notYet: (closesAt: string): string =>
       `Die Zukunft ist noch nicht eingetreten: die erste zu prüfende Kerze schließt um ${closesAt}`,

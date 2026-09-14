@@ -238,7 +238,7 @@ export const it: Dictionary = {
     ripensIn: (hours: number): string => `pronta tra ${String(hours)} h`,
   },
   prophecy: {
-    legend: "Le candele vuote e translucide sono la lettura; quelle piene sono il mercato",
+    legend: "Le candele vuote ciano e rosa sono la lettura; quelle piene verdi e rosse sono il mercato",
     checking: "Verifica della profezia sulle candele dell'exchange…",
     notYet: (closesAt: string): string =>
       `Il futuro non è ancora arrivato: la prima candela da verificare chiude alle ${closesAt}`,

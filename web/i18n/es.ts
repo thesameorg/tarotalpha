@@ -235,7 +235,7 @@ export const es: Dictionary = {
     ripensIn: (hours: number): string => `lista en ${String(hours)} h`,
   },
   prophecy: {
-    legend: "Las velas huecas y translúcidas son la tirada; las sólidas son el mercado",
+    legend: "Las velas huecas cian y rosa son la tirada; las sólidas verdes y rojas son el mercado",
     checking: "Verificando la profecía con las velas del exchange…",
     notYet: (closesAt: string): string =>
       `El futuro aún no ha llegado: la primera vela a verificar cierra a las ${closesAt}`,

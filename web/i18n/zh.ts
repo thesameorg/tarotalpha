@@ -204,7 +204,7 @@ export const zh: Dictionary = {
     ripensIn: (hours: number): string => `${String(hours)} 小时后成熟`,
   },
   prophecy: {
-    legend: "半透明的空心蜡烛是牌阵的预测，实心蜡烛是市场的真实走势",
+    legend: "青色和粉色的空心蜡烛是牌阵的预测，绿色和红色的实心蜡烛是市场的真实走势",
     checking: "正在用交易所的蜡烛图验证预言…",
     notYet: (closesAt: string): string => `未来尚未到来：第一根待验证的蜡烛将于 ${closesAt} 收盘`,
     checkFailed: "交易所无响应，预言验证推迟",

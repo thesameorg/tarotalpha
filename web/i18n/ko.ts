@@ -212,7 +212,7 @@ export const ko: Dictionary = {
     ripensIn: (hours: number): string => `${String(hours)}시간 후 만기`,
   },
   prophecy: {
-    legend: "반투명한 빈 캔들은 카드의 예측, 꽉 찬 캔들이 실제 시장입니다",
+    legend: "청록색과 분홍색 빈 캔들은 카드의 예측, 초록과 빨강 꽉 찬 캔들이 실제 시장입니다",
     checking: "거래소 캔들로 예언을 검증하는 중…",
     notYet: (closesAt: string): string => `미래는 아직 오지 않았습니다: 검증할 첫 캔들은 ${closesAt}에 마감됩니다`,
     checkFailed: "거래소가 응답하지 않아 예언 검증이 미뤄졌습니다",

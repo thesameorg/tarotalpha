@@ -222,7 +222,7 @@ export const tr: Dictionary = {
     ripensIn: (hours: number): string => `${String(hours)} s sonra hazır`,
   },
   prophecy: {
-    legend: "İçi boş, yarı saydam mumlar açılımın tahmini; dolu mumlar piyasanın kendisi",
+    legend: "İçi boş camgöbeği ve pembe mumlar açılımın tahmini; dolu yeşil ve kırmızı mumlar piyasanın kendisi",
     checking: "Kehanet borsanın mumlarıyla kontrol ediliyor…",
     notYet: (closesAt: string): string =>
       `Gelecek henüz gelmedi: kontrol edilecek ilk mum saat ${closesAt} itibarıyla kapanır`,
