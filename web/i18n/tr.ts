@@ -188,6 +188,7 @@ export const tr: Dictionary = {
     openWallet: "Cüzdanı aç",
     waiting: "Ödeme bekleniyor",
     credited: (mana: number): string => `Yüklendi. Satın alınan mana: ${String(mana)}`,
+    endless: "Yüklendi. Keseniz artık tükenmiyor",
     failed: "Olmadı. Tekrar deneyin",
     meditating: "Ödeme modülü hâlâ meditasyonda",
     title: "Mana tükendi",

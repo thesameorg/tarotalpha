@@ -204,6 +204,7 @@ export const it: Dictionary = {
     openWallet: "Apri portafoglio",
     waiting: "In attesa del pagamento",
     credited: (mana: number): string => `Accreditato. Mana acquistato: ${String(mana)}`,
+    endless: "Accreditato. La tua borsa non si esaurisce più",
     failed: "Non ha funzionato. Riprova",
     meditating: "Il modulo di pagamento sta ancora meditando",
     title: "Mana esaurito",

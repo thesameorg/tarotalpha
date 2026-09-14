@@ -178,6 +178,7 @@ export const ko: Dictionary = {
     openWallet: "지갑 열기",
     waiting: "결제를 기다리는 중",
     credited: (mana: number): string => `충전되었습니다. 구매한 마나: ${String(mana)}`,
+    endless: "지급되었습니다. 이제 지갑이 바닥나지 않습니다",
     failed: "실패했습니다. 다시 시도해 주세요",
     meditating: "결제 모듈은 아직 명상 중입니다",
     title: "마나가 바닥났습니다",

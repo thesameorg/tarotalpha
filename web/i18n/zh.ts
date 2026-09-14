@@ -170,6 +170,7 @@ export const zh: Dictionary = {
     openWallet: "打开钱包",
     waiting: "等待付款",
     credited: (mana: number): string => `已入账。已购魔力：${String(mana)}`,
+    endless: "已到账。你的钱袋不再耗尽",
     failed: "没有成功，请再试一次",
     meditating: "支付模块仍在冥想",
     title: "法力耗尽了",
