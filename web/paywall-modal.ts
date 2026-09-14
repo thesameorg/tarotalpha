@@ -107,7 +107,8 @@ function paintPacks(shelfNow: Shelf): void {
   list.innerHTML = shelfNow.packs
     .map(
       (pack) =>
-        `<div class="tier"><div class="t"><span class="mana-glyph">${icons.bolt}</span>` +
+        `<div class="tier${pack.unlimited === true ? " tier-endless" : ""}">` +
+        `<div class="t"><span class="mana-glyph">${icons.bolt}</span>` +
         `${pack.unlimited === true ? ENDLESS_SIGN : String(pack.mana)}</div>` +
         `<div class="pay-price">${stars ? `${String(pack.stars)} ★` : price(pack.cents)}</div>` +
         `<button type="button" data-pack="${pack.id}" data-i18n="paywall.buy"></button></div>`,
