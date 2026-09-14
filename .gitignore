@@ -155,3 +155,6 @@ __pycache__/
 
 # конфиг запуска для панели браузера Claude Code
 .claude/launch.json
+
+# скриншоты и снапшоты обхода новичком: Playwright MCP пишет только внутрь репозитория
+.playwright-mcp/
