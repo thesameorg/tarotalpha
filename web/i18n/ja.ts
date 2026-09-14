@@ -136,6 +136,7 @@ export const ja: Dictionary = {
   disclaimer: "投資助言ではありません。カードもそう言っています",
   reversed: "逆位置",
   day: (n: number): string => `${String(n)}日目`,
+  castHere: "占った時点",
   now: "現在",
   drawStep: (n: number): string => `リーディングを開く · ${String(n)}日目`,
   mana: "マナ",
@@ -223,7 +224,7 @@ export const ja: Dictionary = {
     ripensIn: (hours: number): string => `${String(hours)}時間後に満期`,
   },
   prophecy: {
-    legend: "淡いローソクはカードの予想、その上の枠線だけのローソクが実際の相場です",
+    legend: "半透明の中空のローソクがカードの予想、中身の詰まったローソクが実際の相場です",
     checking: "取引所のローソク足で予言を検証中…",
     notYet: (closesAt: string): string => `未来はまだ来ていません：検証する最初のローソク足は ${closesAt} に確定します`,
     checkFailed: "取引所が応答しないため、予言の検証は延期されました",

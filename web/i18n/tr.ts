@@ -134,6 +134,7 @@ export const tr: Dictionary = {
   disclaimer: "yatırım tavsiyesi değildir; kartlar da aynı fikirde",
   reversed: "ters",
   day: (n: number): string => `${String(n)}. gün`,
+  castHere: "açılım yapıldı",
   now: "şimdi",
   drawStep: (n: number): string => `Açılımı aç · ${String(n)}. gün`,
   mana: "Mana",
@@ -221,7 +222,7 @@ export const tr: Dictionary = {
     ripensIn: (hours: number): string => `${String(hours)} s sonra hazır`,
   },
   prophecy: {
-    legend: "Soluk mumlar açılımın tahmini; üstteki çerçeveli mumlar piyasanın kendisi",
+    legend: "İçi boş, yarı saydam mumlar açılımın tahmini; dolu mumlar piyasanın kendisi",
     checking: "Kehanet borsanın mumlarıyla kontrol ediliyor…",
     notYet: (closesAt: string): string =>
       `Gelecek henüz gelmedi: kontrol edilecek ilk mum saat ${closesAt} itibarıyla kapanır`,

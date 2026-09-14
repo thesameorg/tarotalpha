@@ -12,7 +12,6 @@ import {
   CANDLES_PER_STEP,
   deviation,
   forecastFromCards,
-  MAX_STEPS,
   praise,
   type Accuracy,
   type Candle,
@@ -46,7 +45,6 @@ interface Elements {
   last: HTMLElement;
   chg: HTMLElement;
   meta: HTMLElement;
-  steps: HTMLElement;
   chart: HTMLElement;
   prophecy: HTMLElement;
   panel: HTMLElement;
@@ -79,7 +77,7 @@ function messageMarkup(message: string, buttonId: string, buttonText: string): s
 }
 
 function toolbarMarkup(): string {
-  return `<div id="picker"></div><div class="steps" id="steps">${"<span></span>".repeat(MAX_STEPS)}</div>`;
+  return `<div id="picker"></div>`;
 }
 
 function readingMarkup(): string {
@@ -110,7 +108,6 @@ function lookup(root: HTMLElement, toolbar: HTMLElement): Elements {
     last: required(root, "#last", HTMLElement),
     chg: required(root, "#chg", HTMLElement),
     meta: required(root, "#meta", HTMLElement),
-    steps: required(toolbar, "#steps", HTMLElement),
     chart: required(root, "#chart", HTMLElement),
     prophecy: required(root, "#prophecy", HTMLElement),
     panel: required(root, "#panel", HTMLElement),
@@ -235,13 +232,12 @@ class ReadingPage {
       postEvent({ type: "own_reading_clicked", asset: symbol, reading_id: record.id });
       this.navigate(`/?asset=${encodeURIComponent(symbol)}`);
     });
-    this.setStepsBar(el, results.length);
 
     const panel = createSpreadPanel(el.panel, false);
     this.panel = panel;
     panel.setSteps(results, 0);
 
-    const chart = createCandleChart(el.chart);
+    const chart = createCandleChart(el.chart, () => t().castHere);
     this.chart = chart;
 
     el.replay.addEventListener("click", () => {
@@ -309,12 +305,6 @@ class ReadingPage {
         void this.recheck();
       });
     }
-  }
-
-  private setStepsBar(el: Elements, done: number): void {
-    [...el.steps.children].forEach((mark, index) => {
-      mark.classList.toggle("done", index < done);
-    });
   }
 
   private async reveal(
@@ -407,7 +397,6 @@ class ReadingPage {
     chart.setActual([]);
     chart.setForecast([]);
     chart.setSteps(0);
-    this.setStepsBar(el, 0);
     for (const [index, step] of results.entries()) {
       if (this.gone()) return;
       const pulled = await playReveal(cardsOf(step));
@@ -418,7 +407,6 @@ class ReadingPage {
       }
       panel.setSteps(results.slice(0, index + 1), index);
       chart.setSteps(index + 1);
-      this.setStepsBar(el, index + 1);
       for (const candle of step.candles) {
         if (this.gone()) return;
         chart.appendForecast(candle);
@@ -437,7 +425,6 @@ class ReadingPage {
     panel.setSteps(results, results.length - 1);
     chart.setForecast(results.flatMap((step) => step.candles));
     chart.setSteps(results.length);
-    this.setStepsBar(el, results.length);
     if (this.actual !== null) chart.setActual(this.actual);
     this.note(null);
     el.replay.disabled = false;

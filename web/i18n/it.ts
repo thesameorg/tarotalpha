@@ -149,6 +149,7 @@ export const it: Dictionary = {
   disclaimer: "non è un consiglio finanziario; le carte sono d'accordo",
   reversed: "rovesciata",
   day: (n: number): string => `giorno ${String(n)}`,
+  castHere: "lettura fatta",
   now: "adesso",
   drawStep: (n: number): string => `Apri la lettura · giorno ${String(n)}`,
   mana: "Mana",
@@ -237,7 +238,7 @@ export const it: Dictionary = {
     ripensIn: (hours: number): string => `pronta tra ${String(hours)} h`,
   },
   prophecy: {
-    legend: "Le candele pallide sono la lettura; quelle a contorno sopra sono il mercato",
+    legend: "Le candele vuote e translucide sono la lettura; quelle piene sono il mercato",
     checking: "Verifica della profezia sulle candele dell'exchange…",
     notYet: (closesAt: string): string =>
       `Il futuro non è ancora arrivato: la prima candela da verificare chiude alle ${closesAt}`,

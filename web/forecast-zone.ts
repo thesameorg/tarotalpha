@@ -34,6 +34,13 @@ function font(): string {
 }
 
 export class ForecastZone implements ISeriesPrimitive {
+  /** A replayed reading was cast in the past, and calling that moment "now" is simply a lie on the chart. */
+  constructor(private readonly anchorWord: () => string = () => t().now) {}
+
+  anchorLabel(): string {
+    return this.anchorWord();
+  }
+
   private chart: IChartApiBase | null = null;
   private requestUpdate: (() => void) | null = null;
   private anchor: UTCTimestamp | null = null;
@@ -145,6 +152,8 @@ class LabelsView implements IPrimitivePaneView {
   renderer(): IPrimitivePaneRenderer | null {
     const layout = this.zone.currentLayout();
     if (layout === null) return null;
+    // Captured here: inside `draw` the receiver is the renderer, not the zone that knows the word.
+    const anchorWord = this.zone.anchorLabel();
     return {
       draw(target: RenderTarget) {
         const p = palette();
@@ -158,7 +167,7 @@ class LabelsView implements IPrimitivePaneView {
             const fits = context.measureText(label.text).width + 12 <= layout.dayWidth;
             context.fillText(fits ? label.text : label.short, label.x, mediaSize.height - 8);
           }
-          const now = t().now;
+          const now = anchorWord;
           const nowWidth = context.measureText(now).width;
           const nowX = layout.start - nowWidth - 6;
           if (nowX > 0 && layout.start < mediaSize.width) context.fillText(now, nowX, 14);

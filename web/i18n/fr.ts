@@ -147,6 +147,7 @@ export const fr: Dictionary = {
   disclaimer: "ceci n'est pas un conseil financier ; les cartes sont du même avis",
   reversed: "renversée",
   day: (n: number): string => `jour ${String(n)}`,
+  castHere: "tirage fait",
   now: "maintenant",
   drawStep: (n: number): string => `Ouvrir le tirage · jour ${String(n)}`,
   mana: "Mana",
@@ -235,7 +236,7 @@ export const fr: Dictionary = {
     ripensIn: (hours: number): string => `prêt dans ${String(hours)} h`,
   },
   prophecy: {
-    legend: "Les bougies pâles sont le tirage ; celles en contour par-dessus sont le marché",
+    legend: "Les bougies creuses et translucides sont le tirage ; les pleines sont le marché",
     checking: "Vérification de la prophétie sur les bougies de la bourse…",
     notYet: (closesAt: string): string =>
       `Le futur n'est pas encore arrivé : la première bougie à vérifier clôture à ${closesAt}`,

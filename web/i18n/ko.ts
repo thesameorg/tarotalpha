@@ -124,6 +124,7 @@ export const ko: Dictionary = {
   disclaimer: "투자 조언이 아닙니다. 카드도 그렇게 생각합니다",
   reversed: "역방향",
   day: (n: number): string => `${String(n)}일차`,
+  castHere: "리딩 시점",
   now: "지금",
   drawStep: (n: number): string => `리딩 열기 · ${String(n)}일차`,
   mana: "마나",
@@ -211,7 +212,7 @@ export const ko: Dictionary = {
     ripensIn: (hours: number): string => `${String(hours)}시간 후 만기`,
   },
   prophecy: {
-    legend: "옅은 캔들은 카드의 예측, 그 위 테두리 캔들이 실제 시장입니다",
+    legend: "반투명한 빈 캔들은 카드의 예측, 꽉 찬 캔들이 실제 시장입니다",
     checking: "거래소 캔들로 예언을 검증하는 중…",
     notYet: (closesAt: string): string => `미래는 아직 오지 않았습니다: 검증할 첫 캔들은 ${closesAt}에 마감됩니다`,
     checkFailed: "거래소가 응답하지 않아 예언 검증이 미뤄졌습니다",

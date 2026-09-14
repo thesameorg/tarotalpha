@@ -99,20 +99,23 @@ const realColours = (p: Palette) => ({
   wickDownColor: p.down,
   priceLineColor: p.line,
 });
+// Hollow and pale: an invented candle should look invented. Reality, historical or verified, is always solid.
 const forecastColours = (p: Palette) => ({
-  upColor: p.forecastUp,
-  downColor: p.forecastDown,
+  upColor: TRANSPARENT,
+  downColor: TRANSPARENT,
+  borderUpColor: p.forecastUp,
+  borderDownColor: p.forecastDown,
   wickUpColor: p.forecastUp,
   wickDownColor: p.forecastDown,
 });
 const actualColours = (p: Palette) => ({
-  borderUpColor: p.up,
-  borderDownColor: p.down,
+  upColor: p.up,
+  downColor: p.down,
   wickUpColor: p.up,
   wickDownColor: p.down,
 });
 
-export function createCandleChart(container: HTMLElement): CandleChart {
+export function createCandleChart(container: HTMLElement, anchorWord?: () => string): CandleChart {
   const p = palette();
   const chart: IChartApi = createChart(container, {
     autoSize: true,
@@ -144,20 +147,18 @@ export function createCandleChart(container: HTMLElement): CandleChart {
   const real = chart.addSeries(CandlestickSeries, { ...realColours(p), borderVisible: false });
   const forecast = chart.addSeries(CandlestickSeries, {
     ...forecastColours(p),
-    borderVisible: false,
-    priceLineVisible: false,
-    lastValueVisible: false,
-  });
-  // Hollow bodies with solid outlines: what really happened, drawn over the pale forecast.
-  const actual = chart.addSeries(CandlestickSeries, {
-    ...actualColours(p),
-    upColor: TRANSPARENT,
-    downColor: TRANSPARENT,
     borderVisible: true,
     priceLineVisible: false,
     lastValueVisible: false,
   });
-  const zone = new ForecastZone();
+  // Solid, exactly like the history to its left: what really happened, drawn over the hollow forecast.
+  const actual = chart.addSeries(CandlestickSeries, {
+    ...actualColours(p),
+    borderVisible: false,
+    priceLineVisible: false,
+    lastValueVisible: false,
+  });
+  const zone = new ForecastZone(anchorWord);
   const ribbon = new DeviationRibbon();
   const pulse = new AnchorPulse();
   real.attachPrimitive(zone);

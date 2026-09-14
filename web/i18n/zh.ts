@@ -116,6 +116,7 @@ export const zh: Dictionary = {
   disclaimer: "不构成投资建议；牌也这么认为",
   reversed: "逆位",
   day: (n: number): string => `第 ${String(n)} 天`,
+  castHere: "起卦时刻",
   now: "现在",
   drawStep: (n: number): string => `开启牌阵 · 第 ${String(n)} 天`,
   mana: "法力",
@@ -203,7 +204,7 @@ export const zh: Dictionary = {
     ripensIn: (hours: number): string => `${String(hours)} 小时后成熟`,
   },
   prophecy: {
-    legend: "淡色蜡烛是牌阵的预测，叠在上面的空心蜡烛是市场的真实走势",
+    legend: "半透明的空心蜡烛是牌阵的预测，实心蜡烛是市场的真实走势",
     checking: "正在用交易所的蜡烛图验证预言…",
     notYet: (closesAt: string): string => `未来尚未到来：第一根待验证的蜡烛将于 ${closesAt} 收盘`,
     checkFailed: "交易所无响应，预言验证推迟",

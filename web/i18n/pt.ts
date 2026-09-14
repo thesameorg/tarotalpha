@@ -147,6 +147,7 @@ export const pt: Dictionary = {
   disclaimer: "não é aconselhamento financeiro; as cartas concordam",
   reversed: "invertida",
   day: (n: number): string => `dia ${String(n)}`,
+  castHere: "leitura feita",
   now: "agora",
   drawStep: (n: number): string => `Abrir a leitura · dia ${String(n)}`,
   mana: "Mana",
@@ -235,7 +236,7 @@ export const pt: Dictionary = {
     ripensIn: (hours: number): string => `pronta em ${String(hours)} h`,
   },
   prophecy: {
-    legend: "As velas pálidas são a leitura; as de contorno por cima são o que o mercado fez",
+    legend: "As velas ocas e translúcidas são a leitura; as sólidas são o mercado",
     checking: "Verificando a profecia com os candles da corretora…",
     notYet: (closesAt: string): string =>
       `O futuro ainda não chegou: o primeiro candle a verificar fecha às ${closesAt}`,

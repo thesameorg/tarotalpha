@@ -147,6 +147,7 @@ export const de: Dictionary = {
   disclaimer: "keine Finanzberatung; die Karten sehen das genauso",
   reversed: "umgekehrt",
   day: (n: number): string => `Tag ${String(n)}`,
+  castHere: "Legung erstellt",
   now: "jetzt",
   drawStep: (n: number): string => `Legung öffnen · Tag ${String(n)}`,
   mana: "Mana",
@@ -235,7 +236,7 @@ export const de: Dictionary = {
     ripensIn: (hours: number): string => `reif in ${String(hours)} h`,
   },
   prophecy: {
-    legend: "Blasse Kerzen sind die Legung; die umrandeten darüber sind der Markt",
+    legend: "Die hohlen, durchscheinenden Kerzen sind die Legung; die vollen sind der Markt",
     checking: "Prophezeiung wird an den Kerzen der Börse geprüft…",
     notYet: (closesAt: string): string =>
       `Die Zukunft ist noch nicht eingetreten: die erste zu prüfende Kerze schließt um ${closesAt}`,
