@@ -134,7 +134,7 @@ export const zh: Dictionary = {
   },
   share: {
     inTelegram: "在 Telegram 里发送",
-    orWeb: "或用网站链接，给不在 Telegram 的人",
+    orWeb: "或复制链接",
     button: "分享",
     copy: "复制链接",
     snapshotFailed: "快照失败，请重试",
@@ -227,6 +227,8 @@ export const zh: Dictionary = {
   mine: {
     button: "我的牌阵",
     ripe: "已成熟",
+    days: (n: number): string => `天数：${String(n)}`,
+    opinions: (n: number): string => `第二意见：${String(n)}`,
     ripensIn: (hours: number): string => `${String(hours)} 小时后成熟`,
   },
   prophecy: {

@@ -142,7 +142,7 @@ export const ko: Dictionary = {
   },
   share: {
     inTelegram: "텔레그램으로 보내기",
-    orWeb: "또는 사이트 링크로, 텔레그램 밖의 사람에게",
+    orWeb: "또는 링크 복사",
     button: "공유",
     copy: "링크 복사",
     snapshotFailed: "스냅샷을 찍지 못했습니다. 다시 시도하세요",
@@ -235,6 +235,8 @@ export const ko: Dictionary = {
   mine: {
     button: "나의 리딩",
     ripe: "만기",
+    days: (n: number): string => `일수: ${String(n)}`,
+    opinions: (n: number): string => `second opinion: ${String(n)}`,
     ripensIn: (hours: number): string => `${String(hours)}시간 후 만기`,
   },
   prophecy: {

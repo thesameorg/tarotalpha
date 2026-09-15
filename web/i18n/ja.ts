@@ -154,7 +154,7 @@ export const ja: Dictionary = {
   },
   share: {
     inTelegram: "Telegram で送る",
-    orWeb: "またはサイトのリンクで、Telegram の外の人へ",
+    orWeb: "またはリンクをコピー",
     button: "共有",
     copy: "リンクをコピー",
     snapshotFailed: "スナップショットに失敗しました。もう一度お試しください",
@@ -247,6 +247,8 @@ export const ja: Dictionary = {
   mine: {
     button: "自分のリーディング",
     ripe: "満期",
+    days: (n: number): string => `日数: ${String(n)}`,
+    opinions: (n: number): string => `セカンドオピニオン: ${String(n)}`,
     ripensIn: (hours: number): string => `${String(hours)}時間後に満期`,
   },
   prophecy: {

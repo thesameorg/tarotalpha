@@ -40,6 +40,7 @@ const SCROLL_PATH = /^\/s\/([A-Za-z0-9_-]+)\/?$/;
 async function boot(): Promise<void> {
   const view = document.getElementById("view");
   if (view === null) throw new Error("index.html has no #view");
+  const app = required(document, ".app", HTMLElement);
 
   await initTelegram();
   initMyReadings(telegramCloudStorage());
@@ -74,6 +75,9 @@ async function boot(): Promise<void> {
       return null;
     };
     telegramBack(back());
+    // A saved reading and a scroll are documents: they are read top to bottom and may outgrow the window, while
+    // the landing is a screen that must fit one. Without this the buttons under a reading slide behind the footer.
+    app.classList.toggle("page", reading !== undefined || scroll !== undefined);
     if (scroll !== undefined) return scrollView(scroll, navigate);
     return reading === undefined ? landingView(url.searchParams) : readingView(reading, navigate);
   });

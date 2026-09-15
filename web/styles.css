@@ -490,6 +490,13 @@ main {
   justify-content: flex-end;
   padding-right: 8px;
 }
+/* Under the chart instead of over it: on a phone the free days are too narrow to stand on without covering the
+   forecast that was just paid for. The row keeps to the right, where it stood over the zone. */
+.zone-cta.below {
+  position: static;
+  justify-content: flex-end;
+  padding: 10px 14px 0;
+}
 @media (max-width: 640px) {
   .zone-cta .draw {
     white-space: normal;
@@ -1835,18 +1842,23 @@ footer {
 .reader.ask .mana-glyph {
   display: inline-flex;
 }
-/* On a phone the row wraps under the chart, so the asked shrink to a portrait, a name and a number — two to a line. */
+/* On a phone the row wraps under the chart, so the asked shrink to a portrait, a name and a number — two to a line,
+   and the author drops the line about herself: her lock and her name already say whose reading this is. */
 @media (max-width: 640px) {
-  .mate {
+  .reader-note {
+    display: none;
+  }
+  .reader {
     gap: 5px;
     padding: 3px 6px 3px 4px;
   }
-  .mate img {
+  .reader img {
     width: 22px;
     height: 22px;
   }
-  .mate .reader-text b,
-  .mate .reader-move {
+  .reader-text b,
+  .reader-move,
+  .reader.ask {
     font-size: 11px;
   }
 }
@@ -2199,6 +2211,20 @@ footer {
   white-space: nowrap;
 }
 .mine-card.ripe .mine-status {
+  color: var(--gold);
+}
+/* How far this reading went and how many readers were asked: two readings of one instrument differ by these. */
+.mine-days {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--paper-dim);
+}
+.mine-more {
+  margin-left: 5px;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-size: 11px;
   color: var(--gold);
 }
 .mine-reader {

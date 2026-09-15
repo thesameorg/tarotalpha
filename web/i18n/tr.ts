@@ -152,7 +152,7 @@ export const tr: Dictionary = {
   },
   share: {
     inTelegram: "Telegram'da gönder",
-    orWeb: "Ya da site bağlantısıyla, Telegram dışındakiler için",
+    orWeb: "Ya da bağlantıyı kopyala",
     button: "Paylaş",
     copy: "Bağlantıyı kopyala",
     snapshotFailed: "Anlık görüntü alınamadı, yeniden deneyin",
@@ -245,6 +245,8 @@ export const tr: Dictionary = {
   mine: {
     button: "Açılımlarım",
     ripe: "hazır",
+    days: (n: number): string => `gün: ${String(n)}`,
+    opinions: (n: number): string => `ikinci görüş: ${String(n)}`,
     ripensIn: (hours: number): string => `${String(hours)} s sonra hazır`,
   },
   prophecy: {
