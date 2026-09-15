@@ -15,7 +15,7 @@ import {
   type Snapshot,
 } from "../exchange/closed-candles";
 import { ExchangeError, type Source } from "../exchange/provider";
-import { recordEvent } from "./events";
+import { writeEvent } from "./analytics";
 import { ApiError, readJsonBody } from "./json-api";
 import { ID_PATTERN, shortId } from "./short-id";
 
@@ -73,7 +73,7 @@ export async function createReading(request: Request, env: Env): Promise<Respons
   if (JSON.stringify(steps) !== JSON.stringify(body.cards)) {
     throw new ApiError(409, "cards_mismatch", "the cards drawn here are not the ones you sent");
   }
-  const snapshot = await snapshotOrFail(body, request, env.DB);
+  const snapshot = await snapshotOrFail(body, request, env.ANALYTICS);
   const id = await insertReading(env.DB, body, steps, snapshot, "share");
   return Response.json({ id, url: `/r/${id}`, steps: body.steps }, { status: 201 });
 }
@@ -115,7 +115,7 @@ export async function readReading(id: string, env: Env): Promise<Response> {
         .first<ReadingRow>()
     : null;
   if (row === null) throw new ApiError(404, "not_found", `no reading ${id}`);
-  // Reads write nothing: views are an analytics fact and live in Workers observability, not in D1.
+  // Reads write nothing: a view is an analytics fact, counted from the browser's own event (docs/analytics.md).
   return Response.json({
     ...row,
     steps: JSON.parse(row.steps) as unknown,
@@ -193,7 +193,11 @@ async function widenOpinions(id: string, author: ReaderId, asked: readonly Reade
   return readOpinions(row?.opinions ?? null);
 }
 
-async function snapshotOrFail(body: CreateBody, request: Request, db: D1Database): Promise<Snapshot> {
+async function snapshotOrFail(
+  body: CreateBody,
+  request: Request,
+  analytics: AnalyticsEngineDataset,
+): Promise<Snapshot> {
   try {
     // Author's provider first; Binance blocks the Cloudflare edge, so the next one beats no link at all.
     const order = [body.source, ...SOURCES.filter((source) => source !== body.source)];
@@ -201,7 +205,7 @@ async function snapshotOrFail(body: CreateBody, request: Request, db: D1Database
   } catch (error) {
     if (!(error instanceof ExchangeError)) throw error;
     if (error.kind === "unavailable") {
-      await recordEvent(db, request, { type: "share_failed", asset: body.asset, step: body.steps });
+      writeEvent(analytics, request, { type: "share_failed", asset: body.asset, step: body.steps });
     }
     throw new ApiError(EXCHANGE_STATUS[error.kind], error.kind, error.message);
   }

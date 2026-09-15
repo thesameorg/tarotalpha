@@ -47,11 +47,11 @@
 
 - `/r/:id` или `t.me/<бот>?startapp=<id>`: воркер отдаёт `index.html` из статики с `<html lang>`, `og:title`, `og:description`, `og:url` на языке ссылки (`?lang`), иначе на первом подходящем из `Accept-Language`, иначе на английском; языки — `web/i18n/langs.ts`.
 - Браузер: `GET /api/readings/:id` → снапшот, карты, гадалка, `source`; свечи считает текущими формулами (`engine.md`), реальные свечи после якоря берёт у той же биржи сам и считает точность.
-- В D1 на чтении не пишется ни строки: просмотр — факт аналитики, он в логах Workers.
+- В D1 на чтении не пишется ни строки: просмотр — факт аналитики, и считается он по событию браузера (`analytics.md`).
 
 ## События воронки
 
-`POST /api/omen` пишет строку в `events`: `chart_loaded`, `step_opened`, `shared`, `rechecked` (открыт созревший из «моих раскладов»), `scroll_opened` (нарисован свиток), `paywall_hit` (маны не хватило на день N), `own_reading_clicked`, `replayed` — шлёт клиент; `share_failed` — воркер. Читает журнал только владелец руками.
+`POST /api/omen` кладёт точку в датасет Analytics Engine (`analytics.md`): `chart_loaded`, `step_opened`, `shared`, `rechecked` (открыт созревший из «моих раскладов»), `scroll_opened` (нарисован свиток), `paywall_hit` (маны не хватило на день N), `own_reading_clicked`, `replayed` — шлёт клиент; `share_failed` — воркер. С каждым событием едет визит: кто смотрит, в какой сессии, чем и откуда.
 
 Маршрут зовётся `omen`, а не `events`: путь `/api/events` блокируют списки фильтров uBlock и подобных — он выглядит как трекер, и воронка молча теряла всех, у кого блокировщик включён.
 
@@ -107,7 +107,7 @@
 
 ## Что хранится
 
-Таблица `readings` и журнал `events`; схема — миграции в `migrations/`.
+Таблица `readings`; схема — миграции в `migrations/`. Журнал событий в D1 не живёт — он в Analytics Engine (`analytics.md`).
 
 | Поле `readings` | Что |
 | --- | --- |
@@ -126,12 +126,10 @@
 
 Инвариант: снапшот и карты записанных дней после записи не меняются никогда; что из них рисуется — дело формул на момент просмотра. Прогноз, толкования, итог дня и точность в ответе `GET /api/readings/:id` не дублируются.
 
-`events`: `ts`, `type`, `asset`, `reading_id`, `step`, `ip_hash` — дневной псевдоним, SHA-256 адреса и даты; строка на событие, индекс по `(ts, type)`.
-
 ## Отказы глазами пользователя
 
 Пользователь видит состояние, а не пустой график: биржа недоступна из браузера — «Биржа не отвечает из вашей сети» и повтор; неизвестный инструмент — «Такого инструмента нет на бирже»; 502 на «Поделиться» — «Не удалось снять снапшот, повторите»; 429 — «Слишком много запросов»; 404 на ссылке — «Расклад не найден» и кнопка «Свой расклад»; горизонт прошёл, а свечей после якоря биржа не дала — «Биржа не отдала свечей за это время» и повтор.
 
 ## Файлы
 
-`worker/index.ts` — маршруты и крон · `worker/readings.ts` — запись, доращивание и чтение · `worker/reading-page.ts` — мета-теги на `/r/:id` и `/s/:id` · `worker/events.ts` — события · `worker/json-api.ts` — коды ошибок и разбор тела · `worker/short-id.ts` · `worker/heartbeat.ts` — трек счёта · `worker/scoring.ts` — сверка созревших · `worker/reader-ratings.ts` — `GET /api/readers` · `web/api.ts` — клиент этих запросов · `web/reading-flow.ts` — открыть день · `web/my-readings.ts` — «мои расклады» · `web/my-readings-list.ts` — кнопка и список · `web/scroll-page.ts` — свиток · `web/mana.ts` — мана · `web/mana-purse.ts` — одна цена против двух пулов · `web/second-opinion.ts` — вторая гадалка · `web/mana-meter.ts` — запас в шапке · `web/paywall-modal.ts` — покупка маны · `web/reader-rating.ts` — звёзды в карточке гадалки.
+`worker/index.ts` — маршруты и крон · `worker/readings.ts` — запись, доращивание и чтение · `worker/reading-page.ts` — мета-теги на `/r/:id` и `/s/:id` · `worker/events.ts` — события · `worker/analytics.ts` — точка в датасете · `web/visit.ts` — кто смотрит · `worker/json-api.ts` — коды ошибок и разбор тела · `worker/short-id.ts` · `worker/heartbeat.ts` — трек счёта · `worker/scoring.ts` — сверка созревших · `worker/reader-ratings.ts` — `GET /api/readers` · `web/api.ts` — клиент этих запросов · `web/reading-flow.ts` — открыть день · `web/my-readings.ts` — «мои расклады» · `web/my-readings-list.ts` — кнопка и список · `web/scroll-page.ts` — свиток · `web/mana.ts` — мана · `web/mana-purse.ts` — одна цена против двух пулов · `web/second-opinion.ts` — вторая гадалка · `web/mana-meter.ts` — запас в шапке · `web/paywall-modal.ts` — покупка маны · `web/reader-rating.ts` — звёзды в карточке гадалки.

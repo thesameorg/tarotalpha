@@ -5,6 +5,7 @@
  * data identifies the buyer instead, and the token is not used at all. Rails end to end: docs/wallet.md
  */
 import { telegram } from "./telegram";
+import { visitHeader } from "./visit";
 
 const OWNER_KEY = "ta.wallet";
 // Nine decimals of Gram is a number nobody reads; four is a price, and the offer carries slack for the rest.
@@ -148,6 +149,9 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
   if (initData !== undefined && initData !== "") headers["X-Telegram-Init-Data"] = initData;
   else headers["X-Wallet"] = await owner();
   if (body !== undefined) headers["content-type"] = "application/json";
+  // The same visit as the clicks that led here, so money events sit in one funnel with them (web/visit.ts).
+  const visit = visitHeader();
+  if (visit !== "") headers["X-Visit"] = visit;
 
   const response = await fetch(path, {
     method: body === undefined ? "GET" : "POST",
