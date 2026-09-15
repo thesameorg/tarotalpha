@@ -14,6 +14,10 @@ export function priceMinMove(x: number): number {
   return 0.0001;
 }
 
+export function formatPercent(pct: number): string {
+  return `${pct >= 0 ? "+" : ""}${pct.toFixed(2)} %`;
+}
+
 export function formatChange(pct: number): string {
-  return `${pct >= 0 ? "+" : ""}${pct.toFixed(2)} % ${t().per24h}`;
+  return `${formatPercent(pct)} ${t().per24h}`;
 }

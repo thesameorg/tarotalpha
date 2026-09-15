@@ -28,6 +28,7 @@ import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
 import { localDateTime, localTime, zoneLabel } from "./local-time-format";
 import { formatChange, formatPrice } from "./price-format";
+import { createLineup, type Lineup } from "./reader-lineup";
 import { cancelReveal, playReveal } from "./reveal-overlay";
 import type { Navigate, View } from "./router";
 import { shareLink } from "./share-modal";
@@ -48,6 +49,7 @@ interface Elements {
   meta: HTMLElement;
   chart: HTMLElement;
   prophecy: HTMLElement;
+  readers: HTMLElement;
   panel: HTMLElement;
   replay: HTMLButtonElement;
   own: HTMLButtonElement;
@@ -98,6 +100,7 @@ function readingMarkup(): string {
     <div class="legend"><div><img class="src-logo" id="src-logo" alt="" hidden><span>1H · ${zoneLabel(Date.now())}</span></div><div><span class="last" id="last"></span><span class="chg" id="chg"></span></div><div class="meta" id="meta"></div></div>
   </div>
   <div class="prophecy" id="prophecy"></div>
+  <div class="readers" id="readers"></div>
   <div id="panel"></div>
   <div class="actions">
     <div class="group">
@@ -120,6 +123,7 @@ function lookup(root: HTMLElement, toolbar: HTMLElement): Elements {
     meta: required(root, "#meta", HTMLElement),
     chart: required(root, "#chart", HTMLElement),
     prophecy: required(root, "#prophecy", HTMLElement),
+    readers: required(root, "#readers", HTMLElement),
     panel: required(root, "#panel", HTMLElement),
     replay: required(root, "#replay", HTMLButtonElement),
     own: required(root, "#own", HTMLButtonElement),
@@ -148,8 +152,10 @@ function opinionsOf(record: ReadingRecord, snapshot: readonly Candle[]): Map<Rea
   return steps;
 }
 
+const candlesOf = (steps: readonly StepResult[]): Candle[] => steps.flatMap((step) => step.candles);
+
 function candlesByReader(steps: ReadonlyMap<ReaderId, StepResult[]>): Map<ReaderId, Candle[]> {
-  return new Map([...steps].map(([id, days]) => [id, days.flatMap((day) => day.candles)]));
+  return new Map([...steps].map(([id, days]) => [id, candlesOf(days)]));
 }
 
 function percent(value: number | null): number | null {
@@ -164,7 +170,7 @@ function tableMarkup(table: readonly Opinion[], closest: ReaderId | null): strin
     .map((one) => {
       const gap = one.deviation === null ? "—" : one.deviation.toFixed(2);
       const mark = one.id === closest ? ` <b>${t().reader.closest}</b>` : "";
-      return `<span class="verdict-reader" data-reader="${one.id}">${one.name} · ${gap} ATR${mark}</span>`;
+      return `<span class="verdict-reader" style="--hue: var(--reader-${one.id})">${one.name} · ${gap} ATR${mark}</span>`;
     })
     .join("");
   return `<div class="verdict-readers">${cells}</div>`;
@@ -203,6 +209,7 @@ class ReadingPage {
   private record: ReadingRecord | null = null;
   private chart: CandleChart | null = null;
   private panel: SpreadPanel | null = null;
+  private lineup: Lineup | null = null;
   private picker: CoinPicker | null = null;
   private actual: Candle[] | null = null;
   /** Second opinions the row carries, recomputed here: the link replays them exactly as their buyer saw them. */
@@ -232,6 +239,8 @@ class ReadingPage {
     this.toolbar.replaceChildren();
     this.panel?.dispose();
     this.panel = null;
+    this.lineup?.dispose();
+    this.lineup = null;
     this.chart?.remove();
     this.chart = null;
   }
@@ -289,9 +298,20 @@ class ReadingPage {
       this.navigate(`/?asset=${encodeURIComponent(symbol)}`);
     });
 
-    const panel = createSpreadPanel(el.panel, false);
+    const panel = createSpreadPanel(el.panel, false, el.readers);
     this.panel = panel;
     panel.setSteps(results, 0);
+    // The same row the landing shows, minus the way to buy: a visitor reads whose line is whose, not a price list.
+    this.lineup?.dispose();
+    this.lineup = createLineup(el.readers);
+    this.lineup.show({
+      author: record.reader,
+      lines: new Map([[record.reader, candlesOf(results)], ...candlesByReader(this.opinionSteps)]),
+      base: snapshot[snapshot.length - 1]?.c ?? null,
+      days: results.length,
+      locked: true,
+      askCost: null,
+    });
 
     const chart = createCandleChart(el.chart, () => t().castHere);
     this.chart = chart;

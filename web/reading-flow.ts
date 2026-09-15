@@ -28,12 +28,13 @@ import { rememberReading } from "./my-readings";
 import { forgetOpen, openReadingFor, rememberOpen } from "./open-reading";
 import { openPaywall } from "./paywall-modal";
 import { formatChange, formatPrice } from "./price-format";
-import { lockReader, onReaderChange, reader, setReader } from "./reader-choice";
-import { initReaderPicker } from "./reader-picker";
+import { lockReader, onReaderChange, reader, readerLocked, setReader } from "./reader-choice";
+import { createLineup, type Lineup } from "./reader-lineup";
+import { openReaderProfile } from "./reader-profile";
 import { cancelReveal, playReveal } from "./reveal-overlay";
 import type { View } from "./router";
 import { shareLink } from "./share-modal";
-import { setAsker } from "./second-opinion";
+import { OPINION_COST, opinionsOpen, setAsker } from "./second-opinion";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
 import { toast } from "./toast";
@@ -165,6 +166,18 @@ function shareErrorMessage(error: unknown): string {
 // Where the free part begins: the last day separator, which is the anchor itself while no day is open.
 const freeFrom = (zone: ZoneLayout): number => zone.separators[zone.separators.length - 1] ?? zone.start;
 
+const candlesOf = (steps: readonly StepResult[] | undefined): Candle[] => (steps ?? []).flatMap((step) => step.candles);
+
+/** Every asked reader's line as far as the day being opened has flowed: nobody runs ahead of the candles paid for. */
+function opinionsUpTo(loaded: Loaded, day: number, index: number): Map<ReaderId, Candle[]> {
+  const drawn = new Map<ReaderId, Candle[]>();
+  for (const [id, steps] of loaded.opinions) {
+    const before = candlesOf(steps.slice(0, day));
+    drawn.set(id, [...before, ...(steps[day]?.candles.slice(0, index + 1) ?? [])]);
+  }
+  return drawn;
+}
+
 const sameZone = (a: ZoneLayout | null, b: ZoneLayout | null): boolean =>
   a === b || (a !== null && b !== null && a.start === b.start && a.width === b.width && freeFrom(a) === freeFrom(b));
 
@@ -174,6 +187,7 @@ class LandingPage {
   private readonly chart: CandleChart;
   private readonly picker: CoinPicker;
   private readonly panel: SpreadPanel;
+  private readonly lineup: Lineup;
   private readonly unsubscribe: () => void;
   private alive = true;
   private busy = false;
@@ -195,16 +209,16 @@ class LandingPage {
       this.zone = layout;
       this.placeCta();
     });
-    const unmountReader = initReaderPicker(this.el.readers);
+    this.lineup = createLineup(this.el.readers, openReaderProfile);
     const relabel = onLangChange(() => {
       this.relabel();
     });
-    // The reader is part of the label, so the price line is redrawn when she changes.
+    // The reader is part of the label and heads the row, so both are redrawn when she changes.
     const reprice = onReaderChange(() => {
       this.labelDraw();
+      this.showLineup();
     });
     this.unsubscribe = (): void => {
-      unmountReader();
       relabel();
       reprice();
     };
@@ -233,6 +247,7 @@ class LandingPage {
     lockReader(false);
     this.unsubscribe();
     this.picker.dispose();
+    this.lineup.dispose();
     cancelReveal();
     this.toolbar.replaceChildren();
     this.panel.dispose();
@@ -341,6 +356,7 @@ class LandingPage {
     this.loaded = null;
     lockReader(false);
     setAsker(null);
+    this.showLineup();
     this.enableDraw(false);
     this.el.share.disabled = true;
     showExchangeLogo(this.el.srcLogo, null);
@@ -384,6 +400,7 @@ class LandingPage {
     storeAsset(asset);
     showExchangeLogo(this.el.srcLogo, snapshot.source);
     this.showPrice();
+    this.showLineup();
     this.chartState(null, false);
 
     await this.chart.showSnapshot(candles, true);
@@ -433,6 +450,7 @@ class LandingPage {
     // A new snapshot wipes the chart, so the days already open are drawn back on after it, never before.
     this.chart.setForecast(steps.flatMap((step) => step.candles));
     this.takeOpinions(loaded);
+    this.paintOpinions(loaded);
     this.panel.setSteps(steps, steps.length - 1);
     this.enableDraw(true);
     this.el.share.disabled = false;
@@ -492,14 +510,17 @@ class LandingPage {
     this.panel.setSteps(loaded.steps, step - 1);
     this.chart.setSteps(step);
     // Another instrument picked while the candles flow in: that load owns the chart now, this step stops.
-    for (const candle of result.candles) {
+    for (const [index, candle] of result.candles.entries()) {
       if (this.gone() || this.loaded !== loaded) {
         this.busy = false;
         return;
       }
       this.chart.appendForecast(candle);
+      this.chart.setOpinions(opinionsUpTo(loaded, step - 1, index));
       await sleep(FLOW_MS_PER_CANDLE);
     }
+    // The lines grew candle by candle beside the day; this settles them on exactly what was computed.
+    this.paintOpinions(loaded);
     this.busy = false;
     if (this.loaded !== loaded) return;
     this.el.share.disabled = false;
@@ -510,16 +531,38 @@ class LandingPage {
     void loaded.saved.then((id) => (id === null ? undefined : settleInvite(id)));
   }
 
-  /** Recomputes every bought opinion over the days open now and offers the card the way to buy one more. */
+  /** Recomputes every bought opinion over the days open now, offers the card the way to buy one more and refreshes
+   *  the row under the chart. The lines themselves are left to the caller: only it knows whether they should be
+   *  drawn in or simply stand there. */
   private takeOpinions(loaded: Loaded): void {
     const cards = loaded.steps.map((step) => step.cards);
     for (const id of [...loaded.opinions.keys()]) {
       loaded.opinions.set(id, this.forecastBy(loaded, id, cards));
     }
+    setAsker(async (next, pay) => this.consult(loaded, next, pay), [...loaded.opinions.keys()]);
+    this.showLineup();
+  }
+
+  private paintOpinions(loaded: Loaded): void {
     this.chart.setOpinions(
       new Map([...loaded.opinions].map(([id, steps]) => [id, steps.flatMap((step) => step.candles)])),
     );
-    setAsker(async (next, pay) => this.consult(loaded, next, pay), [...loaded.opinions.keys()]);
+  }
+
+  /** The row at the head of the day tabs: the author, everyone asked since, and what one more would cost. */
+  private showLineup(): void {
+    const loaded = this.loaded;
+    const author = reader();
+    const lines = new Map<ReaderId, readonly Candle[]>([[author, candlesOf(loaded?.steps)]]);
+    for (const [id, steps] of loaded?.opinions ?? []) lines.set(id, candlesOf(steps));
+    this.lineup.show({
+      author,
+      lines,
+      base: loaded?.snapshot[loaded.snapshot.length - 1]?.c ?? null,
+      days: loaded?.steps.length ?? 0,
+      locked: readerLocked(),
+      askCost: opinionsOpen() ? OPINION_COST : null,
+    });
   }
 
   /** One more reader over the same cards. Her forecast is computed before a single point is paid, so the purse is
@@ -535,7 +578,12 @@ class LandingPage {
     // Bought. Another instrument may have taken the screen while the purse answered, and she still belongs to this
     // reading: the row keeps her, and the chart is only redrawn if this reading is still the one on it.
     loaded.opinions.set(id, steps);
-    if (this.loaded === loaded) this.takeOpinions(loaded);
+    if (this.loaded === loaded) {
+      this.takeOpinions(loaded);
+      // Drawn in, not switched on: three mana are worth watching arrive. A day still flowing in draws the lines
+      // itself, and she joins it at the candle it has reached rather than racing it to the end.
+      if (!this.busy) void this.chart.drawOpinion(id, candlesOf(steps));
+    }
     // A failed write is not a lost opinion: every later write sends the whole list again, and "Share" writes afresh.
     void this.persist(loaded, loaded.steps.length).catch(() => null);
     return true;

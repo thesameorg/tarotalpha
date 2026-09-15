@@ -219,6 +219,12 @@ export const ru = {
     choose: (name: string): string => `Пусть гадает ${name}`,
     ask: (name: string, cost: number): string => `Спросить ещё · ${name} · ${String(cost)}`,
     asked: "Уже высказалась",
+    askMore: "Спросить ещё",
+    askNote: (cost: number): string =>
+      `${String(cost)} маны один раз: она читает все дни этого расклада — и открытые, и будущие.`,
+    candles: "Свечи прогноза — её",
+    line: "Её прогноз — линия её цвета",
+    move: (change: string, day: number): string => `${change} к концу дня ${String(day)}`,
     closest: "Ближе всех",
   },
   reading: {

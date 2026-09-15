@@ -200,6 +200,12 @@ export const ko: Dictionary = {
     choose: (name: string): string => `${name}에게 맡기기`,
     ask: (name: string, cost: number): string => `한 명 더 묻기 · ${name} · ${String(cost)}`,
     asked: "이미 말했습니다",
+    askMore: "한 명 더 묻기",
+    askNote: (cost: number): string =>
+      `마나 ${String(cost)}, 한 번만: 이 리딩의 열린 날과 앞으로의 날을 모두 그녀가 읽습니다.`,
+    candles: "예측 캔들은 그녀의 것",
+    line: "그녀의 것은 같은 색 선",
+    move: (change: string, day: number): string => `${String(day)}일째 끝에 ${change}`,
     closest: "가장 가까움",
   },
   reading: {

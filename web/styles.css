@@ -183,22 +183,7 @@ header {
   height: 2px;
   margin-right: 6px;
   vertical-align: middle;
-  background: var(--line);
-}
-.verdict-reader[data-reader="atr"]::before {
-  background: var(--reader-atr);
-}
-.verdict-reader[data-reader="reversion"]::before {
-  background: var(--reader-reversion);
-}
-.verdict-reader[data-reader="analogy"]::before {
-  background: var(--reader-analogy);
-}
-.verdict-reader[data-reader="garch"]::before {
-  background: var(--reader-garch);
-}
-.verdict-reader[data-reader="fractal"]::before {
-  background: var(--reader-fractal);
+  background: var(--hue, var(--line));
 }
 .verdict-reader b {
   font-weight: normal;
@@ -1289,6 +1274,7 @@ main {
   .ring.on,
   .shake,
   .reveal-deck.shuffle .deck-card,
+  .reader.fresh,
   .spread.fresh .slot {
     animation: none;
   }
@@ -1746,10 +1732,16 @@ footer {
     repeating-linear-gradient(150deg, transparent 0 9px, rgba(var(--gold-rgb), 0.07) 9px 10px),
     repeating-linear-gradient(90deg, transparent 0 18px, rgba(var(--gold-rgb), 0.05) 18px 19px);
 }
-/* The reader heads the day tabs: she reads the days that follow her; the lock says the forecast is hers to the end. */
+/* The row heads the day tabs: the author of the reading, whose lock says the forecast is hers to the end, then
+   everyone asked besides her in the colour of her line on the chart, then the price of one more. The row is the
+   chart's legend — the colours here are the colours there, and the author carries none because hers are the
+   forecast candles themselves. */
 .readers {
   display: flex;
-  flex: none;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
 }
 .reader {
   display: flex;
@@ -1786,6 +1778,77 @@ footer {
 .reader.locked svg {
   flex: none;
   color: var(--gold);
+}
+.reader-move {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--paper-dim);
+}
+.reader-move.up {
+  color: var(--up);
+}
+.reader-move.down {
+  color: var(--down);
+}
+/* A second opinion wears her line's colour: the bar down her side and the ring on her portrait are the legend. */
+.mate {
+  border-left: 3px solid var(--hue);
+  padding-left: 5px;
+}
+/* Hover paints the frame gold, as on every chip; her own colour stays on the bar, which is what the legend reads. */
+.mate:hover {
+  border-left-color: var(--hue);
+}
+.mate img {
+  width: 26px;
+  height: 26px;
+  border-color: var(--hue);
+}
+.mate .reader-text b {
+  font-size: 12px;
+}
+.reader.fresh {
+  animation: seat 0.5s ease-out;
+}
+/* She takes her seat while her line draws itself in on the chart: three mana are worth watching arrive. */
+@keyframes seat {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  40% {
+    box-shadow: 0 0 12px var(--hue, var(--gold));
+  }
+}
+/* Asking stands with the readers and names its price: the card is for reading about one, not for finding her. */
+.reader.ask {
+  gap: 5px;
+  padding: 7px 10px;
+  border-style: dashed;
+  border-color: var(--gold-deep);
+  color: var(--gold);
+  font-size: 12px;
+}
+.reader.ask:hover {
+  background: var(--ink-3);
+}
+.reader.ask .mana-glyph {
+  display: inline-flex;
+}
+/* On a phone the row wraps under the chart, so the asked shrink to a portrait, a name and a number — two to a line. */
+@media (max-width: 640px) {
+  .mate {
+    gap: 5px;
+    padding: 3px 6px 3px 4px;
+  }
+  .mate img {
+    width: 22px;
+    height: 22px;
+  }
+  .mate .reader-text b,
+  .mate .reader-move {
+    font-size: 11px;
+  }
 }
 .reader[aria-pressed="true"] {
   border-color: var(--gold-deep);
@@ -1869,6 +1932,13 @@ footer {
   margin-left: 6px;
   vertical-align: middle;
 }
+.profile-note {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--paper-dim);
+  text-align: center;
+}
 .profile-current {
   margin-top: 16px;
   padding: 9px 0;
@@ -1882,6 +1952,25 @@ footer {
   border-color: var(--gold-deep);
   background: var(--ink-2);
   color: var(--paper);
+}
+/* Who is already on the reading, before anything is clicked: the author with her lock, the asked in their colours. */
+.other.mine {
+  border-color: var(--gold-deep);
+}
+.other.asked,
+.other.asked img {
+  border-color: var(--hue);
+}
+.other-mark {
+  display: inline-flex;
+  align-items: center;
+  color: var(--gold);
+}
+.other-mark.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hue);
 }
 .others {
   margin-top: 18px;

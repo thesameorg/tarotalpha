@@ -223,6 +223,12 @@ export const en: Dictionary = {
     choose: (name: string): string => `Let ${name} read`,
     ask: (name: string, cost: number): string => `Ask one more · ${name} · ${String(cost)}`,
     asked: "Already spoke",
+    askMore: "Ask one more",
+    askNote: (cost: number): string =>
+      `${String(cost)} mana once: she reads every day of this reading, the ones open now and the ones still to come.`,
+    candles: "The forecast candles are hers",
+    line: "Hers is the line in her own colour",
+    move: (change: string, day: number): string => `${change} by the end of day ${String(day)}`,
     closest: "Closest",
   },
   reading: {
