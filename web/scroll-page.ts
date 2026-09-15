@@ -206,19 +206,16 @@ class ScrollPage {
       return;
     }
     if (this.gone()) return;
-    const overall = accuracy(forecast, real);
-    if (overall.compared < results.length * CANDLES_PER_STEP) {
-      this.say(() => t().scroll.notRipe);
-      return;
-    }
     const unit = atr(snapshot);
-    const gap = deviation(forecast, real, unit).deviation;
-    if (gap === null) {
+    const gap = deviation(forecast, real, unit);
+    // The sheet certifies the gap, so the gap is what has to be whole: every forecast candle answered by a real one.
+    if (gap.deviation === null || gap.compared < results.length * CANDLES_PER_STEP) {
       this.say(() => t().scroll.notRipe);
       return;
     }
+    const overall = accuracy(forecast, real);
     const seats: Seat[] = [
-      { id: record.reader, deviation: gap },
+      { id: record.reader, deviation: gap.deviation },
       ...[...opinions].map(([id, steps]) => ({
         id,
         deviation: deviation(candlesOf(steps), real, unit).deviation,
@@ -231,7 +228,7 @@ class ScrollPage {
       opinions,
       real,
       accuracyPct: Math.round((overall.accuracy ?? 0) * 100),
-      gap,
+      gap: gap.deviation,
       seats,
       closest: closestOf(seats),
     };
