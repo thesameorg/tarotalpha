@@ -29,6 +29,36 @@
         "options": [],
         "includeAll": false,
         "multi": false
+      },
+      {
+        "type": "custom",
+        "name": "platform",
+        "label": "Площадка",
+        "query": "Все : all, Телеграм : tg, Сайт : web",
+        "current": {
+          "text": "Все",
+          "value": "all"
+        },
+        "options": [
+          {
+            "text": "Все",
+            "value": "all",
+            "selected": true
+          },
+          {
+            "text": "Телеграм",
+            "value": "tg",
+            "selected": false
+          },
+          {
+            "text": "Сайт",
+            "value": "web",
+            "selected": false
+          }
+        ],
+        "includeAll": false,
+        "multi": false,
+        "hide": 0
       }
     ]
   },
@@ -64,7 +94,7 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "table",
-          "query": "SELECT SUM(double6) / 100 AS revenue FROM tarotalpha WHERE $timeFilter AND blob1 = 'paid' AND double6 > 0"
+          "query": "SELECT SUM(double6) / 100 AS revenue FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') AND blob1 = 'paid' AND double6 > 0"
         }
       ],
       "fieldConfig": {
@@ -118,7 +148,7 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "table",
-          "query": "SELECT countIf(wall > 0 AND paid > 0) / countIf(wall > 0) AS conversion FROM ( SELECT blob3 AS visit, countIf(blob1 = 'paywall_hit') AS wall, countIf(blob1 = 'paid') AS paid FROM tarotalpha WHERE $timeFilter GROUP BY visit)"
+          "query": "SELECT countIf(wall > 0 AND paid > 0) / countIf(wall > 0) AS conversion FROM ( SELECT blob3 AS visit, countIf(blob1 = 'paywall_hit') AS wall, countIf(blob1 = 'paid') AS paid FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') GROUP BY visit)"
         }
       ],
       "fieldConfig": {
@@ -172,7 +202,7 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "table",
-          "query": "SELECT countIf(paid > 0) / count() AS payers FROM ( SELECT blob2 AS visitor, countIf(blob1 = 'paid') AS paid FROM tarotalpha WHERE $timeFilter GROUP BY visitor)"
+          "query": "SELECT countIf(paid > 0) / count() AS payers FROM ( SELECT blob2 AS visitor, countIf(blob1 = 'paid') AS paid FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') GROUP BY visitor)"
         }
       ],
       "fieldConfig": {
@@ -225,7 +255,7 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "table",
-          "query": "SELECT SUM(_sample_interval) AS invites FROM tarotalpha WHERE $timeFilter AND blob1 = 'invite_redeemed'"
+          "query": "SELECT SUM(_sample_interval) AS invites FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') AND blob1 = 'invite_redeemed'"
         }
       ],
       "fieldConfig": {
@@ -277,7 +307,7 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "time_series",
-          "query": "SELECT toUnixTimestamp(toStartOfDay(timestamp)) * 1000 AS t, SUM(double6) / 100 AS revenue FROM tarotalpha WHERE $timeFilter AND blob1 = 'paid' AND double6 > 0 GROUP BY t ORDER BY t"
+          "query": "SELECT toUnixTimestamp(toStartOfDay(timestamp)) * 1000 AS t, SUM(double6) / 100 AS revenue FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') AND blob1 = 'paid' AND double6 > 0 GROUP BY t ORDER BY t"
         }
       ],
       "fieldConfig": {
@@ -320,7 +350,7 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "time_series",
-          "query": "SELECT toUnixTimestamp(day) * 1000 AS t, countIf(shown > 0) AS paywall_shown, countIf(clicked > 0) AS buy_clicked, countIf(offered > 0) AS invoice_created, countIf(paid > 0) AS paid FROM ( SELECT blob3 AS visit, toStartOfDay(timestamp) AS day, countIf(blob1 = 'paywall_shown') AS shown, countIf(blob1 = 'buy_clicked') AS clicked, countIf(blob1 = 'invoice_created') AS offered, countIf(blob1 = 'paid') AS paid FROM tarotalpha WHERE $timeFilter GROUP BY visit, day) GROUP BY t ORDER BY t"
+          "query": "SELECT toUnixTimestamp(day) * 1000 AS t, countIf(shown > 0) AS paywall_shown, countIf(clicked > 0) AS buy_clicked, countIf(offered > 0) AS invoice_created, countIf(paid > 0) AS paid FROM ( SELECT blob3 AS visit, toStartOfDay(timestamp) AS day, countIf(blob1 = 'paywall_shown') AS shown, countIf(blob1 = 'buy_clicked') AS clicked, countIf(blob1 = 'invoice_created') AS offered, countIf(blob1 = 'paid') AS paid FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') GROUP BY visit, day) GROUP BY t ORDER BY t"
         }
       ],
       "fieldConfig": {
@@ -363,7 +393,7 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "table",
-          "query": "SELECT blob17 AS pack, SUM(_sample_interval) AS bought, SUM(double6) / 100 AS revenue FROM tarotalpha WHERE $timeFilter AND blob1 = 'paid' AND blob17 != '' GROUP BY pack ORDER BY revenue DESC"
+          "query": "SELECT blob17 AS pack, SUM(_sample_interval) AS bought, SUM(double6) / 100 AS revenue FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') AND blob1 = 'paid' AND blob17 != '' GROUP BY pack ORDER BY revenue DESC"
         }
       ],
       "fieldConfig": {
@@ -412,7 +442,7 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "table",
-          "query": "SELECT blob17 AS rail, SUM(_sample_interval) AS offers FROM tarotalpha WHERE $timeFilter AND blob1 = 'invoice_created' AND blob17 != '' GROUP BY rail"
+          "query": "SELECT blob17 AS rail, SUM(_sample_interval) AS offers FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') AND blob1 = 'invoice_created' AND blob17 != '' GROUP BY rail"
         }
       ],
       "fieldConfig": {
@@ -438,9 +468,9 @@
       "description": "Рельса выписанного предложения: звёзды или TON."
     },
     {
-      "id": 9,
+      "id": 12,
       "type": "timeseries",
-      "title": "Расход маны по дням",
+      "title": "Продажи: телега против сайта",
       "datasource": {
         "type": "vertamedia-clickhouse-datasource",
         "uid": "${ds}"
@@ -468,22 +498,23 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "time_series",
-          "query": "SELECT toUnixTimestamp(toStartOfDay(timestamp)) * 1000 AS t, SUM(double5) AS mana FROM tarotalpha WHERE $timeFilter AND double5 > 0 AND blob1 IN ('step_opened', 'opinion_asked') GROUP BY t ORDER BY t"
+          "query": "SELECT toUnixTimestamp(toStartOfDay(timestamp)) * 1000 AS t, sumIf(double6, blob4 = 'tg') / 100 AS telegram, sumIf(double6, blob4 = 'web') / 100 AS site FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') AND blob1 = 'paid' AND double6 > 0 GROUP BY t ORDER BY t"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "unit": "currencyUSD"
         },
         "overrides": []
       },
       "options": {},
-      "description": "Цена едет на самом событии: день прогноза и второе мнение."
+      "description": "Площадка едет на каждом событии, поэтому отдельного поля под разрез нет. Здесь обе линии рядом, а «Площадка» в шапке режет по ней весь дашборд."
     },
     {
-      "id": 10,
-      "type": "piechart",
-      "title": "На что тратят ману",
+      "id": 13,
+      "type": "barchart",
+      "title": "Покупок на посетителя",
       "datasource": {
         "type": "vertamedia-clickhouse-datasource",
         "uid": "${ds}"
@@ -511,7 +542,113 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "table",
-          "query": "SELECT blob1 AS event, SUM(double5) AS mana, SUM(_sample_interval) AS times FROM tarotalpha WHERE $timeFilter AND double5 > 0 AND blob1 IN ('step_opened', 'opinion_asked') GROUP BY event ORDER BY mana DESC"
+          "query": "SELECT buys, count() AS visitors FROM ( SELECT blob2 AS visitor, countIf(blob1 = 'paid') AS buys FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') GROUP BY visitor) GROUP BY buys HAVING buys > 0 ORDER BY buys LIMIT 20"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "auto",
+        "xTickLabelRotation": 0,
+        "showValue": "auto",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "buys",
+                "destinationType": "string"
+              }
+            ]
+          }
+        }
+      ],
+      "description": "Повторные покупки — всё правее единицы. Посетитель живёт в браузере, поэтому один человек с двух устройств считается дважды и повторы здесь занижены."
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Расход маны по дням",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "time_series",
+          "query": "SELECT toUnixTimestamp(toStartOfDay(timestamp)) * 1000 AS t, SUM(double5) AS mana FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') AND double5 > 0 AND blob1 IN ('step_opened', 'opinion_asked') GROUP BY t ORDER BY t"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Цена едет на самом событии: день прогноза и второе мнение."
+    },
+    {
+      "id": 10,
+      "type": "piechart",
+      "title": "На что тратят ману",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 28
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "table",
+          "query": "SELECT blob1 AS event, SUM(double5) AS mana, SUM(_sample_interval) AS times FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') AND double5 > 0 AND blob1 IN ('step_opened', 'opinion_asked') GROUP BY event ORDER BY mana DESC"
         }
       ],
       "fieldConfig": {
@@ -536,18 +673,81 @@
       }
     },
     {
-      "id": 11,
-      "type": "timeseries",
-      "title": "Открывали кошелёк",
+      "id": 14,
+      "type": "barchart",
+      "title": "Мана по глубине дня",
       "datasource": {
         "type": "vertamedia-clickhouse-datasource",
         "uid": "${ds}"
       },
       "gridPos": {
         "h": 8,
-        "w": 24,
+        "w": 12,
         "x": 0,
-        "y": 28
+        "y": 36
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "table",
+          "query": "SELECT double1 AS day_ahead, SUM(double5) AS mana, SUM(_sample_interval) AS times FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') AND blob1 = 'step_opened' AND double5 > 0 AND double1 > 0 GROUP BY day_ahead ORDER BY day_ahead"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "auto",
+        "xTickLabelRotation": 0,
+        "showValue": "auto",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "day_ahead",
+                "destinationType": "string"
+              }
+            ]
+          }
+        }
+      ],
+      "description": "Номер дня прогноза, а не календарная дата: видно, на каком дне расклад перестают докупать. Только `step_opened` — у второго мнения в этом слоте глубина расклада на момент вопроса."
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Темп трат маны",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 36
       },
       "targets": [
         {
@@ -566,7 +766,50 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "time_series",
-          "query": "SELECT toUnixTimestamp(toStartOfDay(timestamp)) * 1000 AS t, count(DISTINCT blob3) AS visits FROM tarotalpha WHERE $timeFilter AND blob1 = 'mana_panel_opened' GROUP BY t ORDER BY t"
+          "query": "SELECT toUnixTimestamp(day) * 1000 AS t, SUM(mana) / count() AS per_visit, SUM(mana) / (SUM(seconds) / 3600) AS per_hour FROM ( SELECT blob3 AS visit, toStartOfDay(timestamp) AS day, sumIf(double5, double5 > 0 AND blob1 IN ('step_opened', 'opinion_asked')) AS mana, toUnixTimestamp(max(timestamp)) - toUnixTimestamp(min(timestamp)) AS seconds FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') GROUP BY visit, day) GROUP BY t ORDER BY t"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Знаменатель — все визиты дня, а не только те, где тратили: это темп аудитории, а не чек. Час считается по времени на сайте, как на «Трафике»."
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Открывали кошелёк",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "time_series",
+          "query": "SELECT toUnixTimestamp(toStartOfDay(timestamp)) * 1000 AS t, count(DISTINCT blob3) AS visits FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') AND blob1 = 'mana_panel_opened' GROUP BY t ORDER BY t"
         }
       ],
       "fieldConfig": {

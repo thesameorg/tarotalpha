@@ -442,6 +442,118 @@
       }
     },
     {
+      "id": 14,
+      "type": "piechart",
+      "title": "ОС",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 19
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "table",
+          "query": "SELECT blob7 AS os, count(DISTINCT blob3) AS visits FROM tarotalpha WHERE $timeFilter AND blob7 != '' GROUP BY os ORDER BY visits DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": true
+        },
+        "pieType": "donut",
+        "displayLabels": ["name", "percent"],
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "list"
+        }
+      },
+      "description": "Грубо, со слов браузера: точнее `userAgentData` не говорит, а user agent не пишется вовсе."
+    },
+    {
+      "id": 15,
+      "type": "piechart",
+      "title": "Клиент Telegram",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 19
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "table",
+          "query": "SELECT blob5 AS tg_client, count(DISTINCT blob3) AS visits FROM tarotalpha WHERE $timeFilter AND blob5 != '' GROUP BY tg_client ORDER BY visits DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": true
+        },
+        "pieType": "donut",
+        "displayLabels": ["name", "percent"],
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "list"
+        }
+      },
+      "description": "Только мини-апп: на сайте слот пустой, поэтому доли здесь считаются от визитов в Telegram."
+    },
+    {
       "id": 9,
       "type": "barchart",
       "title": "Языки",
@@ -453,7 +565,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 19
+        "y": 26
       },
       "targets": [
         {
@@ -503,7 +615,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 19
+        "y": 26
       },
       "targets": [
         {
@@ -552,7 +664,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 27
+        "y": 34
       },
       "targets": [
         {
@@ -615,7 +727,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 27
+        "y": 34
       },
       "targets": [
         {
@@ -660,7 +772,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 35
+        "y": 42
       },
       "targets": [
         {
@@ -692,6 +804,69 @@
         "showHeader": true
       },
       "description": "Чем смотрят — вопрос про аудиторию, а не про воронку."
+    },
+    {
+      "id": 16,
+      "type": "barchart",
+      "title": "Монет за визит",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 42
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "table",
+          "query": "SELECT coins, count() AS visits FROM ( SELECT blob3 AS visit, count(DISTINCT blob15) AS coins FROM tarotalpha WHERE $timeFilter AND blob15 != '' GROUP BY visit) GROUP BY coins ORDER BY coins LIMIT 20"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "auto",
+        "xTickLabelRotation": 0,
+        "showValue": "auto",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "coins",
+                "destinationType": "string"
+              }
+            ]
+          }
+        }
+      ],
+      "description": "Обратная сторона «Инструментов»: там визиты на инструмент, здесь инструменты на визит."
     }
   ]
 }
