@@ -50,9 +50,12 @@ export async function fetchSnapshot(
   }
   // An exchange that answered (unknown symbol, short history) beats one that did not answer at all.
   const answered = failures.find((failure) => failure.kind !== "unavailable");
-  throw (
-    answered ?? failures[failures.length - 1] ?? new ExchangeError("unavailable", null, "no exchange sources given")
-  );
+  const chosen = answered ?? failures[failures.length - 1];
+  if (chosen === undefined) throw new ExchangeError("unavailable", null, "no exchange sources given");
+  // Every refusal in the message, not just the chosen one: the queue otherwise hides the exchange that actually
+  // broke the chain behind whoever was asked last, and its answer is the only one that explains the failure.
+  const said = failures.map((failure) => `${failure.source ?? "?"}: ${failure.message}`).join(" | ");
+  throw new ExchangeError(chosen.kind, chosen.source, said);
 }
 
 /** Closed candles after the anchor, at most `limit`, from the snapshot's own provider so accuracy compares like with like. */
