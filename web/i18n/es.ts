@@ -235,6 +235,7 @@ export const es: Dictionary = {
     line: "Lo suyo es la línea de su color",
     move: (change: string, day: number): string => `${change} al final del día ${String(day)}`,
     closest: "La más cercana",
+    readBy: (name: string): string => `Leer el día como ${name}`,
   },
   reading: {
     notFound: "Tirada no encontrada",
@@ -291,6 +292,7 @@ export const es: Dictionary = {
       gap === null ? `día ${String(day)}: aún no llega` : `día ${String(day)}: ${gap}`,
   },
   summaryTitle: "El día en una línea.",
+  summaryBy: (name: string): string => `El día en una línea · ${name}.`,
   how: "Método",
   contact: "Contacto",
   cardName: (card: Card): string =>

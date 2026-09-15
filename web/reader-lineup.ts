@@ -1,9 +1,10 @@
 /**
  * Everyone reading this reading, at the head of the day tabs: the author first, then every reader a second opinion
  * was bought from, each in the colour her line wears on the chart above, and where each of them takes the price by
- * the last open day. The row is the chart's legend, so a bought line is never a nameless stripe. Last comes the chip
- * that asks one more reader and names her price, gone once everyone is at the table or while no day is open.
- * Who may be asked, what she costs and why the author is candles and the rest are lines: ../docs/reading-lifecycle.md
+ * the last open day. The row is the chart's legend and its switch: a chip picks whose words stand under the cards,
+ * because the cards are the same for all of them and only the reading of them differs. Last comes the chip that asks
+ * one more reader and names her price, gone once everyone is at the table or while no day is open.
+ * Who may be asked, what she costs and whose words the cards get: ../docs/reading-lifecycle.md
  */
 import type { Candle } from "../engine/atr";
 import { isReaderId, READER_IDS, type ReaderId } from "../engine/readers";
@@ -21,6 +22,8 @@ export interface Roster {
   /** Days open now: what the moves are measured to. */
   days: number;
   locked: boolean;
+  /** Whose words stand under the cards right now; the author until another chip is picked. */
+  voice?: ReaderId;
   /** What asking one more costs, or null when nobody may be asked here or now. */
   askCost: number | null;
   /** True when the two purses together do not cover that price: said before the click, not after it. */
@@ -44,20 +47,24 @@ function moveMarkup(pct: number | null): string {
 }
 
 // The chip says who she is; the title says what of the chart is hers and where she takes the price by the last day.
-function chipMarkup(roster: Roster, id: ReaderId, fresh: boolean, clickable: boolean): string {
+// Once a day is open the chip also reads her words out under the cards, and says so instead of the tooltip.
+function chipMarkup(roster: Roster, id: ReaderId, fresh: boolean, pick: boolean, speaks: boolean): string {
   const author = id === roster.author;
   const pct = move(roster.base, roster.lines.get(id));
   const name = t().readerName(id);
   const where = pct === null ? "" : ` · ${t().reader.move(formatPercent(pct), roster.days)}`;
-  const title = `${name} · ${author ? t().reader.candles : t().reader.line}${where}`;
+  const title = speaks ? t().reader.readBy(name) : `${name} · ${author ? t().reader.candles : t().reader.line}${where}`;
   const locked = author && roster.locked;
-  const classes = ["reader", author ? "" : "mate", locked ? "locked" : "", fresh ? "fresh" : ""]
+  const voiced = speaks && id === (roster.voice ?? roster.author);
+  const classes = ["reader", author ? "" : "mate", locked ? "locked" : "", fresh ? "fresh" : "", voiced ? "voiced" : ""]
     .filter(Boolean)
     .join(" ");
   const hue = author ? "" : ` style="--hue: var(--reader-${id})"`;
   const note = author ? `<span class="reader-note">${t().reader.current}</span>` : "";
+  const clickable = pick || speaks;
   const tag = clickable ? "button" : "span";
-  const act = clickable ? ` type="button" aria-haspopup="dialog" data-lineup-open="${id}"` : "";
+  const dialog = pick ? ` aria-haspopup="dialog"` : ` aria-pressed="${String(voiced)}"`;
+  const act = clickable ? ` type="button"${dialog} data-lineup-${speaks ? "voice" : "open"}="${id}"` : "";
   const text = `<span class="reader-text"><b>${name}</b>${note}</span>`;
   return `<${tag} class="${classes}"${hue}${act} title="${title}"><img src="${readerAvatarUrl(id)}" alt="">${text}${moveMarkup(pct)}${locked ? icons.lock : ""}</${tag}>`;
 }
@@ -74,9 +81,9 @@ function askMarkup(roster: Roster): string {
   return `<button class="reader ask${short ? " short" : ""}" type="button" data-lineup-ask="${next}" aria-label="${label}" title="${note}">${t().reader.askMore}${price}</button>`;
 }
 
-/** `open` leads to the reader's card. Only the chip that can still change something takes it: the author while
- *  she may be swapped, and the chip that asks one more. Whoever is already reading is a fact, not a control. */
-export function createLineup(root: HTMLElement, open?: (id: ReaderId) => void): Lineup {
+/** `open` leads to the reader's card: the author while she may still be swapped, and the chip that asks one more.
+ *  `voice` hands the cards to another reader already at the table — the one thing a chip of hers can change. */
+export function createLineup(root: HTMLElement, open?: (id: ReaderId) => void, voice?: (id: ReaderId) => void): Lineup {
   let roster: Roster | null = null;
   // Who stood here at the last paint: whoever is new arrives lit, so a bought opinion is seen taking her seat.
   let seen = new Set<ReaderId>();
@@ -89,8 +96,10 @@ export function createLineup(root: HTMLElement, open?: (id: ReaderId) => void): 
     }
     const ids = [...shown.lines.keys()];
     const pickable = open !== undefined && !shown.locked;
+    // Words to read only once a day is open, and the author's chip keeps the card while she may still be swapped.
+    const speaks = voice !== undefined && shown.days > 0;
     const chips = ids.map((id) =>
-      chipMarkup(shown, id, seen.size > 0 && !seen.has(id), pickable && id === shown.author),
+      chipMarkup(shown, id, seen.size > 0 && !seen.has(id), pickable && id === shown.author, speaks),
     );
     root.innerHTML = chips.join("") + askMarkup(shown);
     seen = new Set(ids);
@@ -98,8 +107,14 @@ export function createLineup(root: HTMLElement, open?: (id: ReaderId) => void): 
 
   root.addEventListener("click", (event) => {
     const target = event.target instanceof Element ? event.target : null;
-    const chip = target?.closest<HTMLElement>("[data-lineup-open], [data-lineup-ask]") ?? null;
-    const id = chip === null ? null : (chip.dataset.lineupOpen ?? chip.dataset.lineupAsk);
+    const chip = target?.closest<HTMLElement>("[data-lineup-open], [data-lineup-ask], [data-lineup-voice]") ?? null;
+    if (chip === null) return;
+    const spoken = chip.dataset.lineupVoice;
+    if (isReaderId(spoken)) {
+      voice?.(spoken);
+      return;
+    }
+    const id = chip.dataset.lineupOpen ?? chip.dataset.lineupAsk;
     if (isReaderId(id) && open !== undefined) open(id);
   });
   const unsubscribe = onLangChange(paint);

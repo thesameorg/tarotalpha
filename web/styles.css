@@ -1906,6 +1906,13 @@ footer {
   border-style: dashed;
   opacity: 0.75;
 }
+/* The chip whose words stand under the cards: a switch that is on, not a button waiting to be pressed. It wears
+   her own colour — the one her line wears on the chart — so the row, the line and the words agree. */
+.reader.voiced {
+  outline: 1px solid var(--hue, var(--gold));
+  outline-offset: -1px;
+  box-shadow: inset 0 -2px 0 var(--hue, var(--gold));
+}
 .reader.ask {
   gap: 5px;
   padding: 7px 10px;
@@ -1940,6 +1947,11 @@ footer {
 .reader.ask.short {
     border-style: dashed;
     opacity: 0.75;
+  }
+  /* The chip whose words stand under the cards: a switch that is on, not a button waiting to be pressed. */
+  .reader.voiced {
+    border-color: var(--hue, var(--gold));
+    box-shadow: inset 0 -2px 0 var(--hue, var(--gold));
   }
   .reader.ask {
     font-size: 11px;

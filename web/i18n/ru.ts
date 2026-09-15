@@ -231,6 +231,7 @@ export const ru = {
     line: "Её прогноз — линия её цвета",
     move: (change: string, day: number): string => `${change} к концу дня ${String(day)}`,
     closest: "Ближе всех",
+    readBy: (name: string): string => `Показать толкование: ${name}`,
   },
   reading: {
     notFound: "Расклад не найден",
@@ -285,6 +286,7 @@ export const ru = {
       gap === null ? `день ${String(day)}: ещё не наступил` : `день ${String(day)}: ${gap}`,
   },
   summaryTitle: "Итог дня.",
+  summaryBy: (name: string): string => `Итог дня · ${name}.`,
   how: "Метод",
   contact: "Связь",
   cardName: (card: Card): string =>

@@ -212,6 +212,7 @@ export const ko: Dictionary = {
     line: "그녀의 것은 같은 색 선",
     move: (change: string, day: number): string => `${String(day)}일째 끝에 ${change}`,
     closest: "가장 가까움",
+    readBy: (name: string): string => `${name}의 해석으로 보기`,
   },
   reading: {
     notFound: "리딩을 찾을 수 없습니다",
@@ -266,6 +267,7 @@ export const ko: Dictionary = {
       gap === null ? `${String(day)}일차: 아직입니다` : `${String(day)}일차: ${gap}`,
   },
   summaryTitle: "한 줄로 보는 오늘.",
+  summaryBy: (name: string): string => `한 줄로 보는 오늘 · ${name}.`,
   how: "계산 방식",
   contact: "문의",
   cardName: (card: Card): string =>

@@ -222,6 +222,7 @@ export const tr: Dictionary = {
     line: "Onunki kendi rengindeki çizgi",
     move: (change: string, day: number): string => `${String(day)}. günün sonunda ${change}`,
     closest: "En yakını",
+    readBy: (name: string): string => `Günü ${name} gibi oku`,
   },
   reading: {
     notFound: "Açılım bulunamadı",
@@ -277,6 +278,7 @@ export const tr: Dictionary = {
       gap === null ? `${String(day)}. gün: henüz gelmedi` : `${String(day)}. gün: ${gap}`,
   },
   summaryTitle: "Gün tek satırda.",
+  summaryBy: (name: string): string => `Gün tek satırda · ${name}.`,
   how: "Yöntem",
   contact: "İletişim",
   cardName: (card: Card): string =>

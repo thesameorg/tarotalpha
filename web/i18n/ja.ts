@@ -224,6 +224,7 @@ export const ja: Dictionary = {
     line: "彼女のものは同じ色の線",
     move: (change: string, day: number): string => `${String(day)} 日目の終わりに ${change}`,
     closest: "最も近い",
+    readBy: (name: string): string => `${name} の読みで見る`,
   },
   reading: {
     notFound: "リーディングが見つかりません",
@@ -278,6 +279,7 @@ export const ja: Dictionary = {
       gap === null ? `${String(day)} 日目：まだ来ていません` : `${String(day)} 日目：${gap}`,
   },
   summaryTitle: "今日を一行で。",
+  summaryBy: (name: string): string => `今日を一行で · ${name}。`,
   how: "計算方法",
   contact: "連絡",
   cardName: (card: Card): string =>
