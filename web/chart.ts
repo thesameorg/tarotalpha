@@ -32,6 +32,7 @@ import { onLangChange, t } from "./i18n/index";
 import { localOffsetMs } from "./local-time-format";
 import { palette, type Palette } from "./palette";
 import { formatPrice, priceMinMove } from "./price-format";
+import { PriceOverlay } from "./price-overlay";
 import { reducedMotion } from "./stage-effects";
 import { onThemeChange } from "./theme";
 
@@ -39,6 +40,8 @@ const MIN_FORECAST_DAYS = 3;
 const DRAW_MS_PER_CANDLE = 10;
 // A bought line draws in over this long whatever the horizon: one day and seven days both deserve the moment.
 const OPINION_DRAW_MS = 800;
+// Below this the native price scale costs a quarter of the width, and prices move over the candles (price-overlay.ts).
+const OVERLAY_PRICES = "(max-width: 640px)";
 const REAL_VISIBLE = 72;
 const MIN_REAL_VISIBLE = 24;
 const PX_PER_BAR = 4.5;
@@ -179,6 +182,24 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
   real.attachPrimitive(zone);
   real.attachPrimitive(ribbon);
   real.attachPrimitive(pulse);
+
+  // A narrow screen keeps the prices and loses the column they stood in; the grid goes with the scale, because the
+  // overlay draws a line under every price it writes and two sets of them would not agree.
+  const narrow = window.matchMedia(OVERLAY_PRICES);
+  const overlay = new PriceOverlay();
+  let overlaid = false;
+  const fitPrices = (): void => {
+    if (narrow.matches === overlaid) return;
+    overlaid = narrow.matches;
+    chart.applyOptions({
+      rightPriceScale: { visible: !overlaid },
+      grid: { horzLines: { visible: !overlaid } },
+    });
+    if (overlaid) real.attachPrimitive(overlay);
+    else real.detachPrimitive(overlay);
+  };
+  fitPrices();
+  narrow.addEventListener("change", fitPrices);
 
   const retheme = (): void => {
     const next = palette();
@@ -369,8 +390,10 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
       generation++;
       unsubscribeTheme();
       unsubscribeLang();
+      narrow.removeEventListener("change", fitPrices);
       observer.disconnect();
       zone.onLayout(null);
+      if (overlaid) real.detachPrimitive(overlay);
       real.detachPrimitive(pulse);
       real.detachPrimitive(ribbon);
       real.detachPrimitive(zone);
