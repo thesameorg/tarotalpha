@@ -16,6 +16,7 @@ import {
   starsInvoiceLink,
   telegramUserId,
 } from "./telegram";
+import { writeEvent } from "./analytics";
 import { findPayment, jettonWalletOf, quote, tonClient } from "./ton";
 
 /** Secrets the payment side needs. All optional: a rail without its secret is simply not offered. */
@@ -105,6 +106,10 @@ export async function createInvoice(request: Request, env: WalletEnv): Promise<R
       pack.id,
     )
     .run();
+
+  // The offer, not the payment: what the buyer asked for is a fact of this request, and the price is the server's
+  // own number rather than anything the browser could claim.
+  writeEvent(env.ANALYTICS, request, { type: "invoice_created", detail: method, cost: pack.mana, amount: pack.cents });
 
   if (coin === null) return Response.json({ token, method, invoice_link: await starsLink(env, pack, token) });
   return Response.json({
@@ -371,6 +376,7 @@ export async function redeemInvite(request: Request, env: WalletEnv): Promise<Re
     if (already === null) throw error;
     throw new ApiError(409, "already_paid", "this newcomer has already been counted");
   }
+  writeEvent(env.ANALYTICS, request, { type: "invite_redeemed", readingId: reading, cost: INVITE_MANA });
   return Response.json({ mana: INVITE_MANA });
 }
 

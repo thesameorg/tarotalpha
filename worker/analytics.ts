@@ -17,14 +17,26 @@ export type EventType =
   | "shared"
   | "rechecked"
   | "scroll_opened"
-  | "share_failed";
+  | "mana_panel_opened"
+  | "paywall_shown"
+  | "buy_clicked"
+  | "share_failed"
+  | "invoice_created"
+  | "paid"
+  | "invite_redeemed";
 
-/** What an event carries besides the visit: the reading it happened on, and how far into it. */
+/** What an event carries besides the visit: where it happened, and what it cost. */
 export interface EventPoint {
   type: EventType;
   asset?: string | null;
   readingId?: string | null;
   step?: number | null;
+  /** Which flavour of this event: the rail that was paid, the pool whose panel opened, the pack that was clicked. */
+  detail?: string | null;
+  /** Mana this event drew down. */
+  cost?: number | null;
+  /** Money, in the smallest unit of its rail: stars, or nano-TON. */
+  amount?: number | null;
 }
 
 const VISIT_HEADER = "X-Visit";
@@ -60,8 +72,16 @@ export function writeEvent(dataset: AnalyticsEngineDataset, request: Request, ev
       text(visit.get("src"), SOURCE_MAX),
       text(event.asset),
       text(event.readingId),
+      text(event.detail),
     ],
-    doubles: [number(event.step), hour(visit.get("h")), cf?.isEUCountry === "1" ? 1 : 0, number(cf?.clientTcpRtt)],
+    doubles: [
+      number(event.step),
+      hour(visit.get("h")),
+      cf?.isEUCountry === "1" ? 1 : 0,
+      number(cf?.clientTcpRtt),
+      number(event.cost),
+      number(event.amount),
+    ],
   });
 }
 
