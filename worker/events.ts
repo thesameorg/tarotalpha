@@ -1,13 +1,15 @@
 /**
- * Funnel journal: one row per event, read only by the owner's own SQL. The client reports what it did; the one
- * event only the Worker writes is a snapshot the edge could not take.
- * `ip_hash` is a daily-rotating pseudonym (SHA-256 of address and date), not an identity.
+ * Funnel journal: the client reports what it did, the Worker turns it into one Analytics Engine point
+ * (worker/analytics.ts). The one event only the Worker writes is a snapshot the edge could not take.
+ * The route is `/api/omen` and stays that way: a path that reads like a tracker is filtered by ad blockers, and the
+ * funnel then silently loses everyone who runs one (docs/reading-lifecycle.md).
  */
 import { ASSET_PATTERN } from "../exchange/closed-candles";
+import { type EventPoint, type EventType, writeEvent } from "./analytics";
 import { ApiError, readJsonBody } from "./json-api";
-import { clientIp } from "./rate-limit";
 import { ID_PATTERN } from "./short-id";
 
+// What a browser is allowed to claim. `share_failed` is missing on purpose: only the Worker knows the exchange said no.
 const CLIENT_TYPES = [
   "chart_loaded",
   "step_opened",
@@ -17,44 +19,17 @@ const CLIENT_TYPES = [
   "shared",
   "rechecked",
   "scroll_opened",
-] as const;
+] as const satisfies readonly EventType[];
 
 type ClientEventType = (typeof CLIENT_TYPES)[number];
-export type EventType = ClientEventType | "share_failed";
-
-export interface EventInput {
-  type: EventType;
-  asset?: string | null;
-  readingId?: string | null;
-  step?: number | null;
-}
-
-export async function recordEvent(
-  db: D1Database,
-  request: Request,
-  event: EventInput,
-  now = Date.now(),
-): Promise<void> {
-  const hash = await ipHash(clientIp(request), now);
-  await db
-    .prepare("INSERT INTO events (ts, type, asset, reading_id, step, ip_hash) VALUES (?1, ?2, ?3, ?4, ?5, ?6)")
-    .bind(now, event.type, event.asset ?? null, event.readingId ?? null, event.step ?? null, hash)
-    .run();
-}
 
 export async function postEvent(request: Request, env: Env): Promise<Response> {
   const event = await parseEventBody(request);
-  await recordEvent(env.DB, request, event);
+  writeEvent(env.ANALYTICS, request, event);
   return new Response(null, { status: 204 });
 }
 
-async function ipHash(ip: string, now: number): Promise<string> {
-  const day = new Date(now).toISOString().slice(0, 10);
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${ip}:${day}`));
-  return Array.from(new Uint8Array(digest, 0, 8), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-async function parseEventBody(request: Request): Promise<EventInput> {
+async function parseEventBody(request: Request): Promise<EventPoint> {
   const { type, asset, reading_id: readingId, step } = await readJsonBody(request);
   if (!isClientType(type)) throw bad(`type must be one of ${CLIENT_TYPES.join(", ")}`);
   if (isPresent(asset) && !(typeof asset === "string" && ASSET_PATTERN.test(asset))) throw bad("asset is not a symbol");

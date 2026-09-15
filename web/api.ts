@@ -6,6 +6,7 @@
 import type { StepCards } from "../engine/draw-cards";
 import type { ReaderId } from "../engine/readers";
 import type { Source } from "../exchange/provider";
+import { visitHeader } from "./visit";
 
 export class ApiError extends Error {
   constructor(
@@ -91,8 +92,20 @@ export interface FunnelEvent {
   step?: number;
 }
 
-async function requestJson(path: string, init?: RequestInit): Promise<unknown> {
-  const response = await fetch(path, init);
+interface Call {
+  method?: "POST" | "PATCH";
+  headers?: Record<string, string>;
+  body?: string;
+}
+
+// Who is looking rides on every call, so an event the Worker writes itself lands in the same visit (web/visit.ts).
+function withVisit(headers: Record<string, string> = {}): Record<string, string> {
+  const visit = visitHeader();
+  return visit === "" ? headers : { ...headers, "X-Visit": visit };
+}
+
+async function requestJson(path: string, call: Call = {}): Promise<unknown> {
+  const response = await fetch(path, { ...call, headers: withVisit(call.headers) });
   if (!response.ok) throw new ApiError(response.status, `${path}: HTTP ${String(response.status)}`);
   return response.json();
 }
@@ -132,7 +145,7 @@ export async function fetchReaderTable(): Promise<ReaderTable> {
 export function postEvent(event: FunnelEvent): void {
   fetch("/api/omen", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: withVisit({ "content-type": "application/json" }),
     body: JSON.stringify(event),
     keepalive: true,
   }).catch(() => undefined);

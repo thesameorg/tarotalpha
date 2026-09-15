@@ -69,17 +69,16 @@ function stubBinance(status: number, body: unknown): void {
   stubExchanges({ status, body });
 }
 
-// Storage is shared inside a test file, so events are compared against the row count seen before the call.
-async function eventMark(): Promise<number> {
-  const row = await env.DB.prepare("SELECT COALESCE(MAX(id), 0) AS n FROM events").first<{ n: number }>();
-  return row?.n ?? 0;
-}
-
-async function eventTypesAfter(mark: number): Promise<string[]> {
-  const { results } = await env.DB.prepare("SELECT type FROM events WHERE id > ?1 ORDER BY id")
-    .bind(mark)
-    .all<{ type: string }>();
-  return results.map((row) => row.type);
+// Points cannot be read back out of the dataset, so the journal is watched at the binding from here on.
+function watchJournal(): { types: () => string[] } {
+  const spy = vi.spyOn(env.ANALYTICS, "writeDataPoint");
+  return {
+    types: (): string[] =>
+      spy.mock.calls.map(([point]) => {
+        const type = point?.blobs?.[0];
+        return typeof type === "string" ? type : "";
+      }),
+  };
 }
 
 // Cards come from the seed, not from the candles, so any snapshot long enough draws the ones the Worker will draw.
@@ -112,17 +111,18 @@ async function share(overrides: Partial<typeof CREATE> = {}): Promise<Response> 
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe("POST /api/readings then GET /api/readings/:id", () => {
   it("stores the snapshot the Worker fetched and the steps the engine computed, and journals nothing", async () => {
     stubBinance(200, binanceRows(SNAPSHOT_LENGTH, ANCHOR));
-    const mark = await eventMark();
+    const journal = watchJournal();
     const created = await share();
     expect(created.status).toBe(201);
     const { id, url } = await created.json<Created>();
     expect(url).toBe(`/r/${id}`);
-    expect(await eventTypesAfter(mark)).toEqual([]);
+    expect(journal.types()).toEqual([]);
 
     const read = await callApi(`/api/readings/${id}`);
     expect(read.status).toBe(200);
@@ -141,7 +141,7 @@ describe("POST /api/readings then GET /api/readings/:id", () => {
       steps: 2,
     }).map((step) => step.cards);
     expect(body.steps).toEqual(expected);
-    expect(await eventTypesAfter(mark)).toEqual([]);
+    expect(journal.types()).toEqual([]);
   });
 
   it("draws different cards for two readings of the same window: the nonce is the reading's own", async () => {
@@ -224,11 +224,11 @@ describe("POST /api/readings when the exchange fails", () => {
 
   it("answers 502 and journals share_failed when every exchange is blocked", async () => {
     stubBinance(451, "blocked");
-    const mark = await eventMark();
+    const journal = watchJournal();
     const response = await share();
     expect(response.status).toBe(502);
     expect(await response.json()).toMatchObject({ error: "unavailable" });
-    expect(await eventTypesAfter(mark)).toEqual(["share_failed"]);
+    expect(journal.types()).toEqual(["share_failed"]);
   });
 });
 
