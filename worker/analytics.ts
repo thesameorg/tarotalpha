@@ -35,7 +35,7 @@ export interface EventPoint {
   detail?: string | null;
   /** Mana this event drew down. */
   cost?: number | null;
-  /** Money, in the smallest unit of its rail: stars, or nano-TON. */
+  /** Money in cents, the same unit for stars and for TON: one column cannot hold two. */
   amount?: number | null;
 }
 
