@@ -253,6 +253,8 @@ export const en: Dictionary = {
     instrument: "Instrument",
     anchor: "Anchor",
     reader: "Reader",
+    readers: "Readers",
+    horizon: "Horizon",
     accuracy: "Accuracy",
     print: "Print",
     reading: "To the reading",

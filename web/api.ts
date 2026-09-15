@@ -4,7 +4,7 @@
  * fire-and-forget and never throw, because losing a funnel row must not break a reading.
  */
 import type { StepCards } from "../engine/draw-cards";
-import type { ReaderId } from "../engine/readers";
+import { isReaderId, type ReaderId } from "../engine/readers";
 import type { Source } from "../exchange/provider";
 import { visitHeader } from "./visit";
 
@@ -143,8 +143,12 @@ export async function extendReading(id: string, body: ExtendReadingBody): Promis
   return asCreated(await sendJson("PATCH", `/api/readings/${encodeURIComponent(id)}`, body));
 }
 
+/** A row names the formula that drew it, and a formula can leave (docs/engine.md): a reading whose author the engine
+ *  no longer knows cannot be replayed at all, so it is refused here instead of throwing inside the page drawing it. */
 export async function fetchReading(id: string): Promise<ReadingRecord> {
-  return (await requestJson(`/api/readings/${encodeURIComponent(id)}`)) as ReadingRecord;
+  const record = (await requestJson(`/api/readings/${encodeURIComponent(id)}`)) as ReadingRecord;
+  if (!isReaderId(record.reader)) throw new ApiError(422, `reading ${id} is read by an unknown reader`);
+  return record;
 }
 
 export async function fetchReaderTable(): Promise<ReaderTable> {

@@ -2332,8 +2332,13 @@ footer {
   outline: 3px double var(--gold-deep);
   outline-offset: 4px;
 }
+/* The head is a row — the seal and the title on the left, the certifying sentence on the right — so the leaf spends
+   its height on cards and candles; on a phone it stacks, where a row of two would leave both halves too narrow. */
 .scroll-head {
-  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 16px;
   border-bottom: 1px solid var(--line);
   padding-bottom: 12px;
 }
@@ -2350,23 +2355,69 @@ footer {
   letter-spacing: 0.12em;
 }
 .scroll-certify {
-  margin: 16px auto 18px;
-  max-width: 44em;
-  text-align: center;
+  flex: 1 1 340px;
+  margin: 0;
+  text-align: right;
   font-family: var(--serif);
   font-size: 17px;
   line-height: 1.5;
   unicode-bidi: plaintext;
 }
-.scroll-body {
+/* The head of the sheet: who read it on the left, what was read on the right. A seat wears the colour of its
+   reader's line on the chart below; the author drew the candles and keeps the sheet's gold. */
+.scroll-top {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 190px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 18px;
   align-items: start;
+  margin-top: 16px;
+}
+.scroll-seats {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.scroll-seats-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--paper-dim);
+}
+.scroll-seat {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-left: 2px solid var(--hue, var(--gold-deep));
+  padding-left: 10px;
+}
+.scroll-seat img {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--hue, var(--gold-deep));
+}
+.scroll-seat-text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.scroll-seat-text b {
+  font-size: 14px;
+  font-weight: normal;
+}
+.scroll-seat-text span {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--paper-dim);
+}
+.scroll-seat-text b:first-child {
+  color: var(--hue, var(--gold));
 }
 .scroll-chart {
-  height: 260px;
+  height: 220px;
   border: 1px solid var(--line);
+  margin-top: 16px;
 }
 .scroll-facts {
   margin: 0;
@@ -2396,6 +2447,9 @@ footer {
   flex-wrap: wrap;
   gap: 18px;
   margin-top: 18px;
+}
+.scroll-day {
+  min-width: 0;
 }
 .scroll-day-no {
   font-size: 10px;
@@ -2429,6 +2483,7 @@ footer {
   line-height: 1.25;
   text-align: center;
   color: var(--paper-dim);
+  overflow-wrap: anywhere;
 }
 .scroll-foot {
   display: flex;
@@ -2483,8 +2538,11 @@ footer {
   .scroll {
     padding: 18px 16px 14px;
   }
-  .scroll-body {
+  .scroll-top {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .scroll-certify {
+    text-align: left;
   }
   .scroll-foot {
     flex-direction: column;
@@ -2519,8 +2577,65 @@ footer {
   .scroll {
     max-width: none;
     margin: 0;
+    padding: 10px 14px;
     break-inside: avoid;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+  }
+  /* One leaf, and the widest reading is the one that has to fit: seven days of cards under five readers. Everything
+     on the sheet shrinks by the same hand, and the chart keeps whatever height the rest of it leaves. */
+  .scroll-title {
+    font-size: 21px;
+  }
+  .scroll-certify {
+    font-size: 13px;
+  }
+  .scroll-head {
+    padding-bottom: 8px;
+  }
+  .scroll-top {
+    margin-top: 10px;
+    gap: 12px;
+  }
+  .scroll-seats,
+  .scroll-facts {
+    gap: 5px;
+  }
+  .scroll-seat img {
+    width: 24px;
+    height: 24px;
+  }
+  .scroll-seat-text b {
+    font-size: 12px;
+  }
+  .scroll-facts dd {
+    font-size: 13px;
+  }
+  /* Seven days of three cards in one row: at this width they add up to less than the leaf, and a second row of
+     cards is what used to push the chart onto a page of its own. */
+  .scroll-cards {
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .scroll-day-cards {
+    gap: 4px;
+  }
+  .scroll-card {
+    width: 40px;
+  }
+  .scroll-card figcaption {
+    font-size: 7px;
+  }
+  .scroll-chart {
+    height: 150px;
+    margin-top: 10px;
+  }
+  .scroll-foot {
+    margin-top: 10px;
+    padding-top: 8px;
+  }
+  .scroll-qr img {
+    width: 58px;
+    height: 58px;
   }
 }

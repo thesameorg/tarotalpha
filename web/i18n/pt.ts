@@ -254,6 +254,8 @@ export const pt: Dictionary = {
     instrument: "Instrumento",
     anchor: "Âncora",
     reader: "Cartomante",
+    readers: "Cartomantes",
+    horizon: "Horizonte",
     accuracy: "Precisão",
     print: "Imprimir",
     reading: "Para a leitura",

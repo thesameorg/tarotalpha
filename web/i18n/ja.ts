@@ -242,6 +242,8 @@ export const ja: Dictionary = {
     instrument: "銘柄",
     anchor: "アンカー",
     reader: "占い師",
+    readers: "占い師たち",
+    horizon: "予測期間",
     accuracy: "的中率",
     print: "印刷",
     reading: "リーディングへ",
