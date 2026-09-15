@@ -14,8 +14,10 @@ export function priceMinMove(x: number): number {
   return 0.0001;
 }
 
+/** Signed to two decimals. The sign follows the printed number, so a move too small to show never reads as "-0.00". */
 export function formatPercent(pct: number): string {
-  return `${pct >= 0 ? "+" : ""}${pct.toFixed(2)} %`;
+  const shown = Number(pct.toFixed(2));
+  return `${shown >= 0 ? "+" : ""}${shown.toFixed(2)} %`;
 }
 
 export function formatChange(pct: number): string {
