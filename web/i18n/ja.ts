@@ -242,6 +242,10 @@ export const ja: Dictionary = {
     title: "巻物",
     certify: (id: string, asset: string, gap: string): string =>
       `本書は、リーディング ${id} が ${asset} の相場から ${gap} 離れて進んだことを証明します`,
+    foretell: (id: string, asset: string): string =>
+      `本書は、リーディング ${id} が ${asset} の相場に対し下図の動きを予告したことを証明します`,
+    stage: { forecast: "予測", interim: "途中", final: "結果" },
+    drawn: (stage: string, at: string): string => `${stage} · ${at} 時点で作成`,
     instrument: "銘柄",
     anchor: "アンカー",
     reader: "占い師",
@@ -250,7 +254,6 @@ export const ja: Dictionary = {
     signs: "ローソク足の方向",
     print: "印刷",
     reading: "リーディングへ",
-    notRipe: "予測の最後のローソク足が確定すると巻物が発行されます",
     made: "巻物",
   },
   mine: {

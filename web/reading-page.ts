@@ -159,10 +159,7 @@ function tableMarkup(table: readonly Opinion[], closest: ReaderId | null): strin
 // down: that share is a coin's, and a coin never reads as a good day or a bad one (../docs/engine.md).
 function verdictMarkup({ gap, word, signs, compared, perStep, total, reader, table, closest }: Verdict): string {
   const hit = word !== "far";
-  const final = compared === total;
-  const status = final ? t().prophecy.final : t().prophecy.interim;
-  // Only a finished story is worth certifying: an interim number would be a document that changes tomorrow.
-  const scroll = final ? `<button class="go scroll-go" type="button" id="scroll-go">${t().scroll.open}</button>` : "";
+  const status = compared === total ? t().prophecy.final : t().prophecy.interim;
   const lines = perStep
     .map((step, index) => t().prophecy.stepLine(index + 1, step === null ? null : formatGap(step)))
     .join(" · ");
@@ -173,13 +170,19 @@ function verdictMarkup({ gap, word, signs, compared, perStep, total, reader, tab
   <div class="verdict-signs">${t().prophecy.signs(Math.round(signs * 100))}</div>
   ${tableMarkup(table, closest)}
   <div class="verdict-legend">${t().prophecy.legend}</div>
-  ${scroll}
+  ${scrollMarkup()}
 </div>`;
+}
+
+// The sheet is worth having from the moment the cards are down, so the way to it stands under every state of the
+// check — what it certifies is the sheet's own business, and it names its age itself (./scroll-page.ts).
+function scrollMarkup(): string {
+  return `<button class="go scroll-go" type="button" id="scroll-go">${t().scroll.open}</button>`;
 }
 
 function pendingMarkup(text: string, retry: boolean): string {
   const button = retry ? `<button class="go" id="recheck">${t().retry}</button>` : "";
-  return `<div class="verdict pending"><div class="verdict-sub">${text}</div>${button}</div>`;
+  return `<div class="verdict pending"><div class="verdict-sub">${text}</div>${button}${scrollMarkup()}</div>`;
 }
 
 class ReadingPage {
@@ -377,19 +380,17 @@ class ReadingPage {
     }
     if (prophecy.kind === "verdict") {
       el.prophecy.innerHTML = verdictMarkup(prophecy.verdict);
-      const scroll = el.prophecy.querySelector("#scroll-go");
-      if (scroll instanceof HTMLButtonElement)
-        scroll.addEventListener("click", () => {
-          this.navigate(`/s/${this.id}`);
+    } else {
+      el.prophecy.innerHTML = pendingMarkup(prophecy.text(), prophecy.retry);
+      if (prophecy.retry) {
+        required(el.prophecy, "#recheck", HTMLButtonElement).addEventListener("click", () => {
+          void this.recheck();
         });
-      return;
+      }
     }
-    el.prophecy.innerHTML = pendingMarkup(prophecy.text(), prophecy.retry);
-    if (prophecy.retry) {
-      required(el.prophecy, "#recheck", HTMLButtonElement).addEventListener("click", () => {
-        void this.recheck();
-      });
-    }
+    required(el.prophecy, "#scroll-go", HTMLButtonElement).addEventListener("click", () => {
+      this.navigate(`/s/${this.id}`);
+    });
   }
 
   private async reveal(

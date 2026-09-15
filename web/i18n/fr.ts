@@ -255,6 +255,10 @@ export const fr: Dictionary = {
     title: "Parchemin",
     certify: (id: string, asset: string, gap: string): string =>
       `Il est certifié que le tirage ${id} est passé à ${gap} du marché ${asset}`,
+    foretell: (id: string, asset: string): string =>
+      `Il est certifié que le tirage ${id} promet au marché ${asset} ce qui est dessiné ci-dessous`,
+    stage: { forecast: "prévision", interim: "intermédiaire", final: "résultat" },
+    drawn: (stage: string, at: string): string => `${stage} · feuille établie le ${at}`,
     instrument: "Instrument",
     anchor: "Ancre",
     reader: "Cartomancienne",
@@ -263,7 +267,6 @@ export const fr: Dictionary = {
     signs: "Sens des bougies",
     print: "Imprimer",
     reading: "Vers le tirage",
-    notRipe: "Le parchemin est délivré à la clôture de la dernière bougie de la prévision",
     made: "parchemin",
   },
   mine: {

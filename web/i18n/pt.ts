@@ -255,6 +255,10 @@ export const pt: Dictionary = {
     title: "Pergaminho",
     certify: (id: string, asset: string, gap: string): string =>
       `Certifica-se que a leitura ${id} passou a ${gap} do mercado de ${asset}`,
+    foretell: (id: string, asset: string): string =>
+      `Certifica-se que a leitura ${id} promete ao mercado de ${asset} o que está desenhado abaixo`,
+    stage: { forecast: "previsão", interim: "intermediário", final: "resultado" },
+    drawn: (stage: string, at: string): string => `${stage} · folha composta em ${at}`,
     instrument: "Instrumento",
     anchor: "Âncora",
     reader: "Cartomante",
@@ -263,7 +267,6 @@ export const pt: Dictionary = {
     signs: "Sinais das velas",
     print: "Imprimir",
     reading: "Para a leitura",
-    notRipe: "O pergaminho é emitido quando fechar a última vela da previsão",
     made: "pergaminho",
   },
   mine: {
