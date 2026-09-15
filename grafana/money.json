@@ -498,7 +498,7 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "time_series",
-          "query": "SELECT toUnixTimestamp(toStartOfDay(timestamp)) * 1000 AS t, sumIf(double6, blob4 = 'tg') / 100 AS telegram, sumIf(double6, blob4 = 'web') / 100 AS site FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') AND blob1 = 'paid' AND double6 > 0 GROUP BY t ORDER BY t"
+          "query": "SELECT toUnixTimestamp(toStartOfDay(timestamp)) * 1000 AS t, sumIf(double6, blob4 = 'tg') / 100 AS telegram, sumIf(double6, blob4 = 'web') / 100 AS site FROM tarotalpha WHERE $timeFilter AND blob1 = 'paid' AND double6 > 0 GROUP BY t ORDER BY t"
         }
       ],
       "fieldConfig": {
@@ -509,7 +509,7 @@
         "overrides": []
       },
       "options": {},
-      "description": "Площадка едет на каждом событии, поэтому отдельного поля под разрез нет. Здесь обе линии рядом, а «Площадка» в шапке режет по ней весь дашборд."
+      "description": "Единственная панель дашборда, которая не слушает «Площадку» сверху: она и есть разрез по площадкам, и с фильтром от неё осталась бы одна линия и ровный ноль рядом. Остальные панели переменная режет."
     },
     {
       "id": 13,
@@ -766,7 +766,7 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "time_series",
-          "query": "SELECT toUnixTimestamp(day) * 1000 AS t, SUM(mana) / count() AS per_visit, SUM(mana) / (SUM(seconds) / 3600) AS per_hour FROM ( SELECT blob3 AS visit, toStartOfDay(timestamp) AS day, sumIf(double5, double5 > 0 AND blob1 IN ('step_opened', 'opinion_asked')) AS mana, toUnixTimestamp(max(timestamp)) - toUnixTimestamp(min(timestamp)) AS seconds FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') GROUP BY visit, day) GROUP BY t ORDER BY t"
+          "query": "SELECT toUnixTimestamp(day) * 1000 AS t, SUM(mana) / count() AS per_visit, SUM(mana) / (SUM(seconds) / 3600) AS per_hour FROM ( SELECT blob3 AS visit, toStartOfDay(timestamp) AS day, sumIf(double5, double5 > 0 AND blob1 IN ('step_opened', 'opinion_asked')) AS mana, toUnixTimestamp(max(timestamp)) - toUnixTimestamp(min(timestamp)) + 1 AS seconds FROM tarotalpha WHERE $timeFilter AND ('$platform' = 'all' OR blob4 = '$platform') GROUP BY visit, day) GROUP BY t ORDER BY t"
         }
       ],
       "fieldConfig": {
@@ -776,7 +776,7 @@
         "overrides": []
       },
       "options": {},
-      "description": "Знаменатель — все визиты дня, а не только те, где тратили: это темп аудитории, а не чек. Час считается по времени на сайте, как на «Трафике»."
+      "description": "Знаменатель — все визиты дня, а не только те, где тратили: это темп аудитории, а не чек. Визит, уложившийся в секунду, считается за секунду, а не за нулевое время: иначе тихий день дал бы бесконечность и увёл бы шкалу у всех остальных."
     },
     {
       "id": 11,
