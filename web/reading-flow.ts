@@ -197,6 +197,8 @@ class LandingPage {
   private readonly unsubscribe: () => void;
   private alive = true;
   private busy = false;
+  /** Whose words stand under the cards; null while nobody has been picked and the author reads. */
+  private voice: ReaderId | null = null;
   private loadSeq = 0;
   private loaded: Loaded | null = null;
   private zone: ZoneLayout | null = null;
@@ -215,7 +217,9 @@ class LandingPage {
       this.zone = layout;
       this.placeCta();
     });
-    this.lineup = createLineup(this.el.readers, openReaderProfile);
+    this.lineup = createLineup(this.el.readers, openReaderProfile, (id) => {
+      this.readWith(id);
+    });
     const relabel = onLangChange(() => {
       this.relabel();
     });
@@ -391,6 +395,8 @@ class LandingPage {
       return;
     }
     this.loaded = null;
+    // Another instrument is another reading: its cards are read by its author until someone hands them over again.
+    this.voice = null;
     lockReader(false);
     setAsker(null);
     this.showLineup();
@@ -488,7 +494,7 @@ class LandingPage {
     this.chart.setForecast(steps.flatMap((step) => step.candles));
     this.takeOpinions(loaded);
     this.paintOpinions(loaded);
-    this.panel.setSteps(steps, steps.length - 1);
+    this.panel.setSteps(this.voiceSteps(loaded), steps.length - 1);
     this.enableDraw(true);
     this.el.share.disabled = false;
     this.relabel();
@@ -544,7 +550,7 @@ class LandingPage {
     loaded.steps.push(result);
     this.takeOpinions(loaded);
     void this.persist(loaded, step);
-    this.panel.setSteps(loaded.steps, step - 1);
+    this.panel.setSteps(this.voiceSteps(loaded), step - 1);
     this.chart.setSteps(step);
     // Another instrument picked while the candles flow in: that load owns the chart now, this step stops.
     for (const [index, candle] of result.candles.entries()) {
@@ -587,6 +593,22 @@ class LandingPage {
   }
 
   /** The row at the head of the day tabs: the author, everyone asked since, and what one more would cost. */
+  /** Hands the cards to another reader at the table: same cards, same day, her numbers under them. */
+  private readWith(id: ReaderId): void {
+    const loaded = this.loaded;
+    if (loaded === null) return;
+    this.voice = id;
+    this.panel.setVoice(this.voiceSteps(loaded), id === reader() ? null : t().readerName(id));
+    this.showLineup();
+  }
+
+  /** The days as the chosen reader drew them; the author's whenever hers are the ones being read. */
+  private voiceSteps(loaded: Loaded): StepResult[] {
+    const voice = this.voice;
+    if (voice === null || voice === reader()) return loaded.steps;
+    return loaded.opinions.get(voice) ?? loaded.steps;
+  }
+
   private showLineup(): void {
     const loaded = this.loaded;
     const author = reader();
@@ -598,6 +620,7 @@ class LandingPage {
       base: loaded?.snapshot[loaded.snapshot.length - 1]?.c ?? null,
       days: loaded?.steps.length ?? 0,
       locked: readerLocked(),
+      voice: this.voice ?? author,
       askCost: opinionsOpen() ? OPINION_COST : null,
       askShort: shortOf(OPINION_COST),
     });

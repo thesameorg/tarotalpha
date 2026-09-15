@@ -204,6 +204,7 @@ export const zh: Dictionary = {
     line: "她的是同色的那条线",
     move: (change: string, day: number): string => `第 ${String(day)} 天结束时 ${change}`,
     closest: "最接近",
+    readBy: (name: string): string => `按 ${name} 的读法看`,
   },
   reading: {
     notFound: "找不到牌阵",
@@ -257,6 +258,7 @@ export const zh: Dictionary = {
       gap === null ? `第 ${String(day)} 天：尚未到来` : `第 ${String(day)} 天：${gap}`,
   },
   summaryTitle: "一句话看今天。",
+  summaryBy: (name: string): string => `一句话看今天 · ${name}。`,
   how: "方法",
   contact: "联系",
   cardName: (card: Card): string =>

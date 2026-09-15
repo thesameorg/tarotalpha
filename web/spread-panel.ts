@@ -1,6 +1,7 @@
 /**
- * The cards block under the chart, one for both pages: the reader who reads them and the day tabs in one row, the
- * three cards of the chosen day with their names and one esoteric line under each, and the day's summary. A name
+ * The cards block under the chart, one for both pages: the row of readers and the day tabs in one row, the three
+ * cards of the chosen day with their names and one esoteric line under each, and the day's summary in the words of
+ * whoever the row has selected — the cards are the same for every reader, the numbers under them are not. A name
  * printed over the picture would sit on the one the card itself carries, so in this row the caption is hidden and
  * the name stands under the card; the fullscreen reveal keeps its caption. The disclaimer and the link to the method
  * page are the footer's. Everything here is text, so the block re-renders itself when the language switches.
@@ -15,6 +16,9 @@ import { daySummary } from "./spread-summary";
 
 export interface SpreadPanel {
   setSteps(steps: readonly StepResult[], active: number): void;
+  /** The same cards read by another reader: the day stays, the cards do not re-appear, only the words change.
+   *  `name` heads the summary when the words are not the author's; null gives it back its plain title. */
+  setVoice(steps: readonly StepResult[], name: string | null): void;
   clear(): void;
   dispose(): void;
 }
@@ -46,6 +50,7 @@ export function createSpreadPanel(root: HTMLElement, eager: boolean, reader?: HT
 
   let steps: readonly StepResult[] = [];
   let active = 0;
+  let voice: string | null = null;
 
   // `fresh` replays the appear animation: on for a new day, off when only the words change.
   const render = (fresh: boolean): void => {
@@ -73,7 +78,8 @@ export function createSpreadPanel(root: HTMLElement, eager: boolean, reader?: HT
         return `<div class="meaning"><div class="card-name">${t().cardName(c.card)}${reversedTag}</div><p>${line}</p></div>`;
       })
       .join("");
-    summary.innerHTML = `<p><b>${t().summaryTitle}</b> ${daySummary(step)}</p>`;
+    const title = voice === null ? t().summaryTitle : t().summaryBy(voice);
+    summary.innerHTML = `<p><b>${title}</b> ${daySummary(step)}</p>`;
   };
 
   const select = (index: number): void => {
@@ -101,9 +107,16 @@ export function createSpreadPanel(root: HTMLElement, eager: boolean, reader?: HT
       active = Math.min(Math.max(0, activeIndex), Math.max(0, next.length - 1));
       render(true);
     },
+    setVoice(next, name) {
+      steps = next;
+      voice = name;
+      active = Math.min(active, Math.max(0, next.length - 1));
+      render(false);
+    },
     clear() {
       steps = [];
       active = 0;
+      voice = null;
       render(false);
     },
     dispose() {

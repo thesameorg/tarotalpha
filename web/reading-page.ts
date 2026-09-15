@@ -195,6 +195,11 @@ class ReadingPage {
   private actual: Candle[] | null = null;
   /** Second opinions the row carries, recomputed here: the link replays them exactly as their buyer saw them. */
   private opinionSteps = new Map<ReaderId, StepResult[]>();
+  /** Whose words stand under the cards; null while the author reads them. */
+  private voice: ReaderId | null = null;
+  /** What the row needs to redraw itself: the author's days and the close every move is measured from. */
+  private authorSteps: StepResult[] = [];
+  private base: number | null = null;
   private prophecy: Prophecy = null;
   private noteText: Text | null = null;
   private readonly unsubscribe: () => void;
@@ -282,17 +287,15 @@ class ReadingPage {
     const panel = createSpreadPanel(el.panel, false, el.readers);
     this.panel = panel;
     panel.setSteps(results, 0);
-    // The same row the landing shows, minus the way to buy: a visitor reads whose line is whose, not a price list.
+    // The same row the landing shows, minus the way to buy: a visitor reads whose line is whose, not a price list,
+    // and a chip hands the cards to that reader — the words under them are the one thing it can still change.
     this.lineup?.dispose();
-    this.lineup = createLineup(el.readers);
-    this.lineup.show({
-      author: record.reader,
-      lines: new Map([[record.reader, candlesOf(results)], ...candlesByReader(this.opinionSteps)]),
-      base: snapshot[snapshot.length - 1]?.c ?? null,
-      days: results.length,
-      locked: true,
-      askCost: null,
+    this.lineup = createLineup(el.readers, undefined, (id) => {
+      this.readWith(id, record.reader);
     });
+    this.authorSteps = results;
+    this.base = snapshot[snapshot.length - 1]?.c ?? null;
+    this.showLineup(record.reader);
 
     const chart = createCandleChart(el.chart, () => t().castHere);
     this.chart = chart;
@@ -312,6 +315,26 @@ class ReadingPage {
     this.relabel();
 
     void this.reveal(el, chart, snapshot, results, record);
+  }
+
+  /** Hands the cards to another reader of this reading: same cards, same day, her numbers under them. */
+  private readWith(id: ReaderId, author: ReaderId): void {
+    this.voice = id;
+    const steps = id === author ? this.authorSteps : (this.opinionSteps.get(id) ?? this.authorSteps);
+    this.panel?.setVoice(steps, id === author ? null : t().readerName(id));
+    this.showLineup(author);
+  }
+
+  private showLineup(author: ReaderId): void {
+    this.lineup?.show({
+      author,
+      lines: new Map([[author, candlesOf(this.authorSteps)], ...candlesByReader(this.opinionSteps)]),
+      base: this.base,
+      days: this.authorSteps.length,
+      locked: true,
+      voice: this.voice ?? author,
+      askCost: null,
+    });
   }
 
   private relabel(): void {
