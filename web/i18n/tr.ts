@@ -235,14 +235,14 @@ export const tr: Dictionary = {
   scroll: {
     open: "Tomarı al",
     title: "Tomar",
-    certify: (id: string, asset: string, pct: number): string =>
-      `İşbu belge, ${id} açılımının ${asset} hareketini %${String(pct)} oranında öngördüğünü onaylar`,
+    certify: (id: string, asset: string, gap: string): string =>
+      `İşbu belge, ${id} açılımının ${asset} piyasasından ${gap} uzaktan geçtiğini onaylar`,
     instrument: "Enstrüman",
     anchor: "Çıpa",
     reader: "Falcı",
     readers: "Falcılar",
     horizon: "Ufuk",
-    accuracy: "İsabet",
+    signs: "Mum yönü",
     print: "Yazdır",
     reading: "Açılıma dön",
     notRipe: "Tomar, tahminin son mumu kapandığında verilir",
@@ -262,8 +262,8 @@ export const tr: Dictionary = {
       `Gelecek henüz gelmedi: kontrol edilecek ilk mum saat ${closesAt} itibarıyla kapanır`,
     checkFailed: "Borsa yanıt vermiyor, kehanet kontrolü ertelendi",
     noCandles: "Borsa bu aralık için mum vermedi",
-    hit: (pct: number): string => `Kehanet %${String(pct)} tuttu`,
-    miss: (pct: number): string => `Piyasa kehaneti reddetti: %${String(pct)}`,
+    gap: (gap: string): string => `Tahmin piyasadan ${gap} uzaktan geçti`,
+    signs: (pct: number): string => `mum yönü %${String(pct)} tuttu — bir yazı turanın sayısı`,
     final: "nihai",
     interim: "geçici",
     praise: {
@@ -271,8 +271,8 @@ export const tr: Dictionary = {
       near: (name: string): string => `${name}: piyasaya yakın`,
       far: (name: string): string => `${name}: piyasadan uzak`,
     },
-    stepLine: (day: number, pct: number | null): string =>
-      pct === null ? `gün ${String(day)}: henüz değil` : `gün ${String(day)}: %${String(pct)}`,
+    stepLine: (day: number, gap: string | null): string =>
+      gap === null ? `${String(day)}. gün: henüz gelmedi` : `${String(day)}. gün: ${gap}`,
   },
   summaryTitle: "Gün tek satırda.",
   how: "Yöntem",

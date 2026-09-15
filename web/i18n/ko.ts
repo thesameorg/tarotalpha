@@ -225,14 +225,14 @@ export const ko: Dictionary = {
   scroll: {
     open: "두루마리 받기",
     title: "두루마리",
-    certify: (id: string, asset: string, pct: number): string =>
-      `본 문서는 리딩 ${id} 이(가) ${asset} 의 움직임을 ${String(pct)} % 로 예언했음을 증명합니다`,
+    certify: (id: string, asset: string, gap: string): string =>
+      `본 문서는 리딩 ${id} 이(가) ${asset} 시장에서 ${gap} 벗어나 움직였음을 증명합니다`,
     instrument: "종목",
     anchor: "기준점",
     reader: "점술가",
     readers: "점술가들",
     horizon: "예측 기간",
-    accuracy: "정확도",
+    signs: "봉의 방향",
     print: "인쇄",
     reading: "리딩으로",
     notRipe: "예측의 마지막 캔들이 마감되면 두루마리가 발급됩니다",
@@ -251,8 +251,8 @@ export const ko: Dictionary = {
     notYet: (closesAt: string): string => `미래는 아직 오지 않았습니다: 검증할 첫 캔들은 ${closesAt}에 마감됩니다`,
     checkFailed: "거래소가 응답하지 않아 예언 검증이 미뤄졌습니다",
     noCandles: "거래소가 이 구간의 캔들을 주지 않았습니다",
-    hit: (pct: number): string => `예언이 ${String(pct)} % 적중했습니다`,
-    miss: (pct: number): string => `시장이 예언을 거부했습니다: ${String(pct)} %`,
+    gap: (gap: string): string => `예측은 시장에서 ${gap} 벗어나 움직였습니다`,
+    signs: (pct: number): string => `봉의 방향은 ${String(pct)} % 일치 — 동전 던지기 수준입니다`,
     final: "최종",
     interim: "중간",
     praise: {
@@ -260,8 +260,8 @@ export const ko: Dictionary = {
       near: (name: string): string => `${name}: 시장 가까이`,
       far: (name: string): string => `${name}: 시장에서 멀리`,
     },
-    stepLine: (day: number, pct: number | null): string =>
-      pct === null ? `${String(day)}일차: 아직` : `${String(day)}일차: ${String(pct)} %`,
+    stepLine: (day: number, gap: string | null): string =>
+      gap === null ? `${String(day)}일차: 아직입니다` : `${String(day)}일차: ${gap}`,
   },
   summaryTitle: "한 줄로 보는 오늘.",
   how: "계산 방식",

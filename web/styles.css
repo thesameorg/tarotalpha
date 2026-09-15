@@ -289,6 +289,7 @@ h2,
 .verdict-title,
 .verdict-sub,
 .verdict-steps,
+.verdict-signs,
 .tier .t {
   unicode-bidi: plaintext;
 }
@@ -917,6 +918,12 @@ main {
 .verdict-steps {
   color: var(--paper-dim);
   font-size: 12px;
+}
+/* The share of candle signs stands below the day, quieter than it: it is a coin's number and reads as a footnote. */
+.verdict-signs {
+  color: var(--paper-dim);
+  font-size: 11px;
+  margin-top: 2px;
 }
 .verdict .go {
   padding: 4px 10px;

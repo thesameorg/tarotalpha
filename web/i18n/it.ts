@@ -251,14 +251,14 @@ export const it: Dictionary = {
   scroll: {
     open: "Ottieni la pergamena",
     title: "Pergamena",
-    certify: (id: string, asset: string, pct: number): string =>
-      `Si certifica che la lettura ${id} ha previsto il movimento di ${asset} al ${String(pct)} %`,
+    certify: (id: string, asset: string, gap: string): string =>
+      `Si certifica che la lettura ${id} è passata a ${gap} dal mercato di ${asset}`,
     instrument: "Strumento",
     anchor: "Ancora",
     reader: "Cartomante",
     readers: "Cartomanti",
     horizon: "Orizzonte",
-    accuracy: "Precisione",
+    signs: "Segni delle candele",
     print: "Stampa",
     reading: "Alla lettura",
     notRipe: "La pergamena viene rilasciata alla chiusura dell'ultima candela della previsione",
@@ -278,8 +278,8 @@ export const it: Dictionary = {
       `Il futuro non è ancora arrivato: la prima candela da verificare chiude alle ${closesAt}`,
     checkFailed: "L'exchange non risponde, la verifica della profezia è rinviata",
     noCandles: "La borsa non ha restituito candele per quel periodo",
-    hit: (pct: number): string => `La profezia si è avverata al ${String(pct)} %`,
-    miss: (pct: number): string => `Il mercato ha respinto la profezia: ${String(pct)} %`,
+    gap: (gap: string): string => `La previsione è passata a ${gap} dal mercato`,
+    signs: (pct: number): string => `il segno della candela ha colto il ${String(pct)} % — la cifra di una moneta`,
     final: "finale",
     interim: "provvisorio",
     praise: {
@@ -287,8 +287,8 @@ export const it: Dictionary = {
       near: (name: string): string => `${name}: vicino al mercato`,
       far: (name: string): string => `${name}: lontano dal mercato`,
     },
-    stepLine: (day: number, pct: number | null): string =>
-      pct === null ? `giorno ${String(day)}: non ancora` : `giorno ${String(day)}: ${String(pct)} %`,
+    stepLine: (day: number, gap: string | null): string =>
+      gap === null ? `giorno ${String(day)}: non ancora` : `giorno ${String(day)}: ${gap}`,
   },
   summaryTitle: "La giornata in una riga.",
   how: "Metodo",

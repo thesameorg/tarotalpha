@@ -249,14 +249,14 @@ export const fr: Dictionary = {
   scroll: {
     open: "Obtenir le parchemin",
     title: "Parchemin",
-    certify: (id: string, asset: string, pct: number): string =>
-      `Il est certifié que le tirage ${id} a prédit le mouvement de ${asset} à ${String(pct)} %`,
+    certify: (id: string, asset: string, gap: string): string =>
+      `Il est certifié que le tirage ${id} est passé à ${gap} du marché ${asset}`,
     instrument: "Instrument",
     anchor: "Ancre",
     reader: "Cartomancienne",
     readers: "Cartomanciennes",
     horizon: "Horizon",
-    accuracy: "Précision",
+    signs: "Sens des bougies",
     print: "Imprimer",
     reading: "Vers le tirage",
     notRipe: "Le parchemin est délivré à la clôture de la dernière bougie de la prévision",
@@ -276,8 +276,8 @@ export const fr: Dictionary = {
       `Le futur n'est pas encore arrivé : la première bougie à vérifier clôture à ${closesAt}`,
     checkFailed: "La bourse ne répond pas, la vérification de la prophétie est reportée",
     noCandles: "La bourse n'a renvoyé aucune bougie pour cette période",
-    hit: (pct: number): string => `La prophétie s'est réalisée à ${String(pct)} %`,
-    miss: (pct: number): string => `Le marché a rejeté la prophétie : ${String(pct)} %`,
+    gap: (gap: string): string => `La prévision est passée à ${gap} du marché`,
+    signs: (pct: number): string => `le sens de la bougie est juste à ${String(pct)} % — le chiffre d'une pièce`,
     final: "final",
     interim: "provisoire",
     praise: {
@@ -285,8 +285,8 @@ export const fr: Dictionary = {
       near: (name: string): string => `${name}: près du marché`,
       far: (name: string): string => `${name}: loin du marché`,
     },
-    stepLine: (day: number, pct: number | null): string =>
-      pct === null ? `jour ${String(day)} : pas encore` : `jour ${String(day)} : ${String(pct)} %`,
+    stepLine: (day: number, gap: string | null): string =>
+      gap === null ? `jour ${String(day)} : pas encore` : `jour ${String(day)} : ${gap}`,
   },
   summaryTitle: "La journée en une ligne.",
   how: "Méthode",

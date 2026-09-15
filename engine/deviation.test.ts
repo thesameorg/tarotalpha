@@ -58,8 +58,8 @@ describe("praise", () => {
   });
 
   it("scales with the horizon: the same gap reads worse over fewer candles", () => {
-    expect(praise(2, 48)).toBe("close");
-    expect(praise(2, 4)).toBe("far");
+    expect(praise(1.5, 48)).toBe("close");
+    expect(praise(1.5, 4)).toBe("far");
   });
 
   it("refuses to judge before a single candle has been compared", () => {
