@@ -192,6 +192,12 @@ export const zh: Dictionary = {
     choose: (name: string): string => `让${name}来占卜`,
     ask: (name: string, cost: number): string => `再问一位 · ${name} · ${String(cost)}`,
     asked: "已经开口",
+    askMore: "再问一位",
+    askNote: (cost: number): string =>
+      `${String(cost)} 点法力，只付一次：本次牌阵所有日子都由她解读，已开的和未开的都算。`,
+    candles: "预测的蜡烛是她的",
+    line: "她的是同色的那条线",
+    move: (change: string, day: number): string => `第 ${String(day)} 天结束时 ${change}`,
     closest: "最接近",
   },
   reading: {

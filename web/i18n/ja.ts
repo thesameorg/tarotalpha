@@ -212,6 +212,12 @@ export const ja: Dictionary = {
     choose: (name: string): string => `${name}に占ってもらう`,
     ask: (name: string, cost: number): string => `もう一人に聞く · ${name} · ${String(cost)}`,
     asked: "すでに語りました",
+    askMore: "もう一人に聞く",
+    askNote: (cost: number): string =>
+      `マナ ${String(cost)} を一度だけ。この占いの開いた日も、これからの日も、すべて彼女が読みます。`,
+    candles: "予測のローソク足は彼女のもの",
+    line: "彼女のものは同じ色の線",
+    move: (change: string, day: number): string => `${String(day)} 日目の終わりに ${change}`,
     closest: "最も近い",
   },
   reading: {

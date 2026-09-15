@@ -224,6 +224,12 @@ export const fr: Dictionary = {
     choose: (name: string): string => `Que ${name} tire les cartes`,
     ask: (name: string, cost: number): string => `Demander à une autre · ${name} · ${String(cost)}`,
     asked: "A déjà parlé",
+    askMore: "Demander à une autre",
+    askNote: (cost: number): string =>
+      `${String(cost)} manas une seule fois : elle lit tous les jours de ce tirage, ceux ouverts et ceux à venir.`,
+    candles: "Les bougies de la prévision sont les siennes",
+    line: "La sienne, c’est la ligne de sa couleur",
+    move: (change: string, day: number): string => `${change} à la fin du jour ${String(day)}`,
     closest: "La plus proche",
   },
   reading: {

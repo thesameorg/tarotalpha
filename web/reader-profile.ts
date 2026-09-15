@@ -44,12 +44,31 @@ function starsMarkup(id: ReaderId): string {
   return starRow(standing) + `<div class="profile-score">${t().reader.wins(wins)}</div>`;
 }
 
+/** Who is already on this reading, before anyone is clicked: the author wears her lock, everyone asked a dot of
+ *  the colour her line wears on the chart. */
+function seatMarkup(id: ReaderId): { state: string; title: string; mark: string } {
+  if (id === reader()) {
+    const mark = readerLocked() ? `<span class="other-mark">${icons.lock}</span>` : "";
+    return { state: " mine", title: t().reader.current, mark };
+  }
+  if (opinions().includes(id)) {
+    return {
+      state: " asked",
+      title: t().reader.asked,
+      mark: `<span class="other-mark dot" style="--hue: var(--reader-${id})"></span>`,
+    };
+  }
+  return { state: "", title: t().readerName(id), mark: "" };
+}
+
 /** Everyone, always in the same order and the same place: a row that reshuffles under the cursor is a trap. */
 function othersMarkup(current: ReaderId): string {
   const options = READER_IDS.map((id) => {
     const standing = readerStanding(id);
     const stars = standing === null ? "" : starRow(standing);
-    return `<button class="other${id === current ? " shown" : ""}" type="button" data-reader-show="${id}"><img src="${readerAvatarUrl(id)}" alt=""><span class="other-text"><b>${t().readerName(id)}</b>${stars}</span></button>`;
+    const { state, title, mark } = seatMarkup(id);
+    const text = `<span class="other-text"><b>${t().readerName(id)}</b>${stars}</span>`;
+    return `<button class="other${state}${id === current ? " shown" : ""}" type="button" title="${title}" data-reader-show="${id}"><img src="${readerAvatarUrl(id)}" alt="">${text}${mark}</button>`;
   }).join("");
   return `<div class="others"><div class="others-title">${t().reader.others}</div><div class="others-row">${options}</div></div>`;
 }
@@ -63,7 +82,9 @@ function chooseMarkup(id: ReaderId): string {
   }
   if (opinions().includes(id)) return `<div class="profile-current">${t().reader.asked}</div>`;
   if (!opinionsOpen()) return `<div class="profile-current">${t().reader.locked(t().readerName(reader()))}</div>`;
-  return `<button class="draw profile-ask" type="button" data-reader-ask="${id}">${t().reader.ask(t().readerName(id), OPINION_COST)}<span class="mana-glyph">${icons.mana}</span></button>`;
+  const ask = `<button class="draw profile-ask" type="button" data-reader-ask="${id}">${t().reader.ask(t().readerName(id), OPINION_COST)}<span class="mana-glyph">${icons.mana}</span></button>`;
+  // What the price buys stands beside the price: a reader is bought for the reading, never for a day.
+  return `${ask}<p class="profile-note">${t().reader.askNote(OPINION_COST)}</p>`;
 }
 
 function paint(): void {
@@ -76,8 +97,9 @@ function paint(): void {
     othersMarkup(shown);
 }
 
-export function openReaderProfile(): void {
-  shown = reader();
+/** Opens on `show`, or on the reader of the open reading: the row hands in whoever was clicked there. */
+export function openReaderProfile(show: ReaderId = reader()): void {
+  shown = show;
   paint();
   byId("reader-profile").classList.add("on");
   void loadReaderTable().then(paint);

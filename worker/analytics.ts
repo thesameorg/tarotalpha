@@ -10,6 +10,7 @@
 export type EventType =
   | "chart_loaded"
   | "step_opened"
+  | "opinion_asked"
   | "paywall_hit"
   | "own_reading_clicked"
   | "replayed"

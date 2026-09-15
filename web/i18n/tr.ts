@@ -210,6 +210,12 @@ export const tr: Dictionary = {
     choose: (name: string): string => `${name} baksın`,
     ask: (name: string, cost: number): string => `Bir kişiye daha sor · ${name} · ${String(cost)}`,
     asked: "Zaten konuştu",
+    askMore: "Bir kişiye daha sor",
+    askNote: (cost: number): string =>
+      `Bir kez ${String(cost)} mana: bu açılımın açılmış ve açılacak bütün günlerini o okur.`,
+    candles: "Tahmin mumları onun",
+    line: "Onunki kendi rengindeki çizgi",
+    move: (change: string, day: number): string => `${String(day)}. günün sonunda ${change}`,
     closest: "En yakını",
   },
   reading: {

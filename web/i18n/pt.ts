@@ -224,6 +224,12 @@ export const pt: Dictionary = {
     choose: (name: string): string => `Que ${name} leia`,
     ask: (name: string, cost: number): string => `Perguntar a outra · ${name} · ${String(cost)}`,
     asked: "Já se pronunciou",
+    askMore: "Perguntar a mais uma",
+    askNote: (cost: number): string =>
+      `${String(cost)} de mana uma só vez: ela lê todos os dias desta leitura, os abertos e os que ainda faltam.`,
+    candles: "As velas da previsão são dela",
+    line: "A dela é a linha da sua cor",
+    move: (change: string, day: number): string => `${change} no fim do dia ${String(day)}`,
     closest: "A mais próxima",
   },
   reading: {

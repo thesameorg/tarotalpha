@@ -37,6 +37,8 @@ import { onThemeChange } from "./theme";
 
 const MIN_FORECAST_DAYS = 3;
 const DRAW_MS_PER_CANDLE = 10;
+// A bought line draws in over this long whatever the horizon: one day and seven days both deserve the moment.
+const OPINION_DRAW_MS = 800;
 const REAL_VISIBLE = 72;
 const MIN_REAL_VISIBLE = 24;
 const PX_PER_BAR = 4.5;
@@ -57,6 +59,9 @@ export interface CandleChart {
   /** One thin line of closes per reader asked besides the author, in her own colour; drawn over the same hours as
    *  the forecast. Readers left out of the map lose their line. */
   setOpinions(opinions: ReadonlyMap<ReaderId, readonly Candle[]>): void;
+  /** Draws one reader's line in left to right, the way a bought opinion arrives; at once under reduced motion.
+   *  A later `setOpinions` overtakes it: the last writer of a line owns it, and the drawing stops where it is. */
+  drawOpinion(id: ReaderId, candles: readonly Candle[]): Promise<void>;
   /** Hears the forecast zone's pixel layout on every viewport change; the listener lives as long as the chart. */
   onZoneLayout(listener: (layout: ZoneLayout | null) => void): void;
   remove(): void;
@@ -243,6 +248,20 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
   let actualCandles: readonly Candle[] = [];
   // Lines, not candles: five sets of bars on the same hour are unreadable, five lines fan out.
   const opinionLines = new Map<ReaderId, ISeriesApi<"Line">>();
+  // Every write to the lines takes a turn, so a drawing that was overtaken can tell and stop instead of fighting.
+  let opinionTurn = 0;
+  const toPoint = (candle: Candle): { time: UTCTimestamp; value: number } => ({
+    time: toTime(candle.t),
+    value: candle.c,
+  });
+  const lineFor = (id: ReaderId): ISeriesApi<"Line"> => {
+    let line = opinionLines.get(id);
+    if (line === undefined) {
+      line = chart.addSeries(LineSeries, { ...opinionColours(palette(), id), priceLineVisible: false });
+      opinionLines.set(id, line);
+    }
+    return line;
+  };
 
   // The band is a function of both sets of candles, so every write to either of them recomputes the pairs.
   const syncRibbon = (): void => {
@@ -308,19 +327,40 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
       syncRibbon();
     },
     setOpinions(opinions) {
+      opinionTurn++;
       for (const [id, line] of opinionLines) {
         if (opinions.has(id)) continue;
         chart.removeSeries(line);
         opinionLines.delete(id);
       }
-      for (const [id, candles] of opinions) {
-        let line = opinionLines.get(id);
-        if (line === undefined) {
-          line = chart.addSeries(LineSeries, { ...opinionColours(palette(), id), priceLineVisible: false });
-          opinionLines.set(id, line);
-        }
-        line.setData(candles.map((candle) => ({ time: toTime(candle.t), value: candle.c })));
+      for (const [id, candles] of opinions) lineFor(id).setData(candles.map(toPoint));
+    },
+    async drawOpinion(id, candles) {
+      const line = lineFor(id);
+      const points = candles.map(toPoint);
+      if (reducedMotion()) {
+        line.setData(points);
+        return;
       }
+      const mine = generation;
+      const turn = ++opinionTurn;
+      await new Promise<void>((resolve) => {
+        const tick = (now: number): void => {
+          // A new snapshot takes the line away under us, and writing to a removed series throws; a newer write to
+          // the lines knows more than this drawing does, and the drawing gives way to it.
+          if (mine !== generation || opinionTurn !== turn || opinionLines.get(id) !== line) {
+            resolve();
+            return;
+          }
+          const grown = Math.ceil(((now - start) / OPINION_DRAW_MS) * points.length);
+          const shown = Math.min(points.length, Math.max(1, grown));
+          line.setData(points.slice(0, shown));
+          if (shown < points.length) requestAnimationFrame(tick);
+          else resolve();
+        };
+        const start = performance.now();
+        requestAnimationFrame(tick);
+      });
     },
     onZoneLayout(listener) {
       zone.onLayout(listener);
