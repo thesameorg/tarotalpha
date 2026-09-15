@@ -467,6 +467,50 @@
       "description": "Метрика возврата из idea.md. Точный «назавтра» не считается: момент созревания в событие не едет."
     },
     {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Клик-тру по чужой ссылке по дням",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "time_series",
+          "query": "SELECT toUnixTimestamp(day) * 1000 AS t, countIf(opened > 0 AND clicked > 0) / countIf(opened > 0) AS ctr FROM ( SELECT blob3 AS visit, toStartOfDay(timestamp) AS day, countIf(blob1 = 'chart_loaded' AND blob17 = 'link') AS opened, countIf(blob1 = 'own_reading_clicked') AS clicked FROM tarotalpha WHERE $timeFilter AND blob1 IN ('chart_loaded', 'own_reading_clicked') GROUP BY visit, day) GROUP BY t ORDER BY t"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Знаменатель — визиты, где открыли чужую ссылку: открытия автора помечены `own` и в знаменатель не идут. Считается по визиту, а не по клику: пришёл по ссылке и нажал «свой расклад»."
+    },
+    {
       "id": 10,
       "type": "table",
       "title": "Виральность: кто открыл разосланные ссылки",
@@ -478,7 +522,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 36
       },
       "targets": [
         {
