@@ -24,6 +24,16 @@ const inMemory = new Map<string, string>();
 
 /** The `X-Visit` value: what this browser can name, as a query string the Worker parses. */
 export function visitHeader(): string {
+  // Never throws: a browser with no storage and no crypto is still served, its visit simply goes unnamed. Every
+  // caller is on the path of a real request, and losing a funnel row must not cost a reading or a payment.
+  try {
+    return named();
+  } catch {
+    return "";
+  }
+}
+
+function named(): string {
   const app = telegram();
   const agent = navigator.userAgent;
   const fields: Record<string, string> = {
@@ -61,18 +71,31 @@ export function sourceOf(referrer: string, search: string, host: string): string
 }
 
 function kept(store: Storage, key: string, make: () => string): string {
+  const found = read(store, key);
+  if (found !== null) return found;
+  const fresh = make();
+  if (write(store, key, fresh)) return fresh;
+  // Only a store that cannot keep anything falls back to memory, and then only for as long as the page lives.
+  const remembered = inMemory.get(key);
+  if (remembered !== undefined) return remembered;
+  inMemory.set(key, fresh);
+  return fresh;
+}
+
+function read(store: Storage, key: string): string | null {
   try {
-    const found = store.getItem(key);
-    if (found !== null) return found;
-    const fresh = make();
-    store.setItem(key, fresh);
-    return fresh;
+    return store.getItem(key);
   } catch {
-    const found = inMemory.get(key);
-    if (found !== undefined) return found;
-    const fresh = make();
-    inMemory.set(key, fresh);
-    return fresh;
+    return null;
+  }
+}
+
+function write(store: Storage, key: string, value: string): boolean {
+  try {
+    store.setItem(key, value);
+    return true;
+  } catch {
+    return false;
   }
 }
 

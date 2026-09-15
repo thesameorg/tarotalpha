@@ -4,7 +4,8 @@
  * already written cannot be rewritten. The layout, the limits and the queries: docs/analytics.md.
  * The browser names what only it knows in one `X-Visit` header (web/visit.ts); the edge adds country, city and the
  * rest of `request.cf`. Nobody is named: the visitor is the browser's own random token, and neither the address nor
- * the user agent is written.
+ * the user agent is written. A point holds twenty blobs at most, so a fact the Worker's own metrics already carry
+ * does not get one.
  */
 export type EventType =
   | "chart_loaded"
@@ -26,6 +27,9 @@ export interface EventPoint {
 }
 
 const VISIT_HEADER = "X-Visit";
+// Our own tokens are hex. The visitor rides in the index too, which Cloudflare caps in bytes rather than characters,
+// so anything outside this alphabet is dropped whole: truncating it could fold one visitor onto another.
+const ID = /^[A-Za-z0-9_-]{1,40}$/;
 const FIELD_MAX = 64;
 const SOURCE_MAX = 96;
 const UNKNOWN = "unknown";
@@ -34,14 +38,14 @@ export function writeEvent(dataset: AnalyticsEngineDataset, request: Request, ev
   const visit = new URLSearchParams(request.headers.get(VISIT_HEADER) ?? "");
   // Only the edge ever calls the Worker, and there `cf` is the incoming request's own properties.
   const cf = request.cf as IncomingRequestCfProperties | undefined;
-  const visitor = text(visit.get("v")) || UNKNOWN;
+  const visitor = id(visit.get("v")) || UNKNOWN;
   dataset.writeDataPoint({
     // The sampling key. If a viral day ever trips it, whole visitors drop out and every share stays honest.
     indexes: [visitor],
     blobs: [
       event.type,
       visitor,
-      text(visit.get("s")),
+      id(visit.get("s")),
       text(visit.get("p")),
       text(visit.get("tp")),
       text(visit.get("d")),
@@ -51,9 +55,7 @@ export function writeEvent(dataset: AnalyticsEngineDataset, request: Request, ev
       text(cf?.country),
       text(cf?.city),
       text(cf?.timezone),
-      text(cf?.colo),
       text(cf?.asOrganization),
-      text(cf?.httpProtocol),
       text(visit.get("src"), SOURCE_MAX),
       text(event.asset),
       text(event.readingId),
@@ -67,6 +69,10 @@ export function writeEvent(dataset: AnalyticsEngineDataset, request: Request, ev
 function text(value: string | null | undefined, max = FIELD_MAX): string {
   if (value === null || value === undefined) return "";
   return value.replace(/\p{C}/gu, "").slice(0, max);
+}
+
+function id(value: string | null): string {
+  return value !== null && ID.test(value) ? value : "";
 }
 
 /** `-1` where the fact is missing, so an average over the column never reads a gap as a zero. */

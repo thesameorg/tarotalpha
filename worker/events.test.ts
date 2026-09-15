@@ -47,7 +47,7 @@ describe("POST /api/omen", () => {
       "ru",
       "dark",
     ]);
-    expect(point?.blobs?.slice(15)).toEqual(["t.me", "BTCUSDT", "bcdfghjk"]);
+    expect(point?.blobs?.slice(13)).toEqual(["t.me", "BTCUSDT", "bcdfghjk"]);
     expect(point?.doubles?.[0]).toBe(3);
     expect(point?.doubles?.[1]).toBe(14);
   });
@@ -66,13 +66,19 @@ describe("POST /api/omen", () => {
     expect(point?.doubles?.[0]).toBe(-1);
   });
 
-  it("keeps a claim from bloating a point: control characters out, length capped", async () => {
+  it("keeps a claim from bloating a point: fields capped, ids taken whole or not at all", async () => {
     const funnel = journal();
     const long = "x".repeat(200);
-    await callApi("/api/omen", omen({ type: "chart_loaded" }, `v=ab&l=${long}`), { ANALYTICS: funnel.dataset });
+    // A control character cannot travel in a header, but percent-encoded inside the value it can.
+    await callApi("/api/omen", omen({ type: "chart_loaded" }, `v=a%07b&s=${long}&l=${long}`), {
+      ANALYTICS: funnel.dataset,
+    });
 
     const [point] = funnel.points;
-    expect(point?.blobs?.[1]).toBe("ab");
+    // An id is dropped whole rather than cut: a cut one would fold two visitors into each other, and the index
+    // Cloudflare caps in bytes, not in characters.
+    expect(point?.indexes).toEqual(["unknown"]);
+    expect(point?.blobs?.[2]).toBe("");
     expect(point?.blobs?.[7]).toBe("x".repeat(64));
   });
 

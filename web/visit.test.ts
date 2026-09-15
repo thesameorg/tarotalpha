@@ -116,6 +116,15 @@ describe("visitHeader", () => {
     expect(field(second, "v")).toBe(field(first, "v"));
   });
 
+  it("says nothing rather than throwing when the browser has no crypto", async () => {
+    vi.stubGlobal("crypto", {});
+    // A fresh copy of the module: the one under test keeps the tokens it already made for this page.
+    vi.resetModules();
+    const fresh = await import("./visit");
+
+    expect(fresh.visitHeader()).toBe("");
+  });
+
   it("keeps where the visit came from after a click deeper into the site", () => {
     browser({ referrer: "https://t.me/tarotalphabot" });
     const landing = visitHeader();

@@ -99,14 +99,9 @@ interface Call {
 }
 
 // Who is looking rides on every call, so an event the Worker writes itself lands in the same visit (web/visit.ts).
-// A browser that cannot tell (no storage, no crypto) is still served: the visit is simply unnamed.
 function withVisit(headers: Record<string, string> = {}): Record<string, string> {
-  try {
-    const visit = visitHeader();
-    return visit === "" ? headers : { ...headers, "X-Visit": visit };
-  } catch {
-    return headers;
-  }
+  const visit = visitHeader();
+  return visit === "" ? headers : { ...headers, "X-Visit": visit };
 }
 
 async function requestJson(path: string, call: Call = {}): Promise<unknown> {
