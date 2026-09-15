@@ -453,6 +453,13 @@ main {
 }
 /* The button row over the free days of the forecast zone: the page sets the left edge and the width, `compact`
    when only the day fits, `edge` when the row spans the pane instead and keeps to its right end. */
+/* Where the day button stood once the horizon is used up: the row keeps its place and says why it is empty. */
+.cta-end {
+  padding: 0 10px;
+  font-size: 12px;
+  color: var(--paper-dim);
+  max-width: 320px;
+}
 .zone-cta {
   position: absolute;
   top: 0;
@@ -1894,6 +1901,11 @@ footer {
   }
 }
 /* Asking stands with the readers and names its price: the card is for reading about one, not for finding her. */
+/* The row says the purse is short before the click: the paywall after it was a surprise, not an answer. */
+.reader.ask.short {
+  border-style: dashed;
+  opacity: 0.75;
+}
 .reader.ask {
   gap: 5px;
   padding: 7px 10px;
@@ -1924,6 +1936,11 @@ footer {
   }
   .reader-text b,
   .reader-move,
+  /* The row says the purse is short before the click: the paywall after it was a surprise, not an answer. */
+.reader.ask.short {
+    border-style: dashed;
+    opacity: 0.75;
+  }
   .reader.ask {
     font-size: 11px;
   }
@@ -2010,6 +2027,9 @@ footer {
   margin-left: 6px;
   vertical-align: middle;
 }
+.profile-note.short {
+  color: var(--down);
+}
 .profile-note {
   margin: 8px 0 0;
   font-size: 11px;
@@ -2017,14 +2037,14 @@ footer {
   color: var(--paper-dim);
   text-align: center;
 }
+/* A fact about the reader, not a control: a dashed box in a card full of buttons reads as one more button. */
 .profile-current {
   margin-top: 16px;
-  padding: 9px 0;
+  padding-top: 12px;
   color: var(--paper-dim);
   font-size: 12px;
   text-align: center;
-  border: 1px dashed var(--line);
-  border-radius: 4px;
+  border-top: 1px solid var(--line);
 }
 .other.shown {
   border-color: var(--gold-deep);

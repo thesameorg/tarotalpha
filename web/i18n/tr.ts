@@ -217,6 +217,7 @@ export const tr: Dictionary = {
     askMore: "Bir kişiye daha sor",
     askNote: (cost: number): string =>
       `Bir kez ${String(cost)} mana: bu açılımın açılmış ve açılacak bütün günlerini o okur.`,
+    askShort: (cost: number): string => `Mana yetmiyor: ${String(cost)} gerekli`,
     candles: "Tahmin mumları onun",
     line: "Onunki kendi rengindeki çizgi",
     move: (change: string, day: number): string => `${String(day)}. günün sonunda ${change}`,
@@ -230,6 +231,7 @@ export const tr: Dictionary = {
     meta: (createdAt: string): string => `oluşturuldu ${createdAt}`,
     replaying: "Her gün için üç kart çekin",
     replay: "Açılımı yeniden oynat",
+    horizonEnd: (days: number): string => `${String(days)} gün bir açılımın tüm ufkudur, kartlar daha ötesine bakmaz`,
     own: "Bu enstrüman için kendi açılımın",
   },
   scroll: {

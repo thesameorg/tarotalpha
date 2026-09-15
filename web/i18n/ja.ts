@@ -219,6 +219,7 @@ export const ja: Dictionary = {
     askMore: "もう一人に聞く",
     askNote: (cost: number): string =>
       `マナ ${String(cost)} を一度だけ。この占いの開いた日も、これからの日も、すべて彼女が読みます。`,
+    askShort: (cost: number): string => `マナが足りません：${String(cost)} 必要です`,
     candles: "予測のローソク足は彼女のもの",
     line: "彼女のものは同じ色の線",
     move: (change: string, day: number): string => `${String(day)} 日目の終わりに ${change}`,
@@ -232,6 +233,7 @@ export const ja: Dictionary = {
     meta: (createdAt: string): string => `作成 ${createdAt}`,
     replaying: "各日について3枚引いてください",
     replay: "リーディングを再生",
+    horizonEnd: (days: number): string => `${String(days)} 日がリーディングの全射程です。カードはこれより先を見ません`,
     own: "この銘柄で自分のリーディング",
   },
   scroll: {

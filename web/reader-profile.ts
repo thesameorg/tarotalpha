@@ -83,8 +83,11 @@ function chooseMarkup(id: ReaderId): string {
   if (opinions().includes(id)) return `<div class="profile-current">${t().reader.asked}</div>`;
   if (!opinionsOpen()) return `<div class="profile-current">${t().reader.locked(t().readerName(reader()))}</div>`;
   const ask = `<button class="draw profile-ask" type="button" data-reader-ask="${id}">${t().reader.ask(t().readerName(id), OPINION_COST)}<span class="mana-glyph">${icons.mana}</span></button>`;
-  // What the price buys stands beside the price: a reader is bought for the reading, never for a day.
-  return `${ask}<p class="profile-note">${t().reader.askNote(OPINION_COST)}</p>`;
+  // What the price buys stands beside the price: a reader is bought for the reading, never for a day. A purse that
+  // cannot cover it says so here, before the button, because after it comes a screen asking for real money.
+  const short = shortOf(OPINION_COST);
+  const note = short ? t().reader.askShort(OPINION_COST) : t().reader.askNote(OPINION_COST);
+  return `${ask}<p class="profile-note${short ? " short" : ""}">${note}</p>`;
 }
 
 function paint(): void {

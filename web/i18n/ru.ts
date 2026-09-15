@@ -226,6 +226,7 @@ export const ru = {
     askMore: "Спросить ещё",
     askNote: (cost: number): string =>
       `${String(cost)} маны один раз: она читает все дни этого расклада — и открытые, и будущие.`,
+    askShort: (cost: number): string => `Маны не хватает: нужно ${String(cost)}`,
     candles: "Свечи прогноза — её",
     line: "Её прогноз — линия её цвета",
     move: (change: string, day: number): string => `${change} к концу дня ${String(day)}`,
@@ -239,6 +240,7 @@ export const ru = {
     meta: (createdAt: string): string => `создан ${createdAt}`,
     replaying: "Вытяните три карты за каждый день",
     replay: "Воспроизвести расклад",
+    horizonEnd: (days: number): string => `${String(days)} дней — весь горизонт расклада, дальше карты не смотрят`,
     own: "Свой расклад по этому инструменту",
   },
   scroll: {

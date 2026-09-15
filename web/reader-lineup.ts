@@ -23,6 +23,8 @@ export interface Roster {
   locked: boolean;
   /** What asking one more costs, or null when nobody may be asked here or now. */
   askCost: number | null;
+  /** True when the two purses together do not cover that price: said before the click, not after it. */
+  askShort?: boolean;
 }
 
 export interface Lineup {
@@ -65,9 +67,11 @@ function askMarkup(roster: Roster): string {
   const cost = roster.askCost;
   const next = READER_IDS.find((id) => !roster.lines.has(id));
   if (cost === null || next === undefined) return "";
-  const label = `${t().reader.askMore} · ${t().mana}: ${String(cost)}`;
+  const short = roster.askShort === true;
+  const note = short ? t().reader.askShort(cost) : t().reader.askNote(cost);
+  const label = `${t().reader.askMore} · ${t().mana}: ${String(cost)}${short ? ` · ${t().reader.askShort(cost)}` : ""}`;
   const price = `<span class="mana-glyph">${icons.mana}</span>${String(cost)}`;
-  return `<button class="reader ask" type="button" data-lineup-ask="${next}" aria-label="${label}" title="${t().reader.askNote(cost)}">${t().reader.askMore}${price}</button>`;
+  return `<button class="reader ask${short ? " short" : ""}" type="button" data-lineup-ask="${next}" aria-label="${label}" title="${note}">${t().reader.askMore}${price}</button>`;
 }
 
 /** `open` leads to the reader's card. Only the chip that can still change something takes it: the author while

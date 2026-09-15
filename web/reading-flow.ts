@@ -22,8 +22,9 @@ import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
 import { settleInvite } from "./invite";
 import { zoneLabel } from "./local-time-format";
-import { dayCost } from "./mana";
+import { dayCost, onManaChange } from "./mana";
 import { payMana, shortOf } from "./mana-purse";
+import { onPaidChange } from "./paid-mana";
 import { rememberReading } from "./my-readings";
 import { forgetOpen, openReadingFor, rememberOpen } from "./open-reading";
 import { openPaywall } from "./paywall-modal";
@@ -82,6 +83,7 @@ interface Elements {
   retry: HTMLButtonElement;
   cta: HTMLElement;
   row: HTMLElement;
+  ctaEnd: HTMLElement;
   ctaFull: HTMLElement;
   ctaShort: HTMLElement;
   ctaCost: HTMLElement;
@@ -119,6 +121,7 @@ function landingMarkup(): string {
     <div class="zone-cta" id="zone-cta" hidden>
       <div class="row">
         <button class="draw" id="draw" type="button" disabled><span class="full"></span><span class="short"></span><span class="cost"></span></button>
+        <span class="cta-end" id="cta-end" hidden></span>
         <button class="icon-btn" id="share" type="button" disabled hidden>${icons.share}</button>
       </div>
     </div>
@@ -147,6 +150,7 @@ function lookup(root: HTMLElement, toolbar: HTMLElement): Elements {
     retry: required(root, "#retry", HTMLButtonElement),
     cta: required(root, "#zone-cta", HTMLElement),
     row: required(root, "#zone-cta .row", HTMLElement),
+    ctaEnd: required(root, "#cta-end", HTMLElement),
     ctaFull: required(root, "#zone-cta .full", HTMLElement),
     ctaShort: required(root, "#zone-cta .short", HTMLElement),
     ctaCost: required(root, "#zone-cta .cost", HTMLElement),
@@ -220,9 +224,18 @@ class LandingPage {
       this.labelDraw();
       this.showLineup();
     });
+    // Asking one more says whether the purse covers it, so a purse that changed elsewhere redraws the row.
+    const repurse = onManaChange(() => {
+      this.showLineup();
+    });
+    const repaid = onPaidChange(() => {
+      this.showLineup();
+    });
     this.unsubscribe = (): void => {
       relabel();
       reprice();
+      repurse();
+      repaid();
     };
 
     const preset = (params.get("asset") ?? "").trim().toUpperCase();
@@ -282,6 +295,8 @@ class LandingPage {
 
   private labelDraw(): void {
     const next = (this.loaded?.steps.length ?? 0) + 1;
+    // Past the horizon the button has nothing to buy, and the line in its place says whose limit it is.
+    this.el.ctaEnd.textContent = t().reading.horizonEnd(MAX_STEPS);
     if (next > MAX_STEPS) return;
     const cost = this.nextCost();
     this.el.ctaFull.textContent = t().drawStep(next);
@@ -313,6 +328,7 @@ class LandingPage {
     const open = this.loaded?.steps.length ?? 0;
     this.el.share.hidden = open === 0;
     this.el.draw.hidden = open >= MAX_STEPS;
+    this.el.ctaEnd.hidden = open < MAX_STEPS;
     if (this.underChart(narrow.matches && open > 0)) {
       this.el.cta.hidden = false;
       return;
@@ -583,6 +599,7 @@ class LandingPage {
       days: loaded?.steps.length ?? 0,
       locked: readerLocked(),
       askCost: opinionsOpen() ? OPINION_COST : null,
+      askShort: shortOf(OPINION_COST),
     });
   }
 

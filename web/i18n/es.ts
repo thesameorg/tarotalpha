@@ -230,6 +230,7 @@ export const es: Dictionary = {
     askMore: "Preguntar a otra",
     askNote: (cost: number): string =>
       `${String(cost)} de maná una sola vez: lee todos los días de esta tirada, los abiertos y los que faltan.`,
+    askShort: (cost: number): string => `No alcanza el maná: hacen falta ${String(cost)}`,
     candles: "Las velas del pronóstico son suyas",
     line: "Lo suyo es la línea de su color",
     move: (change: string, day: number): string => `${change} al final del día ${String(day)}`,
@@ -243,6 +244,8 @@ export const es: Dictionary = {
     meta: (createdAt: string): string => `creada ${createdAt}`,
     replaying: "Saca tres cartas por cada día",
     replay: "Repetir la tirada",
+    horizonEnd: (days: number): string =>
+      `${String(days)} días son todo el horizonte de una tirada; las cartas no miran más allá`,
     own: "Tu propia tirada para este instrumento",
   },
   scroll: {
