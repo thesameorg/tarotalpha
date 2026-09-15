@@ -110,6 +110,15 @@ describe("fetchSnapshot", () => {
     await expect(fetchSnapshot("NOPE", ANCHOR)).rejects.toMatchObject({ kind: "unknown_asset" });
   });
 
+  it("names every refusal, not just the one that decided the kind", async () => {
+    stubFetch((url) =>
+      url.hostname === "api.binance.com" ? jsonResponse("blocked", 451) : jsonResponse("too frequent", 403),
+    );
+    const failure = (await fetchSnapshot("BTCUSDT", ANCHOR).catch((error: unknown) => error)) as ExchangeError;
+    expect(failure.message).toContain("bybit: HTTP 403");
+    expect(failure.message).toContain("binance: HTTP 451");
+  });
+
   it("refuses a window that does not end at the anchor", async () => {
     stubFetch((url) =>
       url.hostname === "api.binance.com"
