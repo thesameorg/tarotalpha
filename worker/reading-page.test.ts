@@ -5,9 +5,9 @@ import { callApi } from "./call-api";
 const ID = "bcdfghjk";
 const ANCHOR = Date.UTC(2026, 8, 8, 10);
 const SHELL =
-  '<!doctype html><html lang="ru"><head><title>TarotAlpha</title><meta property="og:title" content="TarotAlpha" />' +
-  '<meta property="og:description" content="Таро-терминал" /><meta property="og:url" content="/" /></head>' +
-  "<body><div id=app></div></body></html>";
+  '<!doctype html><html lang="ru"><head><title>TarotAlpha</title><meta name="description" content="Таро-терминал" />' +
+  '<meta property="og:title" content="TarotAlpha" /><meta property="og:description" content="Таро-терминал" />' +
+  '<meta property="og:url" content="/" /></head><body><div id=app></div></body></html>';
 
 const ASSETS = { fetch: () => Promise.resolve(new Response(SHELL, { headers: { "content-type": "text/html" } })) };
 
@@ -33,6 +33,9 @@ it("writes the reading into the title and the og tags in the share link's langua
     '<meta property="og:description" content="Расклад на 2 дн. вперёд от 2026-09-08 10:00 UTC. Не является финансовой рекомендацией." />',
   );
   expect(html).toContain(`<meta property="og:url" content="https://tarotalpha.test/r/${ID}" />`);
+  expect(html).toContain(
+    '<meta name="description" content="Расклад на 2 дн. вперёд от 2026-09-08 10:00 UTC. Не является финансовой рекомендацией." />',
+  );
 });
 
 it("knows all eleven languages by the link and by Accept-Language, and falls back to English", async () => {
