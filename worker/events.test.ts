@@ -109,6 +109,19 @@ describe("POST /api/omen", () => {
     expect(point?.blobs?.[7]).toBe("x".repeat(64));
   });
 
+  it("prices a reported purchase off the shelf, so nobody reports revenue they did not pay", async () => {
+    const funnel = journal();
+    const posted = await callApi("/api/omen", omen({ type: "paid", detail: "micro", cost: 40 }), {
+      ANALYTICS: funnel.dataset,
+    });
+
+    expect(posted.status).toBe(204);
+    const [point] = funnel.points;
+    expect(point?.blobs?.[16]).toBe("micro");
+    expect(point?.doubles?.[4]).toBe(40);
+    expect(point?.doubles?.[5]).toBe(199);
+  });
+
   it("rejects the event types only the server may write", async () => {
     const funnel = journal();
     const invoice = await callApi("/api/omen", omen({ type: "invoice_created" }), { ANALYTICS: funnel.dataset });

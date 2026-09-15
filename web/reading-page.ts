@@ -397,6 +397,8 @@ class ReadingPage {
   ): Promise<void> {
     await chart.showSnapshot(snapshot, false);
     if (this.gone()) return;
+    // A link that was sent somewhere and opened here: the only place the spread of one reading can be counted.
+    postEvent({ type: "chart_loaded", asset: record.asset, reading_id: record.id });
     chart.setSteps(results.length);
     chart.setForecast(results.flatMap((step) => step.candles));
     chart.setOpinions(candlesByReader(this.opinionSteps));

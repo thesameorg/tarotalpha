@@ -7,6 +7,7 @@
 import { ASSET_PATTERN } from "../exchange/closed-candles";
 import { type EventPoint, type EventType, writeEvent } from "./analytics";
 import { ApiError, readJsonBody } from "./json-api";
+import { packById } from "./packs";
 import { ID_PATTERN } from "./short-id";
 
 // What a browser is allowed to claim. `share_failed` is missing on purpose: only the Worker knows the exchange said no.
@@ -36,8 +37,16 @@ type ClientEventType = (typeof CLIENT_TYPES)[number];
 
 export async function postEvent(request: Request, env: Env): Promise<Response> {
   const event = await parseEventBody(request);
-  writeEvent(env.ANALYTICS, request, event);
+  writeEvent(env.ANALYTICS, request, priced(event));
   return new Response(null, { status: 204 });
+}
+
+// The browser names which lot was bought; what it costs is the shelf's number, not the buyer's. So a purchase
+// arrives without a sum and leaves with one, and nobody can report revenue they did not pay.
+function priced(event: EventPoint): EventPoint {
+  if (event.type !== "paid") return event;
+  const pack = packById(event.detail);
+  return pack === null ? event : { ...event, amount: pack.cents };
 }
 
 async function parseEventBody(request: Request): Promise<EventPoint> {

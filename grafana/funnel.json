@@ -1,7 +1,7 @@
 {
   "uid": "tarotalpha-funnel",
   "title": "TarotAlpha — воронка",
-  "description": "Путь от визита до пейвола и виральность ссылок. Раскладка точки в docs/analytics.md.",
+  "description": "Путь от визита до пейвола, глубина, возвраты и виральность ссылок. Раскладка точки в docs/analytics.md.",
   "tags": ["tarotalpha"],
   "timezone": "browser",
   "schemaVersion": 39,
@@ -244,17 +244,60 @@
     },
     {
       "id": 5,
-      "type": "bargauge",
-      "title": "Воронка визита",
+      "type": "timeseries",
+      "title": "Воронка по дням",
       "datasource": {
         "type": "vertamedia-clickhouse-datasource",
         "uid": "${ds}"
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 24,
         "x": 0,
         "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "time_series",
+          "query": "SELECT toUnixTimestamp(day) * 1000 AS t, count() AS visits, countIf(opened > 0) AS opened_a_day, countIf(wall > 0) AS hit_paywall, countIf(shared > 0) AS shared FROM ( SELECT blob3 AS visit, toStartOfDay(timestamp) AS day, countIf(blob1 = 'step_opened') AS opened, countIf(blob1 = 'paywall_hit') AS wall, countIf(blob1 = 'shared') AS shared FROM tarotalpha WHERE $timeFilter GROUP BY visit, day) GROUP BY t ORDER BY t"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Один визит считается один раз на каждом шаге."
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "Воронка визита за период",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 12
       },
       "targets": [
         {
@@ -291,127 +334,20 @@
         "orientation": "horizontal",
         "displayMode": "gradient",
         "showUnfilled": true
-      },
-      "description": "Один визит считается один раз на каждом шаге."
-    },
-    {
-      "id": 6,
-      "type": "stat",
-      "title": "Медиана дней прогноза за визит",
-      "datasource": {
-        "type": "vertamedia-clickhouse-datasource",
-        "uid": "${ds}"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 12,
-        "y": 4
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "vertamedia-clickhouse-datasource",
-            "uid": "${ds}"
-          },
-          "database": "default",
-          "table": "tarotalpha",
-          "dateTimeType": "DATETIME",
-          "dateColDataType": "",
-          "dateTimeColDataType": "timestamp",
-          "editorMode": "sql",
-          "extrapolate": false,
-          "skip_comments": true,
-          "intervalFactor": 1,
-          "format": "table",
-          "query": "SELECT quantileExactWeighted(0.5)(days, 1) AS median FROM ( SELECT blob3 AS visit, countIf(blob1 = 'step_opened') AS days FROM tarotalpha WHERE $timeFilter GROUP BY visit)"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto",
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto"
       }
     },
     {
       "id": 7,
-      "type": "stat",
-      "title": "Доля раскладов, которыми поделились",
-      "datasource": {
-        "type": "vertamedia-clickhouse-datasource",
-        "uid": "${ds}"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 4
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "vertamedia-clickhouse-datasource",
-            "uid": "${ds}"
-          },
-          "database": "default",
-          "table": "tarotalpha",
-          "dateTimeType": "DATETIME",
-          "dateColDataType": "",
-          "dateTimeColDataType": "timestamp",
-          "editorMode": "sql",
-          "extrapolate": false,
-          "skip_comments": true,
-          "intervalFactor": 1,
-          "format": "table",
-          "query": "SELECT countIf(shared > 0) / count() AS share_rate FROM ( SELECT blob16 AS reading, countIf(blob1 = 'shared') AS shared FROM tarotalpha WHERE $timeFilter AND blob16 != '' GROUP BY reading)"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "unit": "percentunit"
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto",
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto"
-      },
-      "description": "Цель из docs/idea.md — больше 25 процентов."
-    },
-    {
-      "id": 8,
       "type": "timeseries",
-      "title": "События по дням",
+      "title": "Доля визитов с «поделиться» по дням",
       "datasource": {
         "type": "vertamedia-clickhouse-datasource",
         "uid": "${ds}"
       },
       "gridPos": {
         "h": 8,
-        "w": 24,
-        "x": 0,
+        "w": 16,
+        "x": 8,
         "y": 12
       },
       "targets": [
@@ -431,7 +367,51 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "time_series",
-          "query": "SELECT toUnixTimestamp(toStartOfDay(timestamp)) * 1000 AS t, blob1 AS type, SUM(_sample_interval) AS events FROM tarotalpha WHERE $timeFilter GROUP BY t, type ORDER BY t"
+          "query": "SELECT toUnixTimestamp(day) * 1000 AS t, countIf(shared > 0) / count() AS share_rate FROM ( SELECT blob3 AS visit, toStartOfDay(timestamp) AS day, countIf(blob1 = 'shared') AS shared FROM tarotalpha WHERE $timeFilter AND blob1 IN ('step_opened', 'shared') GROUP BY visit, day) GROUP BY t ORDER BY t"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Знаменатель — визиты, где открыли хотя бы день: расклад, который не начали, поделиться не могли. Цель из idea.md — больше 25 процентов."
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Медиана дней прогноза за визит по дням",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "time_series",
+          "query": "SELECT toUnixTimestamp(day) * 1000 AS t, quantileExactWeighted(0.5)(days, 1) AS median FROM ( SELECT blob3 AS visit, toStartOfDay(timestamp) AS day, countIf(blob1 = 'step_opened') AS days FROM tarotalpha WHERE $timeFilter GROUP BY visit, day) GROUP BY t ORDER BY t"
         }
       ],
       "fieldConfig": {
@@ -440,21 +420,65 @@
         },
         "overrides": []
       },
-      "options": {}
+      "options": {},
+      "description": "Глубина вовлечения: просела после правки цен — видно в тот же день."
     },
     {
       "id": 9,
+      "type": "timeseries",
+      "title": "Возвраты сверить пророчество",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "time_series",
+          "query": "SELECT toUnixTimestamp(toStartOfDay(timestamp)) * 1000 AS t, count(DISTINCT blob2) AS visitors FROM tarotalpha WHERE $timeFilter AND blob1 = 'rechecked' GROUP BY t ORDER BY t"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Метрика возврата из idea.md. Точный «назавтра» не считается: момент созревания в событие не едет."
+    },
+    {
+      "id": 10,
       "type": "table",
-      "title": "Виральность: открытий на расклад",
+      "title": "Виральность: кто открыл разосланные ссылки",
       "datasource": {
         "type": "vertamedia-clickhouse-datasource",
         "uid": "${ds}"
       },
       "gridPos": {
         "h": 9,
-        "w": 12,
+        "w": 24,
         "x": 0,
-        "y": 20
+        "y": 28
       },
       "targets": [
         {
@@ -485,51 +509,7 @@
       "options": {
         "showHeader": true
       },
-      "description": "Сколько разных людей открыло каждую разосланную ссылку."
-    },
-    {
-      "id": 10,
-      "type": "table",
-      "title": "Инструменты",
-      "datasource": {
-        "type": "vertamedia-clickhouse-datasource",
-        "uid": "${ds}"
-      },
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 12,
-        "y": 20
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "vertamedia-clickhouse-datasource",
-            "uid": "${ds}"
-          },
-          "database": "default",
-          "table": "tarotalpha",
-          "dateTimeType": "DATETIME",
-          "dateColDataType": "",
-          "dateTimeColDataType": "timestamp",
-          "editorMode": "sql",
-          "extrapolate": false,
-          "skip_comments": true,
-          "intervalFactor": 1,
-          "format": "table",
-          "query": "SELECT blob15 AS asset, count(DISTINCT blob3) AS visits FROM tarotalpha WHERE $timeFilter AND blob15 != '' GROUP BY asset ORDER BY visits DESC LIMIT 30"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "options": {
-        "showHeader": true
-      }
+      "description": "Открытие чужой ссылки, а не своего расклада: на `/r/:id` событие несёт id, на своей вкладке — нет."
     }
   ]
 }
