@@ -5,7 +5,7 @@
  * browser at all. Prices come from the Worker and are never computed here. Rails end to end: docs/wallet.md
  */
 import { postEvent } from "./api";
-import { applyStatic, onLangChange, t } from "./i18n/index";
+import { onLangChange, t } from "./i18n/index";
 import { icons, setIcon } from "./icons";
 import { ENDLESS_SIGN, refreshPaid } from "./paid-mana";
 import { telegram } from "./telegram";
@@ -31,18 +31,31 @@ const STARS_TRIES = 20;
 
 type Step = "packs" | "coins" | "invoice" | "done";
 
+/** Why the box opened: a day that could not be paid for, or the purse asked to be topped up from the header. */
+export type PaywallReason = "short" | "topup";
+
+// Telegram's own star, not the typographic one: the price is billed in the product the client shows with this face.
+const STAR = "\u2B50";
+
+let reason: PaywallReason = "short";
 let loaded: Shelf | null = null;
 let chosen: string | null = null;
 let offered: ChainOffer | null = null;
 let polling: number | null = null;
 let settled = false;
 
-export function openPaywall(): void {
+export function openPaywall(why: PaywallReason = "short"): void {
+  reason = why;
+  paintTitle();
   settled = false;
   postEvent({ type: "paywall_shown" });
   modal().classList.add("on");
   show("packs");
   void fill();
+}
+
+function paintTitle(): void {
+  text("pay-title", reason === "short" ? t().paywall.titleShort : t().paywall.titleTopUp);
 }
 
 export function initPaywallModal(): void {
@@ -88,6 +101,7 @@ export function initPaywallModal(): void {
       });
   });
   onLangChange(() => {
+    paintTitle();
     if (loaded !== null) paintPacks(loaded);
   });
 }
@@ -104,21 +118,30 @@ async function fill(): Promise<void> {
   }
 }
 
+/** One lot: how much mana it is, and a button that is its price — a price beside a button is one number too many
+ *  to compare across three of them. The endless lot is not a quantity, so it lies down in a row of its own. */
+function tierMarkup(pack: Shelf["packs"][number], stars: boolean, pick: boolean): string {
+  const cost = stars ? `${String(pack.stars)} ${STAR}` : price(pack.cents);
+  const buy = `<button type="button" data-pack="${pack.id}" aria-label="${t().paywall.buy} · ${cost}">${cost}</button>`;
+  const glyph = `<span class="mana-glyph">${icons.mana}</span>`;
+  if (pack.unlimited === true) {
+    const note = `<div class="tier-note">${t().paywall.endlessLot}</div>`;
+    return `<div class="tier tier-endless"><div class="t">${glyph}${ENDLESS_SIGN}</div>${note}${buy}</div>`;
+  }
+  const flag = pick ? `<span class="tier-flag">${t().paywall.house}</span>` : "";
+  return `<div class="tier${pick ? " pick" : ""}">${flag}<div class="t">${glyph}${String(pack.mana)}</div>${buy}</div>`;
+}
+
 function paintPacks(shelfNow: Shelf): void {
   const list = document.getElementById("mana-packs");
   if (list === null) return;
   const stars = inTelegram();
+  // The middle rung is the one the house would take, and it is the middle of the counted lots, not of the shelf.
+  const counted = shelfNow.packs.filter((pack) => pack.unlimited !== true).length;
+  let rung = 0;
   list.innerHTML = shelfNow.packs
-    .map(
-      (pack) =>
-        `<div class="tier${pack.unlimited === true ? " tier-endless" : ""}">` +
-        `<div class="t"><span class="mana-glyph">${icons.mana}</span>` +
-        `${pack.unlimited === true ? ENDLESS_SIGN : String(pack.mana)}</div>` +
-        `<div class="pay-price">${stars ? `${String(pack.stars)} ★` : price(pack.cents)}</div>` +
-        `<button type="button" data-pack="${pack.id}" data-i18n="paywall.buy"></button></div>`,
-    )
+    .map((pack) => tierMarkup(pack, stars, pack.unlimited !== true && rung++ === Math.floor((counted - 1) / 2)))
     .join("");
-  applyStatic(list);
   for (const button of list.querySelectorAll<HTMLButtonElement>("button[data-pack]")) {
     button.addEventListener("click", () => {
       const pack = button.dataset.pack;
@@ -283,7 +306,8 @@ function done(balance: number, gained: number, endless: boolean): void {
   postEvent({ type: "paid", detail: chosen ?? undefined, cost: endless ? undefined : gained });
   // The gold flask in the header reads the server, not this screen, so it is told the moment the money lands.
   void refreshPaid();
-  text("pay-gain", endless ? ENDLESS_SIGN : `+${String(gained)}`);
+  text("pay-done-title", t().paywall.paid);
+  html("pay-gain", `<span class="mana-glyph">${icons.mana}</span>${endless ? ENDLESS_SIGN : `+${String(gained)}`}`);
   text("pay-ok", endless ? t().paywall.endless : t().paywall.credited(balance));
   show("done");
 }
@@ -293,9 +317,12 @@ function show(step: Step): void {
     const el = document.getElementById(`pay-${id}`);
     if (el !== null) el.hidden = id !== step;
   }
-  // The lead explains how the free tank refills, which is the last thing a buyer mid-payment needs to read.
+  // The lead explains how the free tank refills, which is the last thing a buyer mid-payment needs to read, and
+  // the heading names a purchase that has already happened by the time the last step is on screen.
   const lead = document.getElementById("pay-lead");
   if (lead !== null) lead.hidden = step !== "packs";
+  const title = document.getElementById("pay-title");
+  if (title !== null) title.hidden = step === "done";
   // The finished screen carries its own way out, and the same words twice under it read as two different doors.
   const back = document.getElementById("closePay");
   if (back !== null) back.hidden = step === "done";
@@ -342,6 +369,11 @@ function modal(): HTMLElement {
 function text(id: string, value: string): void {
   const el = document.getElementById(id);
   if (el !== null) el.textContent = value;
+}
+
+function html(id: string, value: string): void {
+  const el = document.getElementById(id);
+  if (el !== null) el.innerHTML = value;
 }
 
 function field(id: string, value: string): void {

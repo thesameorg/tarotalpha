@@ -93,7 +93,7 @@
     <div class="modal" id="paywall">
       <div class="box">
         <button class="icon-btn modal-close" id="closePayCorner" type="button"></button>
-        <h2 data-i18n="paywall.title">Мана кончилась</h2>
+        <h2 id="pay-title">Маны не хватает</h2>
         <p class="lead" id="pay-lead" data-i18n="paywall.lead">
           Каждый день расклада стоит маны, и чем он дальше, тем дороже: будущее видно хуже. Мана понемногу возвращается
           каждый час, а с новым днём — целиком.
@@ -144,6 +144,7 @@
         </div>
 
         <div class="pay-step" id="pay-done" hidden>
+          <p class="pay-done-title" id="pay-done-title"></p>
           <p class="pay-gain" id="pay-gain"></p>
           <p class="pay-ok" id="pay-ok"></p>
           <button class="pay-go" id="pay-done-go" type="button" data-i18n="paywall.backToReading">К раскладу</button>
