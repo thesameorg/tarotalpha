@@ -2,8 +2,9 @@
  * "My readings" in the header: a labelled button with the count, a dot on it while a ripe reading is unchecked, and
  * the window it opens, one card per reading this browser opened — instrument, reader, hour of the anchor and whether
  * the forecast has ripened; a ripe unchecked one is lit, and one that already has a scroll says so in its own
- * colour. A click opens the reading. The button hides while there is
- * nothing to list. Closes on the corner cross, a click outside or Escape.
+ * colour. The window opens on the newest page of cards and grows as it is scrolled, because the list holds up to two
+ * hundred. A click opens the reading. The button hides while there is nothing to list. Closes on the corner cross,
+ * a click outside or Escape.
  */
 import { postEvent } from "./api";
 import { COINS } from "./coin-list";
@@ -15,6 +16,11 @@ import { hoursToRipe, isRipe, hasUnchecked, markChecked, myReadingsNow, onMyRead
 import type { MyReading } from "./my-readings";
 import { readerAvatarUrl } from "./reader-choice";
 import type { Navigate } from "./router";
+
+/** Cards drawn when the window opens, and added each time its end is reached. */
+const PAGE = 20;
+/** How close to the end of the window counts as reaching it, and how much room to leave under the last card. */
+const GROW_MARGIN = 200;
 
 function cardMarkup(entry: MyReading, now: number): string {
   const ripe = isRipe(entry, now);
@@ -44,6 +50,10 @@ export function mountMyReadings(root: HTMLElement, navigate: Navigate): void {
   const label = required(trigger, ".mine-label", HTMLElement);
   const count = required(trigger, ".mine-count", HTMLElement);
 
+  // How much of the list is drawn now. Two hundred cards at once is a sheet nobody reads to the end, and every one
+  // of them carries two images, so the window starts short and grows only towards what is actually being looked at.
+  let shown = PAGE;
+
   const paint = (): void => {
     const now = Date.now();
     const entries = myReadingsNow();
@@ -54,7 +64,21 @@ export function mountMyReadings(root: HTMLElement, navigate: Navigate): void {
     trigger.setAttribute("aria-label", `${t().mine.button}: ${String(entries.length)}`);
     trigger.classList.toggle("due", hasUnchecked(entries, now));
     setIcon(corner, icons.close, t().close);
-    if (modal.classList.contains("on")) cards.innerHTML = entries.map((entry) => cardMarkup(entry, now)).join("");
+    if (modal.classList.contains("on"))
+      cards.innerHTML = entries
+        .slice(0, shown)
+        .map((entry) => cardMarkup(entry, now))
+        .join("");
+  };
+
+  /** Adds pages while the end of the window is within `margin` of the eye: on opening, only as far as the first
+   *  screenful, because a window with nothing to scroll would never ask for more. */
+  const grow = (margin: number): void => {
+    const total = myReadingsNow().length;
+    while (shown < total && modal.scrollTop + modal.clientHeight >= modal.scrollHeight - margin) {
+      shown = Math.min(total, shown + PAGE);
+      paint();
+    }
   };
   const close = (): void => {
     modal.classList.remove("on");
@@ -62,7 +86,14 @@ export function mountMyReadings(root: HTMLElement, navigate: Navigate): void {
 
   trigger.addEventListener("click", () => {
     modal.classList.add("on");
+    // A window reopened is a window opened: the newest readings are at the top, and that is where it starts.
+    shown = PAGE;
+    modal.scrollTop = 0;
     paint();
+    grow(0);
+  });
+  modal.addEventListener("scroll", () => {
+    grow(GROW_MARGIN);
   });
   corner.addEventListener("click", close);
   modal.addEventListener("click", (event) => {
