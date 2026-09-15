@@ -23,3 +23,8 @@ export function formatPercent(pct: number): string {
 export function formatChange(pct: number): string {
   return `${formatPercent(pct)} ${t().per24h}`;
 }
+
+/** A gap to the market in ATR of the snapshot. The unit is the market's own and stays untranslated, like `1H`. */
+export function formatGap(atr: number): string {
+  return `${atr.toFixed(2)} ATR`;
+}

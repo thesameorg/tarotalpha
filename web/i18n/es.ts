@@ -248,14 +248,14 @@ export const es: Dictionary = {
   scroll: {
     open: "Obtener el pergamino",
     title: "Pergamino",
-    certify: (id: string, asset: string, pct: number): string =>
-      `Se certifica que la tirada ${id} predijo el movimiento de ${asset} al ${String(pct)} %`,
+    certify: (id: string, asset: string, gap: string): string =>
+      `Se certifica que la tirada ${id} pasó a ${gap} del mercado de ${asset}`,
     instrument: "Instrumento",
     anchor: "Ancla",
     reader: "Tarotista",
     readers: "Tarotistas",
     horizon: "Horizonte",
-    accuracy: "Precisión",
+    signs: "Signos de las velas",
     print: "Imprimir",
     reading: "A la tirada",
     notRipe: "El pergamino se emite cuando cierre la última vela del pronóstico",
@@ -275,8 +275,8 @@ export const es: Dictionary = {
       `El futuro aún no ha llegado: la primera vela a verificar cierra a las ${closesAt}`,
     checkFailed: "El exchange no responde, la verificación de la profecía se pospone",
     noCandles: "La bolsa no devolvió velas de ese periodo",
-    hit: (pct: number): string => `La profecía se cumplió al ${String(pct)} %`,
-    miss: (pct: number): string => `El mercado rechazó la profecía: ${String(pct)} %`,
+    gap: (gap: string): string => `El pronóstico pasó a ${gap} del mercado`,
+    signs: (pct: number): string => `el signo de la vela acertó el ${String(pct)} % — la cifra de una moneda`,
     final: "final",
     interim: "provisional",
     praise: {
@@ -284,8 +284,8 @@ export const es: Dictionary = {
       near: (name: string): string => `${name}: cerca del mercado`,
       far: (name: string): string => `${name}: lejos del mercado`,
     },
-    stepLine: (day: number, pct: number | null): string =>
-      pct === null ? `día ${String(day)}: aún no` : `día ${String(day)}: ${String(pct)} %`,
+    stepLine: (day: number, gap: string | null): string =>
+      gap === null ? `día ${String(day)}: aún no llega` : `día ${String(day)}: ${gap}`,
   },
   summaryTitle: "El día en una línea.",
   how: "Método",

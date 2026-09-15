@@ -80,7 +80,7 @@
             <tr>
               <td>7. Check</td>
               <td>forecast candles against the real candles of the same hours</td>
-              <td>accuracy and drift</td>
+              <td>the gap to the market in ATR, and the share of candle signs under it</td>
             </tr>
             <tr>
               <td>8. Rating</td>
@@ -447,22 +447,27 @@
         </p>
         <ul>
           <li>
-            <strong>Accuracy</strong> — the share of candles whose direction matches:
-            <code>(fc.c ≥ fc.o) === (real.c ≥ real.o)</code>, that is <code>hits / compared</code>. It is interim until
-            all 24 × days candles have a real pair, and 50 % or more reads as "the prophecy came true". Over many
-            readings it lands, honestly, near one half.
+            <strong>Drift</strong> decides the verdict — the mean gap between the closes, <code>|fc.c − real.c|</code>,
+            divided by the ATR(14) of the snapshot in price. It ignores the sign. The unit is the market's and the same
+            for everybody, so five readers and any two instruments are comparable in it. It heads the verdict, the table
+            of readers and the scroll, and it is interim until all 24 × days candles have a real pair. Drift grows with
+            the horizon, so two readings of different lengths are compared by the word below, not by the number.
           </li>
           <li>
-            <strong>Drift</strong> — the mean gap between the closes, <code>|fc.c − real.c|</code>, divided by the
-            ATR(14) of the snapshot in price. It ignores the sign, because the sign is what accuracy measures. The unit
-            is the market's and the same for everybody, so five readers and any two instruments are comparable in it.
+            <strong>Candle signs</strong> are a footnote — the share of candles whose direction matches:
+            <code>(fc.c ≥ fc.o) === (real.c ≥ real.o)</code>, that is <code>hits / compared</code>. The direction of one
+            hour is very nearly a coin, and on live candles the share says so: half of all readings land between 45.8 %
+            and 54.2 %, and over seven days between 47.6 % and 53.0 %. A number that never has a bad day says nothing,
+            so it stands under the drift and is labelled for what it is. Drift over the same readings runs from 1.3 ATR
+            for the best twentieth to 14.9 for the worst — a spread you can see.
           </li>
           <li>
-            <strong>A word, not a number.</strong> The badge shows the percentage and one word about the reader: close
-            to the market, near it, or wide of it. The judgement is <code>drift / √compared</code>, because two random
-            walks drift apart with the square root of their length. The thresholds 0.35 and 0.9 are the first and third
-            quartiles of that value on live candles (5 instruments × 3 anchors × 5 readers, horizons of 6, 24 and 48
-            candles), so praise and scorn each land on about a quarter of readings.
+            <strong>A word, not a number.</strong> One word about the reader: close to the market, near it, or wide of
+            it. The judgement is <code>drift / √compared</code>, because two random walks drift apart with the square
+            root of their length, and dividing by it makes the value independent of the horizon. The thresholds 0.27 and
+            0.68 are the first and third quartiles of that value on live candles (BTCUSDT, ETHUSDT and SOLUSDT × about
+            280 anchors × 5 readers × horizons of 48 and 168 candles, 8310 readings), so praise and scorn each land on a
+            quarter of readings.
           </li>
         </ul>
 
@@ -496,12 +501,12 @@
         <p>
           Stored: the cards of every written day, the 168-candle snapshot the server took itself, the exchange it came
           from, the reader and the nonce. Those are the reading. Recomputed in your browser on every view, with the
-          formulas of today: the forecast candles, the card effects, the day summary, the accuracy and the drift. The
-          verdict behind the stars is computed once, by the cron, and kept.
+          formulas of today: the forecast candles, the card effects, the day summary, the drift and the candle signs.
+          The verdict behind the stars is computed once, by the cron, and kept.
         </p>
         <p>So a link can differ from what its author saw, in exactly these ways:</p>
         <ul>
-          <li>A formula was edited: the candles and the accuracy are new, the cards and the snapshot are not.</li>
+          <li>A formula was edited: the candles and the drift are new, the cards and the snapshot are not.</li>
           <li>
             The server snapshotted a different exchange than the author's browser did — Binance answers 403 to the
             Cloudflare edge — so the snapshots differ by hundredths of a percent. The cards are the same, the candles

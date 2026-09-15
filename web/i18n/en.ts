@@ -248,14 +248,14 @@ export const en: Dictionary = {
   scroll: {
     open: "Get the scroll",
     title: "Scroll",
-    certify: (id: string, asset: string, pct: number): string =>
-      `This is to certify that reading ${id} foretold the movement of ${asset} to ${String(pct)} %`,
+    certify: (id: string, asset: string, gap: string): string =>
+      `This is to certify that reading ${id} ran ${gap} wide of the ${asset} market`,
     instrument: "Instrument",
     anchor: "Anchor",
     reader: "Reader",
     readers: "Readers",
     horizon: "Horizon",
-    accuracy: "Accuracy",
+    signs: "Candle signs",
     print: "Print",
     reading: "To the reading",
     notRipe: "The scroll is issued once the last forecast candle has closed",
@@ -275,8 +275,8 @@ export const en: Dictionary = {
       `The future has not happened yet: the first candle to check closes at ${closesAt}`,
     checkFailed: "The exchange does not answer, the prophecy check is postponed",
     noCandles: "The exchange returned no candles for that stretch",
-    hit: (pct: number): string => `The prophecy came true at ${String(pct)} %`,
-    miss: (pct: number): string => `The market rejected the prophecy: ${String(pct)} %`,
+    gap: (gap: string): string => `The forecast ran ${gap} wide of the market`,
+    signs: (pct: number): string => `the candle direction matched ${String(pct)} % of the time — a coin's number`,
     final: "final",
     interim: "interim",
     praise: {
@@ -284,8 +284,8 @@ export const en: Dictionary = {
       near: (name: string): string => `${name}: close to the market`,
       far: (name: string): string => `${name}: wide of the market`,
     },
-    stepLine: (day: number, pct: number | null): string =>
-      pct === null ? `day ${String(day)}: not yet` : `day ${String(day)}: ${String(pct)} %`,
+    stepLine: (day: number, gap: string | null): string =>
+      gap === null ? `day ${String(day)}: not yet` : `day ${String(day)}: ${gap}`,
   },
   summaryTitle: "The day in one line.",
   how: "Method",

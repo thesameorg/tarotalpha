@@ -249,14 +249,14 @@ export const de: Dictionary = {
   scroll: {
     open: "Schriftrolle holen",
     title: "Schriftrolle",
-    certify: (id: string, asset: string, pct: number): string =>
-      `Hiermit wird bescheinigt: Legung ${id} sagte die Bewegung von ${asset} zu ${String(pct)} % voraus`,
+    certify: (id: string, asset: string, gap: string): string =>
+      `Hiermit wird bescheinigt: Legung ${id} lag ${gap} neben dem Markt ${asset}`,
     instrument: "Instrument",
     anchor: "Anker",
     reader: "Kartenlegerin",
     readers: "Kartenlegerinnen",
     horizon: "Horizont",
-    accuracy: "Genauigkeit",
+    signs: "Kerzenrichtung",
     print: "Drucken",
     reading: "Zur Legung",
     notRipe: "Die Schriftrolle wird ausgestellt, sobald die letzte Prognosekerze geschlossen hat",
@@ -276,8 +276,8 @@ export const de: Dictionary = {
       `Die Zukunft ist noch nicht eingetreten: die erste zu prüfende Kerze schließt um ${closesAt}`,
     checkFailed: "Die Börse antwortet nicht, die Prüfung der Prophezeiung ist verschoben",
     noCandles: "Die Börse lieferte für diesen Zeitraum keine Kerzen",
-    hit: (pct: number): string => `Die Prophezeiung hat sich zu ${String(pct)} % erfüllt`,
-    miss: (pct: number): string => `Der Markt hat die Prophezeiung verworfen: ${String(pct)} %`,
+    gap: (gap: string): string => `Die Prognose lag ${gap} neben dem Markt`,
+    signs: (pct: number): string => `Kerzenrichtung zu ${String(pct)} % getroffen — der Wert einer Münze`,
     final: "endgültig",
     interim: "vorläufig",
     praise: {
@@ -285,8 +285,8 @@ export const de: Dictionary = {
       near: (name: string): string => `${name}: nah am Markt`,
       far: (name: string): string => `${name}: weit am Markt vorbei`,
     },
-    stepLine: (day: number, pct: number | null): string =>
-      pct === null ? `Tag ${String(day)}: noch nicht` : `Tag ${String(day)}: ${String(pct)} %`,
+    stepLine: (day: number, gap: string | null): string =>
+      gap === null ? `Tag ${String(day)}: noch nicht da` : `Tag ${String(day)}: ${gap}`,
   },
   summaryTitle: "Der Tag in einer Zeile.",
   how: "Methode",

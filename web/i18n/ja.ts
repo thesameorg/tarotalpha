@@ -237,14 +237,14 @@ export const ja: Dictionary = {
   scroll: {
     open: "巻物を受け取る",
     title: "巻物",
-    certify: (id: string, asset: string, pct: number): string =>
-      `本書は、リーディング ${id} が ${asset} の値動きを ${String(pct)} % の精度で予言したことを証明します`,
+    certify: (id: string, asset: string, gap: string): string =>
+      `本書は、リーディング ${id} が ${asset} の相場から ${gap} 離れて進んだことを証明します`,
     instrument: "銘柄",
     anchor: "アンカー",
     reader: "占い師",
     readers: "占い師たち",
     horizon: "予測期間",
-    accuracy: "的中率",
+    signs: "ローソク足の方向",
     print: "印刷",
     reading: "リーディングへ",
     notRipe: "予測の最後のローソク足が確定すると巻物が発行されます",
@@ -263,8 +263,8 @@ export const ja: Dictionary = {
     notYet: (closesAt: string): string => `未来はまだ来ていません：検証する最初のローソク足は ${closesAt} に確定します`,
     checkFailed: "取引所が応答しないため、予言の検証は延期されました",
     noCandles: "取引所はこの期間のローソク足を返しませんでした",
-    hit: (pct: number): string => `予言は ${String(pct)} % 的中しました`,
-    miss: (pct: number): string => `相場は予言を退けました：${String(pct)} %`,
+    gap: (gap: string): string => `予測は相場から ${gap} 離れて進みました`,
+    signs: (pct: number): string => `ローソク足の方向は ${String(pct)} % 一致 — コイン投げと同じ水準です`,
     final: "確定",
     interim: "暫定",
     praise: {
@@ -272,8 +272,8 @@ export const ja: Dictionary = {
       near: (name: string): string => `${name}: 相場のすぐそば`,
       far: (name: string): string => `${name}: 相場から遠く`,
     },
-    stepLine: (day: number, pct: number | null): string =>
-      pct === null ? `${String(day)} 日目: まだ` : `${String(day)} 日目: ${String(pct)} %`,
+    stepLine: (day: number, gap: string | null): string =>
+      gap === null ? `${String(day)} 日目：まだ来ていません` : `${String(day)} 日目：${gap}`,
   },
   summaryTitle: "今日を一行で。",
   how: "計算方法",

@@ -28,8 +28,9 @@ export function deviation(forecast: readonly Candle[], real: readonly Candle[], 
 export type Praise = "close" | "near" | "far";
 
 // Two random walks drift apart with the square root of their length, so the raw gap is divided by it before judging.
-const CLOSE = 0.35;
-const FAR = 0.9;
+// The bounds are the quartiles of that value on live candles; where they were measured: ../docs/engine.md
+const CLOSE = 0.27;
+const FAR = 0.68;
 
 export function praise(deviation: number, compared: number): Praise {
   if (compared < 1) throw new RangeError("praise needs at least one compared candle");

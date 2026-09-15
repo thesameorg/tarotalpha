@@ -25,6 +25,7 @@ import { required } from "./dom-lookup";
 import { lang, onLangChange, t } from "./i18n/index";
 import { localDateTime } from "./local-time-format";
 import { markScrolled } from "./my-readings";
+import { formatGap } from "./price-format";
 import { readerAvatarUrl } from "./reader-choice";
 import type { Navigate, View } from "./router";
 import { candlesByReader, opinionLines } from "./second-opinion";
@@ -37,6 +38,8 @@ interface Sheet {
   real: Candle[];
   /** Share of forecast candles whose direction the market repeated, already in percent. */
   accuracyPct: number;
+  /** The author's gap to the market in ATR of the snapshot: what the sheet certifies. */
+  gap: number;
   /** Everyone who read this reading, the author first, each with her gap to the market. */
   seats: Seat[];
   /** Whose gap is the smallest; null when nobody could be measured. */
@@ -81,7 +84,7 @@ function closestOf(seats: readonly Seat[]): ReaderId | null {
 // The table of the reading in the colours of the chart below: the author drew the candles, everyone bought after
 // her drew a line of her own hue. The gap is the one the scoring counts, so the sheet ranks them like the verdict.
 function seatMarkup(seat: Seat, author: boolean, closest: boolean): string {
-  const gap = seat.deviation === null ? "—" : `${seat.deviation.toFixed(2)} ATR`;
+  const gap = seat.deviation === null ? "—" : formatGap(seat.deviation);
   const mark = closest ? ` <b>${t().reader.closest}</b>` : "";
   const hue = author ? "" : ` style="--hue: var(--reader-${seat.id})"`;
   const name = t().readerName(seat.id);
@@ -100,12 +103,15 @@ function seatsMarkup(sheet: Sheet): string {
 function sheetMarkup(sheet: Sheet, url: string): string {
   const { record, accuracyPct } = sheet;
   const horizon = `${String(sheet.results.length * CANDLES_PER_STEP)} h`;
+  // What the sheet certifies is the gap, the same number the author's seat carries: the share of candle signs is a
+  // coin's number and stands below as a fact, not as the sentence (../docs/engine.md).
+  const gap = formatGap(sheet.gap);
   return `
 <article class="scroll">
   <header class="scroll-head">
     <span class="scroll-mark">TAROTALPHA</span>
     <h1 class="scroll-title">${t().scroll.title}</h1>
-    <p class="scroll-certify">${t().scroll.certify(record.id, record.asset, accuracyPct)}</p>
+    <p class="scroll-certify">${t().scroll.certify(record.id, record.asset, gap)}</p>
   </header>
   <div class="scroll-top">
     ${seatsMarkup(sheet)}
@@ -113,7 +119,7 @@ function sheetMarkup(sheet: Sheet, url: string): string {
       ${factMarkup(t().scroll.instrument, record.asset)}
       ${factMarkup(t().scroll.anchor, localDateTime(record.anchor_ts))}
       ${factMarkup(t().scroll.horizon, horizon)}
-      ${factMarkup(t().scroll.accuracy, `${String(accuracyPct)} %`)}
+      ${factMarkup(t().scroll.signs, `${String(accuracyPct)} %`)}
     </dl>
   </div>
   <div class="scroll-cards">${cardsMarkup(sheet.results)}</div>
@@ -200,14 +206,16 @@ class ScrollPage {
       return;
     }
     if (this.gone()) return;
-    const overall = accuracy(forecast, real);
-    if (overall.compared < results.length * CANDLES_PER_STEP) {
+    const unit = atr(snapshot);
+    const gap = deviation(forecast, real, unit);
+    // The sheet certifies the gap, so the gap is what has to be whole: every forecast candle answered by a real one.
+    if (gap.deviation === null || gap.compared < results.length * CANDLES_PER_STEP) {
       this.say(() => t().scroll.notRipe);
       return;
     }
-    const unit = atr(snapshot);
+    const overall = accuracy(forecast, real);
     const seats: Seat[] = [
-      { id: record.reader, deviation: deviation(forecast, real, unit).deviation },
+      { id: record.reader, deviation: gap.deviation },
       ...[...opinions].map(([id, steps]) => ({
         id,
         deviation: deviation(candlesOf(steps), real, unit).deviation,
@@ -220,6 +228,7 @@ class ScrollPage {
       opinions,
       real,
       accuracyPct: Math.round((overall.accuracy ?? 0) * 100),
+      gap: gap.deviation,
       seats,
       closest: closestOf(seats),
     };

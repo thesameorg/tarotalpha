@@ -244,14 +244,14 @@ export const ru = {
   scroll: {
     open: "Получить свиток",
     title: "Свиток",
-    certify: (id: string, asset: string, pct: number): string =>
-      `Настоящим удостоверяется, что расклад ${id} предсказал движение ${asset} на ${String(pct)} %`,
+    certify: (id: string, asset: string, gap: string): string =>
+      `Настоящим удостоверяется, что расклад ${id} прошёл в ${gap} от рынка ${asset}`,
     instrument: "Инструмент",
     anchor: "Якорь",
     reader: "Гадалка",
     readers: "Гадалки",
     horizon: "Горизонт",
-    accuracy: "Точность",
+    signs: "Знаки свечей",
     print: "Печать",
     reading: "К раскладу",
     notRipe: "Свиток выдаётся, когда закроется последняя свеча прогноза",
@@ -270,8 +270,8 @@ export const ru = {
     notYet: (closesAt: string): string => `Будущее ещё не наступило: первая свеча проверки закроется в ${closesAt}`,
     checkFailed: "Биржа не отвечает, проверка пророчества отложена",
     noCandles: "Биржа не отдала свечей за это время",
-    hit: (pct: number): string => `Пророчество сбылось на ${String(pct)} %`,
-    miss: (pct: number): string => `Рынок отверг пророчество: ${String(pct)} %`,
+    gap: (gap: string): string => `Прогноз прошёл в ${gap} от рынка`,
+    signs: (pct: number): string => `знак свечи угадан в ${String(pct)} % случаев — как у монеты`,
     final: "итог",
     interim: "промежуточно",
     praise: {
@@ -279,8 +279,8 @@ export const ru = {
       near: (name: string): string => `${name}: рядом с рынком`,
       far: (name: string): string => `${name}: мимо рынка`,
     },
-    stepLine: (day: number, pct: number | null): string =>
-      pct === null ? `день ${String(day)}: ещё не наступил` : `день ${String(day)}: ${String(pct)} %`,
+    stepLine: (day: number, gap: string | null): string =>
+      gap === null ? `день ${String(day)}: ещё не наступил` : `день ${String(day)}: ${gap}`,
   },
   summaryTitle: "Итог дня.",
   how: "Метод",

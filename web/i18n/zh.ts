@@ -217,14 +217,13 @@ export const zh: Dictionary = {
   scroll: {
     open: "领取卷轴",
     title: "卷轴",
-    certify: (id: string, asset: string, pct: number): string =>
-      `兹证明牌阵 ${id} 对 ${asset} 走势的预测准确率为 ${String(pct)} %`,
+    certify: (id: string, asset: string, gap: string): string => `兹证明牌阵 ${id} 与 ${asset} 行情相距 ${gap}`,
     instrument: "品种",
     anchor: "锚点",
     reader: "占卜师",
     readers: "占卜师",
     horizon: "预测周期",
-    accuracy: "准确率",
+    signs: "K 线方向",
     print: "打印",
     reading: "返回牌阵",
     notRipe: "预测的最后一根蜡烛收盘后方可领取卷轴",
@@ -243,8 +242,8 @@ export const zh: Dictionary = {
     notYet: (closesAt: string): string => `未来尚未到来：第一根待验证的蜡烛将于 ${closesAt} 收盘`,
     checkFailed: "交易所无响应，预言验证推迟",
     noCandles: "交易所没有返回这段时间的 K 线",
-    hit: (pct: number): string => `预言应验了 ${String(pct)} %`,
-    miss: (pct: number): string => `市场拒绝了预言：${String(pct)} %`,
+    gap: (gap: string): string => `预测与行情相距 ${gap}`,
+    signs: (pct: number): string => `K 线方向命中 ${String(pct)} % — 与抛硬币相当`,
     final: "最终",
     interim: "暂时",
     praise: {
@@ -252,8 +251,8 @@ export const zh: Dictionary = {
       near: (name: string): string => `${name}: 贴近市场`,
       far: (name: string): string => `${name}: 远离市场`,
     },
-    stepLine: (day: number, pct: number | null): string =>
-      pct === null ? `第 ${String(day)} 天：尚未到来` : `第 ${String(day)} 天：${String(pct)} %`,
+    stepLine: (day: number, gap: string | null): string =>
+      gap === null ? `第 ${String(day)} 天：尚未到来` : `第 ${String(day)} 天：${gap}`,
   },
   summaryTitle: "一句话看今天。",
   how: "方法",

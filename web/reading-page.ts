@@ -13,8 +13,8 @@ import {
   deviation,
   forecastFromCards,
   praise,
-  type Accuracy,
   type Candle,
+  type Praise,
   type StepResult,
 } from "../engine/index";
 import type { ReaderId } from "../engine/readers";
@@ -28,7 +28,7 @@ import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
 import { localDateTime, localTime, zoneLabel } from "./local-time-format";
 import { myReadingsNow } from "./my-readings";
-import { formatChange, formatPrice } from "./price-format";
+import { formatChange, formatGap, formatPrice } from "./price-format";
 import { createLineup, type Lineup } from "./reader-lineup";
 import { cancelReveal, playReveal } from "./reveal-overlay";
 import type { Navigate, View } from "./router";
@@ -60,11 +60,16 @@ interface Elements {
 }
 
 interface Verdict {
-  overall: Accuracy;
-  perStep: readonly Accuracy[];
+  /** The gap to the market in ATR of the snapshot: the number the day is judged by. */
+  gap: number;
+  word: Praise;
+  /** Share of forecast candles whose direction the market repeated — a coin's own number, kept as a footnote. */
+  signs: number;
+  compared: number;
+  /** The gap of each day of the reading; null for a day whose candles have not closed yet. */
+  perStep: readonly (number | null)[];
   total: number;
   reader: string;
-  deviation: number | null;
   /** The author and every reader bought a second opinion from, each with her own gap; empty when nobody was asked. */
   table: readonly Opinion[];
   closest: ReaderId | null;
@@ -136,38 +141,36 @@ function lookup(root: HTMLElement, toolbar: HTMLElement): Elements {
 
 const candlesOf = (steps: readonly StepResult[]): Candle[] => steps.flatMap((step) => step.candles);
 
-function percent(value: number | null): number | null {
-  return value === null ? null : Math.round(value * 100);
-}
-
 // Who came closest, in the gap the scoring uses; only drawn when somebody was asked besides the author, because a
 // table of one says nothing. ATR stays untranslated, like every other unit on the page.
 function tableMarkup(table: readonly Opinion[], closest: ReaderId | null): string {
   if (table.length < 2) return "";
   const cells = table
     .map((one) => {
-      const gap = one.deviation === null ? "—" : one.deviation.toFixed(2);
+      const gap = one.deviation === null ? "—" : formatGap(one.deviation);
       const mark = one.id === closest ? ` <b>${t().reader.closest}</b>` : "";
-      return `<span class="verdict-reader" style="--hue: var(--reader-${one.id})">${one.name} · ${gap} ATR${mark}</span>`;
+      return `<span class="verdict-reader" style="--hue: var(--reader-${one.id})">${one.name} · ${gap}${mark}</span>`;
     })
     .join("");
   return `<div class="verdict-readers">${cells}</div>`;
 }
 
-function verdictMarkup({ overall, perStep, total, reader, deviation, table, closest }: Verdict): string {
-  const pct = percent(overall.accuracy) ?? 0;
-  const hit = (overall.accuracy ?? 0) >= 0.5;
-  const title = hit ? t().prophecy.hit(pct) : t().prophecy.miss(pct);
-  const final = overall.compared === total;
+// The day is judged by how far the forecast ran from the market, not by how often it called the next hour up or
+// down: that share is a coin's, and a coin never reads as a good day or a bad one (../docs/engine.md).
+function verdictMarkup({ gap, word, signs, compared, perStep, total, reader, table, closest }: Verdict): string {
+  const hit = word !== "far";
+  const final = compared === total;
   const status = final ? t().prophecy.final : t().prophecy.interim;
   // Only a finished story is worth certifying: an interim number would be a document that changes tomorrow.
   const scroll = final ? `<button class="go scroll-go" type="button" id="scroll-go">${t().scroll.open}</button>` : "";
-  const word = deviation === null ? "" : ` · ${t().prophecy.praise[praise(deviation, overall.compared)](reader)}`;
-  const lines = perStep.map((step, index) => t().prophecy.stepLine(index + 1, percent(step.accuracy))).join(" · ");
+  const lines = perStep
+    .map((step, index) => t().prophecy.stepLine(index + 1, step === null ? null : formatGap(step)))
+    .join(" · ");
   return `<div class="verdict ${hit ? "hit" : "miss"}">
-  <div class="verdict-title">${title}</div>
-  <div class="verdict-sub">${status}${word}</div>
+  <div class="verdict-title">${t().prophecy.gap(formatGap(gap))}</div>
+  <div class="verdict-sub">${status} · ${t().prophecy.praise[word](reader)}</div>
   <div class="verdict-steps">${lines}</div>
+  <div class="verdict-signs">${t().prophecy.signs(Math.round(signs * 100))}</div>
   ${tableMarkup(table, closest)}
   <div class="verdict-legend">${t().prophecy.legend}</div>
   ${scroll}
@@ -435,12 +438,17 @@ class ReadingPage {
       results.flatMap((step) => step.candles),
       real,
     );
-    const perStep = results.map((step) => accuracy(step.candles, real));
+    const perStep = results.map((step) => deviation(step.candles, real, unit).deviation);
     const gap = deviation(
       results.flatMap((step) => step.candles),
       real,
       unit,
     );
+    // Candles that arrived but line up with none of the forecast are a hole in the exchange's history, not a verdict.
+    if (gap.deviation === null || overall.accuracy === null) {
+      this.setProphecy(el, { kind: "pending", text: () => t().prophecy.noCandles, retry: true });
+      return;
+    }
     const table: Opinion[] = [
       { id: record.reader, name: t().readerName(record.reader), deviation: gap.deviation },
       ...[...this.opinionSteps].map(([id, steps]) => ({
@@ -460,11 +468,13 @@ class ReadingPage {
     this.setProphecy(el, {
       kind: "verdict",
       verdict: {
-        overall,
+        gap: gap.deviation,
+        word: praise(gap.deviation, gap.compared),
+        signs: overall.accuracy,
+        compared: overall.compared,
         perStep,
         total,
         reader: t().readerName(record.reader),
-        deviation: gap.deviation,
         table,
         closest: closest?.id ?? null,
       },

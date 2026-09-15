@@ -249,14 +249,14 @@ export const pt: Dictionary = {
   scroll: {
     open: "Obter o pergaminho",
     title: "Pergaminho",
-    certify: (id: string, asset: string, pct: number): string =>
-      `Certifica-se que a leitura ${id} previu o movimento de ${asset} em ${String(pct)} %`,
+    certify: (id: string, asset: string, gap: string): string =>
+      `Certifica-se que a leitura ${id} passou a ${gap} do mercado de ${asset}`,
     instrument: "Instrumento",
     anchor: "Âncora",
     reader: "Cartomante",
     readers: "Cartomantes",
     horizon: "Horizonte",
-    accuracy: "Precisão",
+    signs: "Sinais das velas",
     print: "Imprimir",
     reading: "Para a leitura",
     notRipe: "O pergaminho é emitido quando fechar a última vela da previsão",
@@ -276,8 +276,8 @@ export const pt: Dictionary = {
       `O futuro ainda não chegou: o primeiro candle a verificar fecha às ${closesAt}`,
     checkFailed: "A corretora não responde, a verificação da profecia foi adiada",
     noCandles: "A corretora não devolveu velas desse período",
-    hit: (pct: number): string => `A profecia se cumpriu em ${String(pct)} %`,
-    miss: (pct: number): string => `O mercado rejeitou a profecia: ${String(pct)} %`,
+    gap: (gap: string): string => `A previsão passou a ${gap} do mercado`,
+    signs: (pct: number): string => `o sinal da vela acertou ${String(pct)} % — o número de uma moeda`,
     final: "final",
     interim: "parcial",
     praise: {
@@ -285,8 +285,8 @@ export const pt: Dictionary = {
       near: (name: string): string => `${name}: perto do mercado`,
       far: (name: string): string => `${name}: longe do mercado`,
     },
-    stepLine: (day: number, pct: number | null): string =>
-      pct === null ? `dia ${String(day)}: ainda não` : `dia ${String(day)}: ${String(pct)} %`,
+    stepLine: (day: number, gap: string | null): string =>
+      gap === null ? `dia ${String(day)}: ainda não chegou` : `dia ${String(day)}: ${gap}`,
   },
   summaryTitle: "O dia em uma linha.",
   how: "Método",
