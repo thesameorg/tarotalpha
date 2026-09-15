@@ -7,6 +7,16 @@ export function formatPrice(x: number): string {
   return x.toFixed(4);
 }
 
+/** The round step just above `raw`: 1, 2 or 5 times a power of ten, the steps a price scale has always used.
+ *  A range with no height still asks for one, and gets the smallest. */
+export function roundStep(raw: number): number {
+  if (!(raw > 0)) return 1;
+  const magnitude = 10 ** Math.floor(Math.log10(raw));
+  const scaled = raw / magnitude;
+  const step = scaled > 5 ? 10 : scaled > 2 ? 5 : scaled > 1 ? 2 : 1;
+  return step * magnitude;
+}
+
 /** Price-scale step with the same number of decimals `formatPrice` shows around `x`. */
 export function priceMinMove(x: number): number {
   if (x >= 1000) return 1;
