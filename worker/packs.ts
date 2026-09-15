@@ -25,11 +25,11 @@ export const FIRST_BUY_BONUS = 2;
 
 // Twenty mana to the dollar at the bottom rung, then a bonus that grows with the lot, so every step up reads as the
 // better deal. Names come from a trading desk, not from tarot: the joke of this product is the contrast.
+// Three lots and the endless one: a shelf is chosen at a glance, and what a lot leaving it costs is in wallet.md.
 export const PACKS: readonly Pack[] = [
   { id: "micro", mana: 40, cents: 199, stars: 120 },
   { id: "standard", mana: 125, cents: 499, stars: 300 },
   { id: "block", mana: 300, cents: 999, stars: 600 },
-  { id: "margin", mana: 800, cents: 1999, stars: 1200 },
   { id: ENDLESS_PACK, mana: 0, cents: 9999, stars: 6000, unlimited: true },
 ];
 

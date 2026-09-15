@@ -135,12 +135,11 @@ describe("the shelf", () => {
 });
 
 describe("the shelf", () => {
-  it("sells five lots, the last of them an endless purse", () => {
+  it("sells four lots, the last of them an endless purse", () => {
     expect(PACKS.map((pack) => [pack.id, pack.mana, pack.cents, pack.stars])).toEqual([
       ["micro", 40, 199, 120],
       ["standard", 125, 499, 300],
       ["block", 300, 999, 600],
-      ["margin", 800, 1999, 1200],
       [ENDLESS_PACK, 0, 9999, 6000],
     ]);
     expect(PACKS.filter((pack) => pack.unlimited === true).map((pack) => pack.id)).toEqual([ENDLESS_PACK]);

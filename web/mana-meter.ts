@@ -158,7 +158,7 @@ export function initManaPanel(): void {
   });
   document.getElementById("mana-panel-buy")?.addEventListener("click", () => {
     close();
-    openPaywall();
+    openPaywall("topup");
   });
   document.getElementById("mana-panel-invite")?.addEventListener("click", () => {
     void myInviteLink()
