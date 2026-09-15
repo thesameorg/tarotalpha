@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { HOUR_MS, SNAPSHOT_LENGTH, fetchAfter, fetchSnapshot, lastClosedAnchor } from "./closed-candles";
+import { HOUR_MS, SNAPSHOT_LENGTH, fetchAfter, fetchBefore, fetchSnapshot, lastClosedAnchor } from "./closed-candles";
 import { ExchangeError } from "./provider";
 
 const ANCHOR = 1_789_020_000_000;
@@ -131,5 +131,17 @@ describe("fetchAfter", () => {
     const now = ANCHOR + 3 * HOUR_MS + 10;
     const real = await fetchAfter("BTCUSDT", ANCHOR, 24, "binance", now);
     expect(real.map((candle) => candle.t)).toEqual([ANCHOR + HOUR_MS, ANCHOR + 2 * HOUR_MS]);
+  });
+});
+
+describe("fetchBefore", () => {
+  it("asks for the hours before the window and keeps nothing from inside it", async () => {
+    stubFetch((url) => {
+      expect(url.searchParams.get("endTime")).toBe(String(ANCHOR - 1));
+      expect(url.searchParams.get("startTime")).toBeNull();
+      return jsonResponse(binanceRows(3, ANCHOR));
+    });
+    const past = await fetchBefore("BTCUSDT", ANCHOR, 168, "binance");
+    expect(past.map((candle) => candle.t)).toEqual([ANCHOR - 2 * HOUR_MS, ANCHOR - HOUR_MS]);
   });
 });

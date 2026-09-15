@@ -18,7 +18,7 @@ import {
   type StepResult,
 } from "../engine/index";
 import type { ReaderId } from "../engine/readers";
-import { fetchAfter, HOUR_MS } from "../exchange/closed-candles";
+import { fetchAfter, fetchBefore, HOUR_MS } from "../exchange/closed-candles";
 import { ApiError, fetchReading, postEvent, type ReadingRecord } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
 import { createCoinPicker, type CoinPicker } from "./coin-picker";
@@ -400,6 +400,7 @@ class ReadingPage {
     results: StepResult[],
     record: ReadingRecord,
   ): Promise<void> {
+    chart.setHistorySource((beforeMs, limit) => fetchBefore(record.asset, beforeMs, limit, record.source));
     await chart.showSnapshot(snapshot, false);
     if (this.gone()) return;
     // Where the spread of one reading is counted. The author reopens their own from "my readings" to watch it ripen,

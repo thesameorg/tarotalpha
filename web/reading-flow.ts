@@ -10,7 +10,7 @@
  */
 import { computeSteps, forecastFromCards, MAX_STEPS, type Candle, type StepResult } from "../engine/index";
 import type { ReaderId } from "../engine/readers";
-import { ASSET_PATTERN, fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
+import { ASSET_PATTERN, fetchBefore, fetchSnapshot, lastClosedAnchor } from "../exchange/closed-candles";
 import { ExchangeError, type Source } from "../exchange/provider";
 import { ApiError, createReading, extendReading, fetchReading, postEvent } from "./api";
 import { createCandleChart, type CandleChart } from "./chart";
@@ -446,6 +446,7 @@ class LandingPage {
     this.showLineup();
     this.chartState(null, false);
 
+    this.chart.setHistorySource((beforeMs, limit) => fetchBefore(asset, beforeMs, limit, snapshot.source));
     await this.chart.showSnapshot(candles, true);
     if (stale()) return;
     this.enableDraw(true);
@@ -487,6 +488,7 @@ class LandingPage {
     showExchangeLogo(this.el.srcLogo, record.source);
     this.showPrice();
     this.chartState(null, false);
+    this.chart.setHistorySource((beforeMs, limit) => fetchBefore(record.asset, beforeMs, limit, record.source));
     await this.chart.showSnapshot(snapshot, false);
     if (stale()) return true;
     this.chart.setSteps(steps.length);

@@ -5,7 +5,8 @@
  * from the theme's CSS variables and are re-applied on a theme switch; the locale follows the interface language.
  * The library has no timezone, so candle times are shifted by the viewer's offset before they go in: day ticks
  * then land on local midnight and labels read as local wall clock. The frame holds around the anchor: 72 real
- * candles on the left, on the right three days or one past the open ones.
+ * candles on the left, on the right three days or one past the open ones. Dragged left of the snapshot, the chart
+ * pulls earlier candles from the exchange: that past is drawn only, it never reaches the engine or a stored reading.
  */
 import {
   CandlestickSeries,
@@ -19,6 +20,7 @@ import {
   type IChartApi,
   type ISeriesApi,
   type Time,
+  type LogicalRange,
   type TimeChartOptions,
   type UTCTimestamp,
 } from "lightweight-charts";
@@ -45,6 +47,10 @@ const OVERLAY_PRICES = "(max-width: 640px)";
 const REAL_VISIBLE = 72;
 const MIN_REAL_VISIBLE = 24;
 const PX_PER_BAR = 4.5;
+// The past comes a week at a time, and the pull starts a dozen candles before the edge, so the bars are already
+// there when the drag reaches them.
+const HISTORY_CHUNK = 168;
+const HISTORY_EDGE = 12;
 const TRANSPARENT = "rgba(0,0,0,0)";
 
 type Bar = CandlestickData;
@@ -53,8 +59,14 @@ type Bar = CandlestickData;
 const futureVisible = (steps: number): number =>
   Math.min(MAX_STEPS, Math.max(MIN_FORECAST_DAYS, steps + 1)) * CANDLES_PER_STEP + 3;
 
+/** Ascending 1H candles ending before `beforeMs`, at most `limit`; an empty list when the exchange has no more. */
+export type HistorySource = (beforeMs: number, limit: number) => Promise<readonly Candle[]>;
+
 export interface CandleChart {
   showSnapshot(candles: readonly Candle[], animate: boolean): Promise<void>;
+  /** Where the chart takes its past when the viewer drags left of the snapshot; it is asked about that snapshot's
+   *  own candles, so it is set beside it. Without a source the chart stops at the snapshot's left edge. */
+  setHistorySource(load: HistorySource | null): void;
   setSteps(count: number): void;
   appendForecast(candle: Candle): void;
   setForecast(candles: readonly Candle[]): void;
@@ -216,7 +228,15 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
   const unsubscribeLang = onLangChange(relocale);
 
   let anchor: UTCTimestamp | null = null;
-  let snapshotLength = 0;
+  let snapshotBars: Bar[] = [];
+  // Earlier candles pulled in on a drag; they stand left of the snapshot and belong to no reading.
+  let historyBars: Bar[] = [];
+  let oldestMs = 0;
+  let historySource: HistorySource | null = null;
+  let pulling = false;
+  let pastEnded = false;
+  // Fresh data starts out fully in view, edge and all, and that is the library's layout rather than anybody's drag.
+  let framed = false;
   let future = futureVisible(0);
   let generation = 0;
   // One offset per snapshot, taken at the anchor: a per-candle offset could double a time across a DST switch.
@@ -231,14 +251,15 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
 
   // Frame: the anchor near the middle, 72 real candles left of it (fewer on a narrow screen), the forecast days right.
   const frame = (): void => {
-    if (snapshotLength === 0) return;
-    const anchorIndex = snapshotLength - 1;
+    if (snapshotBars.length === 0) return;
+    const anchorIndex = historyBars.length + snapshotBars.length - 1;
     const fits = Math.floor(chart.timeScale().width() / PX_PER_BAR) - future;
     const visibleReal = Math.min(REAL_VISIBLE, Math.max(MIN_REAL_VISIBLE, fits));
     chart.timeScale().setVisibleLogicalRange({
       from: anchorIndex - visibleReal + 0.5,
       to: anchorIndex + future + 0.5,
     });
+    framed = true;
   };
 
   let lastWidth = container.clientWidth;
@@ -249,6 +270,43 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
   });
   observer.observe(container);
 
+  const pullHistory = (): void => {
+    if (historySource === null || pulling || pastEnded || !framed) return;
+    pulling = true;
+    const mine = generation;
+    void historySource(oldestMs, HISTORY_CHUNK)
+      .then((candles) => {
+        const first = candles[0];
+        if (mine !== generation) return;
+        if (first === undefined) {
+          pastEnded = true;
+          return;
+        }
+        oldestMs = first.t;
+        const held = chart.timeScale().getVisibleLogicalRange();
+        historyBars = [...candles.map(toBar), ...historyBars];
+        real.setData([...historyBars, ...snapshotBars]);
+        // Bars are numbered from the left and the view is held by number, so without the shift the chart would
+        // jump a chunk deeper into the past under the viewer's finger.
+        if (held !== null) {
+          const shift = candles.length;
+          chart.timeScale().setVisibleLogicalRange({ from: held.from + shift, to: held.to + shift });
+        }
+      })
+      .catch(() => {
+        // The exchange refused; every further drag would ask again and hammer it, so the past ends here.
+        pastEnded = true;
+      })
+      .finally(() => {
+        pulling = false;
+      });
+  };
+
+  const onRange = (range: LogicalRange | null): void => {
+    if (range !== null && range.from <= HISTORY_EDGE) pullHistory();
+  };
+  chart.timeScale().subscribeVisibleLogicalRangeChange(onRange);
+
   const drawIn = (bars: Bar[], mine: number): Promise<void> =>
     new Promise((resolve) => {
       const start = performance.now();
@@ -258,7 +316,7 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
           return;
         }
         const shown = Math.min(bars.length, Math.floor((now - start) / DRAW_MS_PER_CANDLE) + 1);
-        real.setData([...bars.slice(0, shown), ...bars.slice(shown).map(toHidden)]);
+        real.setData([...historyBars, ...bars.slice(0, shown), ...bars.slice(shown).map(toHidden)]);
         if (shown < bars.length) requestAnimationFrame(tick);
         else resolve();
       };
@@ -300,7 +358,11 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
       const mine = ++generation;
       const last = candles[candles.length - 1];
       if (last === undefined) return;
-      snapshotLength = candles.length;
+      // A new snapshot is a new instrument or a new anchor: the past drawn for the old one says nothing here.
+      historyBars = [];
+      pastEnded = false;
+      framed = false;
+      oldestMs = candles[0]?.t ?? last.t;
       offsetMs = localOffsetMs(last.t);
       anchor = toTime(last.t);
       forecast.setData([]);
@@ -316,16 +378,24 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
       future = futureVisible(0);
       applyPriceFormat(last.c);
       const bars = candles.map(toBar);
+      snapshotBars = bars;
       if (!animate || reducedMotion()) {
         real.setData(bars);
         frame();
       } else {
         real.setData(bars.map(toHidden));
         frame();
+        // The draw-in owns the series while it runs: a chunk landing between its frames would show every bar it
+        // has not reached yet, and the next frame would hide them again.
+        framed = false;
         await drawIn(bars, mine);
         if (mine !== generation) return;
+        framed = true;
       }
       pulse.setPoint({ time: anchor, price: last.c });
+    },
+    setHistorySource(load) {
+      historySource = load;
     },
     setSteps(count) {
       zone.setAnchor(anchor, count);
@@ -388,6 +458,7 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
     },
     remove() {
       generation++;
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(onRange);
       unsubscribeTheme();
       unsubscribeLang();
       narrow.removeEventListener("change", fitPrices);
