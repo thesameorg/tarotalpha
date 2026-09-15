@@ -497,7 +497,7 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "table",
-          "query": "SELECT blob16 AS reading, count(DISTINCT blob2) AS visitors, SUM(_sample_interval) AS opens FROM tarotalpha WHERE $timeFilter AND blob1 = 'chart_loaded' AND blob16 != '' GROUP BY reading ORDER BY visitors DESC LIMIT 50"
+          "query": "SELECT blob16 AS reading, count(DISTINCT blob2) AS visitors, SUM(_sample_interval) AS opens FROM tarotalpha WHERE $timeFilter AND blob1 = 'chart_loaded' AND blob17 = 'link' GROUP BY reading ORDER BY visitors DESC LIMIT 50"
         }
       ],
       "fieldConfig": {
@@ -509,7 +509,7 @@
       "options": {
         "showHeader": true
       },
-      "description": "Открытие чужой ссылки, а не своего расклада: на `/r/:id` событие несёт id, на своей вкладке — нет."
+      "description": "Только чужие открытия: автор перезаходит смотреть, как зреет его расклад, и такие открытия помечены `own`."
     }
   ]
 }

@@ -35,8 +35,10 @@ let loaded: Shelf | null = null;
 let chosen: string | null = null;
 let offered: ChainOffer | null = null;
 let polling: number | null = null;
+let settled = false;
 
 export function openPaywall(): void {
+  settled = false;
   postEvent({ type: "paywall_shown" });
   modal().classList.add("on");
   show("packs");
@@ -272,6 +274,10 @@ function boughtEndless(): boolean {
 
 function done(balance: number, gained: number, endless: boolean): void {
   stopPolling();
+  // A claim in flight can answer after the poll that closed the screen, and an offer already paid answers with a
+  // balance rather than a refusal — without this the same purchase would land in the journal twice.
+  if (settled) return;
+  settled = true;
   // Where both rails meet: the Worker learns a star payment from Telegram's own request, which carries neither this
   // visit nor this buyer's country, so the purchase is reported from here. What was actually paid lives in D1.
   postEvent({ type: "paid", detail: chosen ?? undefined, cost: endless ? undefined : gained });

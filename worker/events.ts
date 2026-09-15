@@ -41,12 +41,12 @@ export async function postEvent(request: Request, env: Env): Promise<Response> {
   return new Response(null, { status: 204 });
 }
 
-// The browser names which lot was bought; what it costs is the shelf's number, not the buyer's. So a purchase
-// arrives without a sum and leaves with one, and nobody can report revenue they did not pay.
+// The browser names which lot was bought; the price is the shelf's number, not the buyer's. The mana it credited
+// is dropped: the first-buy bonus makes it unequal to the lot, so nothing here can check it (docs/analytics.md).
 function priced(event: EventPoint): EventPoint {
   if (event.type !== "paid") return event;
   const pack = packById(event.detail);
-  return pack === null ? event : { ...event, amount: pack.cents };
+  return { ...event, cost: null, amount: pack?.cents ?? null };
 }
 
 async function parseEventBody(request: Request): Promise<EventPoint> {

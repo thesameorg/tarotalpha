@@ -111,15 +111,27 @@ describe("POST /api/omen", () => {
 
   it("prices a reported purchase off the shelf, so nobody reports revenue they did not pay", async () => {
     const funnel = journal();
-    const posted = await callApi("/api/omen", omen({ type: "paid", detail: "micro", cost: 40 }), {
+    const posted = await callApi("/api/omen", omen({ type: "paid", detail: "micro", cost: 999 }), {
       ANALYTICS: funnel.dataset,
     });
 
     expect(posted.status).toBe(204);
     const [point] = funnel.points;
     expect(point?.blobs?.[16]).toBe("micro");
-    expect(point?.doubles?.[4]).toBe(40);
     expect(point?.doubles?.[5]).toBe(199);
+    // The mana a purchase credits is not the shelf's number — the first-buy bonus multiplies it — so the Worker
+    // cannot check what the browser claims and drops it rather than mixing it with real spending.
+    expect(point?.doubles?.[4]).toBe(-1);
+  });
+
+  it("writes nothing and keeps quiet when a lot has left the shelf", async () => {
+    const funnel = journal();
+    const posted = await callApi("/api/omen", omen({ type: "paid", detail: "gone-last-year" }), {
+      ANALYTICS: funnel.dataset,
+    });
+
+    expect(posted.status).toBe(204);
+    expect(funnel.points[0]?.doubles?.[5]).toBe(-1);
   });
 
   it("rejects the event types only the server may write", async () => {

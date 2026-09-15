@@ -47,7 +47,16 @@ const FIELD_MAX = 64;
 const SOURCE_MAX = 96;
 const UNKNOWN = "unknown";
 
+/** Never throws. A lost funnel row must not cost a reading, an offer or a payment that already went through. */
 export function writeEvent(dataset: AnalyticsEngineDataset, request: Request, event: EventPoint): void {
+  try {
+    point(dataset, request, event);
+  } catch (error: unknown) {
+    console.error(error);
+  }
+}
+
+function point(dataset: AnalyticsEngineDataset, request: Request, event: EventPoint): void {
   const visit = new URLSearchParams(request.headers.get(VISIT_HEADER) ?? "");
   // Only the edge ever calls the Worker, and there `cf` is the incoming request's own properties.
   const cf = request.cf as IncomingRequestCfProperties | undefined;

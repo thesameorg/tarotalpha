@@ -511,7 +511,7 @@
           "skip_comments": true,
           "intervalFactor": 1,
           "format": "table",
-          "query": "SELECT blob1 AS event, SUM(double5) AS mana, SUM(_sample_interval) AS times FROM tarotalpha WHERE $timeFilter AND double5 > 0 GROUP BY event ORDER BY mana DESC"
+          "query": "SELECT blob1 AS event, SUM(double5) AS mana, SUM(_sample_interval) AS times FROM tarotalpha WHERE $timeFilter AND double5 > 0 AND blob1 IN ('step_opened', 'opinion_asked') GROUP BY event ORDER BY mana DESC"
         }
       ],
       "fieldConfig": {
