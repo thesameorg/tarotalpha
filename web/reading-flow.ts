@@ -578,6 +578,7 @@ class LandingPage {
     // Bought. Another instrument may have taken the screen while the purse answered, and she still belongs to this
     // reading: the row keeps her, and the chart is only redrawn if this reading is still the one on it.
     loaded.opinions.set(id, steps);
+    postEvent({ type: "opinion_asked", asset: loaded.asset, step: loaded.steps.length });
     if (this.loaded === loaded) {
       this.takeOpinions(loaded);
       // Drawn in, not switched on: three mana are worth watching arrive. A day still flowing in draws the lines
