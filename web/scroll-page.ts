@@ -1,10 +1,11 @@
 /**
- * The scroll at /s/:id: one sheet that certifies what a ripened reading foretold — the certifying line, the table
- * that read it with each reader's gap, the facts of the reading, the cards of every day, the chart under them and a
- * QR back. A permanent link, so it is a page and not a file: print makes the PDF on one A4 leaf, and text stays text
- * in all eleven languages. Nothing is stored for it — the reading in D1 and the exchange's own candles are the whole
- * document, and the sheet is only drawn when every forecast candle has a real one to compare against.
- * Why a scroll is a link and what the list does with it: docs/reading-lifecycle.md
+ * The scroll at /s/:id: one sheet that certifies what a reading foretold — the certifying line, the table that read
+ * it with each reader's gap, the facts of the reading, the cards of every day, the chart under them and a QR back.
+ * The sheet is drawn at any age of the reading and names the age it was drawn in: with no real candle yet it is the
+ * promise alone, with some of them the check under way, with all of them the verdict. A permanent link, so it is a
+ * page and not a file: print makes the PDF on one A4 leaf, and text stays text in all eleven languages. Nothing is
+ * stored for it — the reading in D1 and the exchange's own candles are the whole document.
+ * Why a scroll is a link, what its three ages are and what the list does with it: docs/reading-lifecycle.md
  */
 import {
   accuracy,
@@ -16,7 +17,7 @@ import {
   type StepResult,
 } from "../engine/index";
 import { cardById } from "../engine/deck";
-import { fetchAfter } from "../exchange/closed-candles";
+import { fetchAfter, HOUR_MS } from "../exchange/closed-candles";
 import type { ReaderId } from "../engine/readers";
 import { ApiError, fetchReading, postEvent, type ReadingRecord } from "./api";
 import { cardImageUrl } from "./card-image";
@@ -30,16 +31,22 @@ import { readerAvatarUrl } from "./reader-choice";
 import type { Navigate, View } from "./router";
 import { candlesByReader, opinionLines } from "./second-opinion";
 
+/** Which of its three ages a sheet was drawn in; the reading passes through all of them and the link stays one. */
+type Stage = "forecast" | "interim" | "final";
+
 interface Sheet {
   record: ReadingRecord;
   snapshot: Candle[];
   results: StepResult[];
   opinions: Map<ReaderId, StepResult[]>;
   real: Candle[];
-  /** Share of forecast candles whose direction the market repeated, already in percent. */
-  accuracyPct: number;
-  /** The author's gap to the market in ATR of the snapshot: what the sheet certifies. */
-  gap: number;
+  stage: Stage;
+  /** When the sheet was put together: a leaf that says different things on different days has to carry its date. */
+  drawnAt: number;
+  /** Share of forecast candles whose direction the market repeated, already in percent; null on a forecast sheet. */
+  accuracyPct: number | null;
+  /** The author's gap to the market in ATR of the snapshot: what the sheet certifies; null on a forecast sheet. */
+  gap: number | null;
   /** Everyone who read this reading, the author first, each with her gap to the market. */
   seats: Seat[];
   /** Whose gap is the smallest; null when nobody could be measured. */
@@ -73,6 +80,12 @@ function cardsMarkup(results: readonly StepResult[]): string {
 
 const candlesOf = (steps: readonly StepResult[]): Candle[] => steps.flatMap((step) => step.candles);
 
+// One number tells the three ages apart: how many forecast candles already have a real one of the same hour.
+function stageOf(compared: number, total: number): Stage {
+  if (compared === 0) return "forecast";
+  return compared < total ? "interim" : "final";
+}
+
 function closestOf(seats: readonly Seat[]): ReaderId | null {
   const best = seats.reduce<Seat | null>(
     (won, seat) => (seat.deviation !== null && (won?.deviation ?? Infinity) > seat.deviation ? seat : won),
@@ -82,13 +95,14 @@ function closestOf(seats: readonly Seat[]): ReaderId | null {
 }
 
 // The table of the reading in the colours of the chart below: the author drew the candles, everyone bought after
-// her drew a line of her own hue. The gap is the one the scoring counts, so the sheet ranks them like the verdict.
+// her drew a line of her own hue. The gap is the one the scoring counts, so the sheet ranks them like the verdict;
+// before the first real candle nobody has one, and the row is then names and colours alone.
 function seatMarkup(seat: Seat, author: boolean, closest: boolean): string {
-  const gap = seat.deviation === null ? "—" : formatGap(seat.deviation);
   const mark = closest ? ` <b>${t().reader.closest}</b>` : "";
+  const gap = seat.deviation === null ? "" : `<span>${formatGap(seat.deviation)}${mark}</span>`;
   const hue = author ? "" : ` style="--hue: var(--reader-${seat.id})"`;
   const name = t().readerName(seat.id);
-  return `<div class="scroll-seat${author ? " author" : ""}"${hue}><img src="${readerAvatarUrl(seat.id)}" alt=""><div class="scroll-seat-text"><b>${name}</b><span>${gap}${mark}</span></div></div>`;
+  return `<div class="scroll-seat${author ? " author" : ""}"${hue}><img src="${readerAvatarUrl(seat.id)}" alt=""><div class="scroll-seat-text"><b>${name}</b>${gap}</div></div>`;
 }
 
 function seatsMarkup(sheet: Sheet): string {
@@ -101,17 +115,22 @@ function seatsMarkup(sheet: Sheet): string {
 }
 
 function sheetMarkup(sheet: Sheet, url: string): string {
-  const { record, accuracyPct } = sheet;
+  const { record, gap, accuracyPct } = sheet;
   const horizon = `${String(sheet.results.length * CANDLES_PER_STEP)} h`;
-  // What the sheet certifies is the gap, the same number the author's seat carries: the share of candle signs is a
-  // coin's number and stands below as a fact, not as the sentence (../docs/engine.md).
-  const gap = formatGap(sheet.gap);
+  // What a checked sheet certifies is the gap, the same number the author's seat carries: the share of candle signs
+  // is a coin's number and stands below as a fact, not as the sentence (../docs/engine.md). A sheet drawn before the
+  // first real candle has neither and certifies the promise instead — and says so, with the date it was drawn.
+  const certify =
+    gap === null
+      ? t().scroll.foretell(record.id, record.asset)
+      : t().scroll.certify(record.id, record.asset, formatGap(gap));
+  const stamp = t().scroll.drawn(t().scroll.stage[sheet.stage], localDateTime(sheet.drawnAt));
   return `
 <article class="scroll">
   <header class="scroll-head">
     <span class="scroll-mark">TAROTALPHA</span>
     <h1 class="scroll-title">${t().scroll.title}</h1>
-    <p class="scroll-certify">${t().scroll.certify(record.id, record.asset, gap)}</p>
+    <p class="scroll-certify">${certify}<span class="scroll-stamp">${stamp}</span></p>
   </header>
   <div class="scroll-top">
     ${seatsMarkup(sheet)}
@@ -119,7 +138,7 @@ function sheetMarkup(sheet: Sheet, url: string): string {
       ${factMarkup(t().scroll.instrument, record.asset)}
       ${factMarkup(t().scroll.anchor, localDateTime(record.anchor_ts))}
       ${factMarkup(t().scroll.horizon, horizon)}
-      ${factMarkup(t().scroll.signs, `${String(accuracyPct)} %`)}
+      ${accuracyPct === null ? "" : factMarkup(t().scroll.signs, `${String(accuracyPct)} %`)}
     </dl>
   </div>
   <div class="scroll-cards">${cardsMarkup(sheet.results)}</div>
@@ -183,8 +202,9 @@ class ScrollPage {
     await this.measure(record);
   }
 
-  // A scroll certifies a finished story, so it needs every forecast candle answered by a real one. Anything less —
-  // a reading still ripening, an exchange with a hole in its history — is not a document, and says so.
+  // How many forecast candles already have a real pair names the age the sheet is drawn in. Nothing to compare once
+  // the first forecast candle has closed is a hole in the exchange's history and not a promise, so the leaf is not
+  // drawn at all: a settled reading passed off as a fresh promise is the document this one must never be.
   private async measure(record: ReadingRecord): Promise<void> {
     const snapshot: Candle[] = record.candles_snapshot.map(([t, o, h, l, c]) => ({ t, o, h, l, c }));
     const results = forecastFromCards({
@@ -208,11 +228,11 @@ class ScrollPage {
     if (this.gone()) return;
     const unit = atr(snapshot);
     const gap = deviation(forecast, real, unit);
-    // The sheet certifies the gap, so the gap is what has to be whole: every forecast candle answered by a real one.
-    if (gap.deviation === null || gap.compared < results.length * CANDLES_PER_STEP) {
-      this.say(() => t().scroll.notRipe);
+    if (gap.compared === 0 && Date.now() >= record.anchor_ts + 2 * HOUR_MS) {
+      this.say(() => t().prophecy.noCandles);
       return;
     }
+    const stage = stageOf(gap.compared, results.length * CANDLES_PER_STEP);
     const overall = accuracy(forecast, real);
     const seats: Seat[] = [
       { id: record.reader, deviation: gap.deviation },
@@ -227,15 +247,18 @@ class ScrollPage {
       results,
       opinions,
       real,
-      accuracyPct: Math.round((overall.accuracy ?? 0) * 100),
+      stage,
+      drawnAt: Date.now(),
+      accuracyPct: overall.accuracy === null ? null : Math.round(overall.accuracy * 100),
       gap: gap.deviation,
       seats,
       closest: closestOf(seats),
     };
     this.message = null;
     this.paint();
-    void markScrolled(record.id);
-    postEvent({ type: "scroll_opened", asset: record.asset, reading_id: record.id });
+    // The list says "scroll" instead of "ripe", and that word means the road is over: only the last sheet ends it.
+    if (stage === "final") void markScrolled(record.id);
+    postEvent({ type: "scroll_opened", asset: record.asset, reading_id: record.id, detail: stage });
   }
 
   private say(message: () => string): void {

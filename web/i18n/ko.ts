@@ -230,6 +230,10 @@ export const ko: Dictionary = {
     title: "두루마리",
     certify: (id: string, asset: string, gap: string): string =>
       `본 문서는 리딩 ${id} 이(가) ${asset} 시장에서 ${gap} 벗어나 움직였음을 증명합니다`,
+    foretell: (id: string, asset: string): string =>
+      `본 문서는 리딩 ${id} 이(가) ${asset} 시장에 대해 아래 그려진 흐름을 예고했음을 증명합니다`,
+    stage: { forecast: "예측", interim: "중간", final: "결과" },
+    drawn: (stage: string, at: string): string => `${stage} · ${at} 기준으로 작성됨`,
     instrument: "종목",
     anchor: "기준점",
     reader: "점술가",
@@ -238,7 +242,6 @@ export const ko: Dictionary = {
     signs: "봉의 방향",
     print: "인쇄",
     reading: "리딩으로",
-    notRipe: "예측의 마지막 캔들이 마감되면 두루마리가 발급됩니다",
     made: "두루마리",
   },
   mine: {

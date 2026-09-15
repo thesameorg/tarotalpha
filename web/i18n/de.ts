@@ -255,6 +255,10 @@ export const de: Dictionary = {
     title: "Schriftrolle",
     certify: (id: string, asset: string, gap: string): string =>
       `Hiermit wird bescheinigt: Legung ${id} lag ${gap} neben dem Markt ${asset}`,
+    foretell: (id: string, asset: string): string =>
+      `Hiermit wird bescheinigt: Legung ${id} verspricht dem Markt ${asset}, was unten gezeichnet ist`,
+    stage: { forecast: "Prognose", interim: "Zwischenstand", final: "Ergebnis" },
+    drawn: (stage: string, at: string): string => `${stage} · Blatt erstellt am ${at}`,
     instrument: "Instrument",
     anchor: "Anker",
     reader: "Kartenlegerin",
@@ -263,7 +267,6 @@ export const de: Dictionary = {
     signs: "Kerzenrichtung",
     print: "Drucken",
     reading: "Zur Legung",
-    notRipe: "Die Schriftrolle wird ausgestellt, sobald die letzte Prognosekerze geschlossen hat",
     made: "Schriftrolle",
   },
   mine: {

@@ -240,6 +240,10 @@ export const tr: Dictionary = {
     title: "Tomar",
     certify: (id: string, asset: string, gap: string): string =>
       `İşbu belge, ${id} açılımının ${asset} piyasasından ${gap} uzaktan geçtiğini onaylar`,
+    foretell: (id: string, asset: string): string =>
+      `İşbu belge, ${id} açılımının ${asset} piyasasına aşağıda çizileni vaat ettiğini onaylar`,
+    stage: { forecast: "tahmin", interim: "ara", final: "sonuç" },
+    drawn: (stage: string, at: string): string => `${stage} · sayfa ${at} tarihinde düzenlendi`,
     instrument: "Enstrüman",
     anchor: "Çıpa",
     reader: "Falcı",
@@ -248,7 +252,6 @@ export const tr: Dictionary = {
     signs: "Mum yönü",
     print: "Yazdır",
     reading: "Açılıma dön",
-    notRipe: "Tomar, tahminin son mumu kapandığında verilir",
     made: "tomar",
   },
   mine: {

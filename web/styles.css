@@ -2402,6 +2402,16 @@ footer {
   line-height: 1.5;
   unicode-bidi: plaintext;
 }
+/* The same link says different things on different days, so the sheet dates itself and names its age under the
+   sentence — quieter than it, in the terminal's own type, and printed on every leaf. */
+.scroll-stamp {
+  display: block;
+  margin-top: 5px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--paper-dim);
+}
 /* The head of the sheet: who read it on the left, what was read on the right. A seat wears the colour of its
    reader's line on the chart below; the author drew the candles and keeps the sheet's gold. */
 .scroll-top {
@@ -2628,6 +2638,10 @@ footer {
   }
   .scroll-certify {
     font-size: 13px;
+  }
+  .scroll-stamp {
+    font-size: 9px;
+    margin-top: 3px;
   }
   .scroll-head {
     padding-bottom: 8px;

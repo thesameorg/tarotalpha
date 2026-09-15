@@ -254,6 +254,10 @@ export const en: Dictionary = {
     title: "Scroll",
     certify: (id: string, asset: string, gap: string): string =>
       `This is to certify that reading ${id} ran ${gap} wide of the ${asset} market`,
+    foretell: (id: string, asset: string): string =>
+      `This is to certify that reading ${id} promises the ${asset} market what is drawn below`,
+    stage: { forecast: "forecast", interim: "interim", final: "final" },
+    drawn: (stage: string, at: string): string => `${stage} · sheet drawn up ${at}`,
     instrument: "Instrument",
     anchor: "Anchor",
     reader: "Reader",
@@ -262,7 +266,6 @@ export const en: Dictionary = {
     signs: "Candle signs",
     print: "Print",
     reading: "To the reading",
-    notRipe: "The scroll is issued once the last forecast candle has closed",
     made: "scroll",
   },
   mine: {

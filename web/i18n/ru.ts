@@ -249,6 +249,10 @@ export const ru = {
     title: "Свиток",
     certify: (id: string, asset: string, gap: string): string =>
       `Настоящим удостоверяется, что расклад ${id} прошёл в ${gap} от рынка ${asset}`,
+    foretell: (id: string, asset: string): string =>
+      `Настоящим удостоверяется, что расклад ${id} обещает рынку ${asset} то, что нарисовано ниже`,
+    stage: { forecast: "прогноз", interim: "промежуточный", final: "итог" },
+    drawn: (stage: string, at: string): string => `${stage} · лист собран ${at}`,
     instrument: "Инструмент",
     anchor: "Якорь",
     reader: "Гадалка",
@@ -257,7 +261,6 @@ export const ru = {
     signs: "Знаки свечей",
     print: "Печать",
     reading: "К раскладу",
-    notRipe: "Свиток выдаётся, когда закроется последняя свеча прогноза",
     made: "свиток",
   },
   mine: {

@@ -221,6 +221,9 @@ export const zh: Dictionary = {
     open: "领取卷轴",
     title: "卷轴",
     certify: (id: string, asset: string, gap: string): string => `兹证明牌阵 ${id} 与 ${asset} 行情相距 ${gap}`,
+    foretell: (id: string, asset: string): string => `兹证明牌阵 ${id} 对 ${asset} 行情许下了下方所绘的走势`,
+    stage: { forecast: "预测", interim: "中途", final: "结果" },
+    drawn: (stage: string, at: string): string => `${stage} · 此页生成于 ${at}`,
     instrument: "品种",
     anchor: "锚点",
     reader: "占卜师",
@@ -229,7 +232,6 @@ export const zh: Dictionary = {
     signs: "K 线方向",
     print: "打印",
     reading: "返回牌阵",
-    notRipe: "预测的最后一根蜡烛收盘后方可领取卷轴",
     made: "卷轴",
   },
   mine: {

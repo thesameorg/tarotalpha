@@ -257,6 +257,10 @@ export const it: Dictionary = {
     title: "Pergamena",
     certify: (id: string, asset: string, gap: string): string =>
       `Si certifica che la lettura ${id} è passata a ${gap} dal mercato di ${asset}`,
+    foretell: (id: string, asset: string): string =>
+      `Si certifica che la lettura ${id} promette al mercato di ${asset} quanto disegnato sotto`,
+    stage: { forecast: "previsione", interim: "intermedio", final: "risultato" },
+    drawn: (stage: string, at: string): string => `${stage} · foglio compilato il ${at}`,
     instrument: "Strumento",
     anchor: "Ancora",
     reader: "Cartomante",
@@ -265,7 +269,6 @@ export const it: Dictionary = {
     signs: "Segni delle candele",
     print: "Stampa",
     reading: "Alla lettura",
-    notRipe: "La pergamena viene rilasciata alla chiusura dell'ultima candela della previsione",
     made: "pergamena",
   },
   mine: {
