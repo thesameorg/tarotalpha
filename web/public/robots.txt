@@ -1,0 +1,3 @@
+# Only the JSON API is closed to crawlers; share links /r/<id> and scrolls /s/<id> carry meta tags and may be indexed.
+User-agent: *
+Disallow: /api/
