@@ -51,7 +51,7 @@
 
 ## События воронки
 
-`POST /api/omen` кладёт точку в датасет Analytics Engine (`analytics.md`): `chart_loaded`, `step_opened`, `shared`, `rechecked` (открыт созревший из «моих раскладов»), `scroll_opened` (нарисован свиток), `paywall_hit` (маны не хватило на день N), `own_reading_clicked`, `replayed` — шлёт клиент; `share_failed` — воркер. С каждым событием едет визит: кто смотрит, в какой сессии, чем и откуда.
+`POST /api/omen` кладёт точку в датасет Analytics Engine (`analytics.md`): `chart_loaded`, `step_opened`, `shared`, `rechecked` (открыт созревший из «моих раскладов»), `scroll_opened` (нарисован свиток), `paywall_hit` (маны не хватило на день N), `own_reading_clicked`, `replayed` — шлёт клиент; `share_failed` — воркер. С каждым событием едет визит: кто смотрит, в каком визите, чем и откуда (`analytics.md`).
 
 Маршрут зовётся `omen`, а не `events`: путь `/api/events` блокируют списки фильтров uBlock и подобных — он выглядит как трекер, и воронка молча теряла всех, у кого блокировщик включён.
 

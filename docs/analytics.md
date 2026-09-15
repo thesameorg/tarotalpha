@@ -24,7 +24,7 @@ Analytics Engine даёт отдельный бюджет записей, три
 | `index1` | посетитель | ключ прореживания: если оно случится, выпадут целые посетители, а доли останутся честными |
 | `blob1` | тип события | тип `EventType` в `worker/analytics.ts` |
 | `blob2` | посетитель | браузер |
-| `blob3` | сессия | браузер |
+| `blob3` | визит | браузер |
 | `blob4` | площадка: `web` или `tg` | браузер |
 | `blob5` | клиент Telegram: `ios`, `android`, `tdesktop`, `weba` | браузер |
 | `blob6` | устройство: `mobile` или `desktop` | браузер |
@@ -51,7 +51,7 @@ Analytics Engine даёт отдельный бюджет записей, три
 
 ## Кто такой посетитель
 
-Браузер заводит себе случайный токен и держит его в `localStorage`, сессию — в `sessionStorage`. Токен ничего не открывает и ничего не стоит: это не аккаунт и не кошелёк. Заголовок `X-Visit` едет со всеми вызовами `/api/*`, поэтому событие, которое пишет сам воркер, попадает в тот же визит, что и клики до него.
+Браузер заводит себе случайный токен и держит его в `localStorage`, id визита — в `sessionStorage`. Токен ничего не открывает и ничего не стоит: это не аккаунт и не кошелёк. Заголовок `X-Visit` едет со всеми вызовами `/api/*`, поэтому событие, которое пишет сам воркер, попадает в тот же визит, что и клики до него.
 
 Цена: один человек в браузере и в Telegram — два посетителя, как и один человек в двух браузерах. В Telegram токен живёт, пока клиент не почистил хранилище мини-аппа.
 
@@ -78,15 +78,15 @@ POST https://api.cloudflare.com/client/v4/accounts/<account_id>/analytics_engine
 Authorization: Bearer <токен с правом Account Analytics Read>
 ```
 
-Запрос — обычный SQL с оговорками: одна таблица, `JOIN` и `UNION` не поддерживаются; строки считаются как `SUM(_sample_interval)`, среднее — как `SUM(_sample_interval * doubleN) / SUM(_sample_interval)`, иначе прореживание соврёт. Воронка за неделю по сессиям:
+Запрос — обычный SQL с оговорками: одна таблица, `JOIN` и `UNION` не поддерживаются; строки считаются как `SUM(_sample_interval)`, среднее — как `SUM(_sample_interval * doubleN) / SUM(_sample_interval)`, иначе прореживание соврёт. Воронка за неделю по визитам:
 
 ```sql
-SELECT count() AS sessions, countIf(hit > 0) AS hit_paywall
+SELECT count() AS visits, countIf(hit > 0) AS hit_paywall
 FROM (
-  SELECT blob3 AS session, countIf(blob1 = 'paywall_hit') AS hit
+  SELECT blob3 AS visit, countIf(blob1 = 'paywall_hit') AS hit
   FROM tarotalpha
   WHERE timestamp > NOW() - INTERVAL '7' DAY
-  GROUP BY session
+  GROUP BY visit
 )
 ```
 
