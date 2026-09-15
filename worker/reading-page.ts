@@ -1,7 +1,7 @@
 /**
  * `/r/:id` and its scroll `/s/:id` are the SPA's own index.html with the reading written into `<title>`,
- * `<html lang>` and the `og:*` meta tags, because link-preview crawlers do not run JavaScript; the page then loads
- * the reading through the API like any other view. The two differ only in the title and the canonical link.
+ * `<html lang>`, the description and the `og:*` meta tags, because crawlers do not run JavaScript; the page then
+ * loads the reading through the API like any other view. The two differ only in the title and the canonical link.
  * The language is the share link's `lang` (the author's), else the first Accept-Language entry we
  * have, else English. An unknown id gets index.html untouched and the SPA shows its own "not found" state.
  */
@@ -105,6 +105,7 @@ async function page(id: string, request: Request, env: Env, prefix: "r" | "s"): 
     .on("title", { element: (element) => void element.setInnerContent(title) })
     .on('meta[property="og:title"]', { element: (element) => void element.setAttribute("content", title) })
     .on('meta[property="og:description"]', { element: (element) => void element.setAttribute("content", description) })
+    .on('meta[name="description"]', { element: (element) => void element.setAttribute("content", description) })
     .on('meta[property="og:url"]', { element: (element) => void element.setAttribute("content", url) })
     .transform(shell);
 }
