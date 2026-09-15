@@ -70,7 +70,8 @@ function askMarkup(roster: Roster): string {
   return `<button class="reader ask" type="button" data-lineup-ask="${next}" aria-label="${label}" title="${t().reader.askNote(cost)}">${t().reader.askMore}${price}</button>`;
 }
 
-/** `open` makes the chips clickable and leads to the reader's card; a row without it only names who is on the chart. */
+/** `open` leads to the reader's card. Only the chip that can still change something takes it: the author while
+ *  she may be swapped, and the chip that asks one more. Whoever is already reading is a fact, not a control. */
 export function createLineup(root: HTMLElement, open?: (id: ReaderId) => void): Lineup {
   let roster: Roster | null = null;
   // Who stood here at the last paint: whoever is new arrives lit, so a bought opinion is seen taking her seat.
@@ -83,7 +84,10 @@ export function createLineup(root: HTMLElement, open?: (id: ReaderId) => void): 
       return;
     }
     const ids = [...shown.lines.keys()];
-    const chips = ids.map((id) => chipMarkup(shown, id, seen.size > 0 && !seen.has(id), open !== undefined));
+    const pickable = open !== undefined && !shown.locked;
+    const chips = ids.map((id) =>
+      chipMarkup(shown, id, seen.size > 0 && !seen.has(id), pickable && id === shown.author),
+    );
     root.innerHTML = chips.join("") + askMarkup(shown);
     seen = new Set(ids);
   };

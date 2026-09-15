@@ -165,7 +165,7 @@ export const fr: Dictionary = {
   },
   share: {
     inTelegram: "Envoyer sur Telegram",
-    orWeb: "Ou par lien vers le site, pour qui n'est pas sur Telegram",
+    orWeb: "Ou copier le lien",
     button: "Partager",
     copy: "Copier le lien",
     snapshotFailed: "Impossible de prendre l'instantané, réessayez",
@@ -259,6 +259,8 @@ export const fr: Dictionary = {
   mine: {
     button: "Mes tirages",
     ripe: "prêt",
+    days: (n: number): string => `jours : ${String(n)}`,
+    opinions: (n: number): string => `seconds avis : ${String(n)}`,
     ripensIn: (hours: number): string => `prêt dans ${String(hours)} h`,
   },
   prophecy: {

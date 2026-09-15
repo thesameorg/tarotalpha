@@ -24,9 +24,14 @@ function cardMarkup(entry: MyReading, now: number): string {
   const status = scrolled ? t().scroll.made : ripe ? t().mine.ripe : t().mine.ripensIn(hoursToRipe(entry, now));
   const icon = COINS.find((coin) => coin.symbol === entry.asset)?.icon;
   const coin = icon === undefined ? "" : `<img src="${icon}" width="18" height="18" alt="">`;
+  // Two readings of one instrument differ by how far they went and by how many readers were asked about them.
+  const more =
+    entry.opinions === 0
+      ? ""
+      : `<span class="mine-more" title="${t().mine.opinions(entry.opinions)}">+${String(entry.opinions)}</span>`;
   return `<li><button type="button" class="mine-card${ripe ? " ripe" : ""}${due ? " due" : ""}${scrolled ? " scrolled" : ""}" data-id="${entry.id}">
-<span class="mine-coin">${coin}${entry.asset}</span><span class="mine-status">${status}</span>
-<span class="mine-reader"><img src="${readerAvatarUrl(entry.reader)}" alt="">${t().readerName(entry.reader)}</span><span class="mine-when">${localDateTime(entry.anchor_ts)}</span></button></li>`;
+<span class="mine-coin">${coin}${entry.asset}<span class="mine-days">${t().mine.days(entry.steps)}</span></span><span class="mine-status">${status}</span>
+<span class="mine-reader"><img src="${readerAvatarUrl(entry.reader)}" alt="">${t().readerName(entry.reader)}${more}</span><span class="mine-when">${localDateTime(entry.anchor_ts)}</span></button></li>`;
 }
 
 export function mountMyReadings(root: HTMLElement, navigate: Navigate): void {

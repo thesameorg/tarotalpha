@@ -16,7 +16,7 @@ import {
 } from "./my-readings";
 
 const ANCHOR = 1_757_548_800_000;
-const BASE = { id: "bcdfghjk", asset: "BTCUSDT", anchor_ts: ANCHOR, steps: 1, reader: "atr" as const };
+const BASE = { id: "bcdfghjk", asset: "BTCUSDT", anchor_ts: ANCHOR, steps: 1, reader: "atr" as const, opinions: 0 };
 
 // A store in memory with the same contract as localStorage and CloudStorage, so the module under test is all logic.
 function fakeStore(initial: string[] = []): ReadingStore & { values: Map<string, string> } {

@@ -161,7 +161,7 @@ export const ru = {
   },
   share: {
     inTelegram: "Отправить в Telegram",
-    orWeb: "Или ссылкой на сайт — для тех, кто вне Telegram",
+    orWeb: "Или скопировать ссылку",
     button: "Поделиться",
     copy: "Скопировать ссылку",
     snapshotFailed: "Не удалось снять снапшот, повторите",
@@ -254,6 +254,8 @@ export const ru = {
   mine: {
     button: "Мои расклады",
     ripe: "созрел",
+    days: (n: number): string => `дней: ${String(n)}`,
+    opinions: (n: number): string => `вторых мнений: ${String(n)}`,
     ripensIn: (hours: number): string => `созреет через ${String(hours)} ч`,
   },
   prophecy: {

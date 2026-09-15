@@ -15,6 +15,8 @@ export interface MyReading {
   anchor_ts: number;
   steps: number;
   reader: ReaderId;
+  /** How many second opinions were bought on it; entries written before the row is asked hold none. */
+  opinions: number;
   created_at: number;
   /** When the viewer opened it from the list after it ripened; null until then. */
   checked_at: number | null;
@@ -208,7 +210,10 @@ function parse(value: string): MyReading[] {
     return [];
   }
   if (typeof raw !== "object" || raw === null) return [];
-  const { id, asset, anchor_ts, steps, reader, created_at, checked_at, scrolled_at } = raw as Record<string, unknown>;
+  const { id, asset, anchor_ts, steps, reader, opinions, created_at, checked_at, scrolled_at } = raw as Record<
+    string,
+    unknown
+  >;
   if (typeof id !== "string" || !READING_ID.test(id) || typeof asset !== "string" || !ASSET_PATTERN.test(asset))
     return [];
   if (!isReaderId(reader)) return [];
@@ -220,6 +225,8 @@ function parse(value: string): MyReading[] {
       anchor_ts,
       steps,
       reader,
+      // An entry from before the list counted them is a reading nobody asked a second opinion on, as far as it knows.
+      opinions: typeof opinions === "number" && opinions > 0 ? opinions : 0,
       created_at,
       checked_at: typeof checked_at === "number" ? checked_at : null,
       // Entries written before scrolls existed have no stamp, and an old entry is not a reading without a scroll.

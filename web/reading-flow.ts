@@ -5,8 +5,8 @@
  * engine in this browser. The first open step writes the reading through the API in the background and locks the
  * reader until a reload, another instrument or leaving the page drops the reading; the next step extends it, so
  * "Share" only hands out the link; the id lands in "my readings". Labels are functions of the dictionary, so a
- * language switch relabels in place. The only buttons are the row over the free days of the forecast zone: the next
- * day and, once a day is open, share; on a wide screen the row rides with the chart and shortens to the day alone.
+ * language switch relabels in place. The next day, and share once a day is open, ride over the free days of the
+ * zone on a wide screen; on a phone the row steps under the chart rather than onto the candles that were paid for.
  */
 import { computeSteps, forecastFromCards, MAX_STEPS, type Candle, type StepResult } from "../engine/index";
 import type { ReaderId } from "../engine/readers";
@@ -71,6 +71,7 @@ interface Loaded {
 interface Elements {
   picker: HTMLElement;
   readers: HTMLElement;
+  box: HTMLElement;
   stage: HTMLElement;
   srcLogo: HTMLImageElement;
   last: HTMLElement;
@@ -135,6 +136,7 @@ function lookup(root: HTMLElement, toolbar: HTMLElement): Elements {
   return {
     picker: required(toolbar, "#picker", HTMLElement),
     readers: required(root, "#readers", HTMLElement),
+    box: required(root, ".chart-box", HTMLElement),
     stage: required(root, "#stage", HTMLElement),
     srcLogo: required(root, "#src-logo", HTMLImageElement),
     last: required(root, "#last", HTMLElement),
@@ -300,7 +302,8 @@ class LandingPage {
   }
 
   // The row stands over what is still free, from the last day separator to the pane's right edge. When even the
-  // day alone does not fit there, and always on a phone, it spans the pane and keeps to the right edge instead.
+  // day alone does not fit there it spans the pane and keeps to its right edge. On a phone the row leaves the
+  // chart for good as soon as one day is open: there it would stand on the very candles that were paid for.
   private placeCta(): void {
     const zone = this.zone;
     if (zone === null || this.el.draw.disabled) {
@@ -310,10 +313,28 @@ class LandingPage {
     const open = this.loaded?.steps.length ?? 0;
     this.el.share.hidden = open === 0;
     this.el.draw.hidden = open >= MAX_STEPS;
+    if (this.underChart(narrow.matches && open > 0)) {
+      this.el.cta.hidden = false;
+      return;
+    }
     const inFree = !narrow.matches && this.fit(Math.max(0, freeFrom(zone)), zone.width);
     const fits = inFree || this.fit(0, zone.width);
     this.el.cta.classList.toggle("edge", !inFree);
     this.el.cta.hidden = !fits;
+  }
+
+  /** Puts the row under the chart or back over it, and says where it ended up; the pixel fitting is for over. */
+  private underChart(below: boolean): boolean {
+    const { cta, box, stage, panel } = this.el;
+    if (cta.classList.contains("below") !== below) {
+      cta.classList.toggle("below", below);
+      cta.classList.remove("edge", "compact");
+      cta.style.left = "";
+      cta.style.width = "";
+      if (below) stage.insertBefore(cta, panel);
+      else box.append(cta);
+    }
+    return below;
   }
 
   // Lays the row out from `left` to the pane's right edge, the day alone when the full label is too wide, and says
@@ -624,6 +645,7 @@ class LandingPage {
         asset: loaded.asset,
         anchor_ts: loaded.anchorTs,
         ...body,
+        opinions: loaded.opinions.size,
         steps: saved.steps,
       });
       return saved.id;
