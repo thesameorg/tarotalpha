@@ -12,11 +12,12 @@ import type {
   IPrimitivePaneView,
   ISeriesApi,
   ISeriesPrimitive,
+  MouseEventParams,
   SeriesAttachedParameter,
   SeriesType,
 } from "lightweight-charts";
 import { palette } from "./palette";
-import { formatPrice } from "./price-format";
+import { formatPrice, roundStep } from "./price-format";
 
 type RenderTarget = Parameters<IPrimitivePaneRenderer["draw"]>[0];
 
@@ -41,13 +42,11 @@ interface Chip {
   text: string;
 }
 
-/** The round step just above `raw`: 1, 2 or 5 times a power of ten, the steps a price scale has always used. */
-function roundStep(raw: number): number {
-  if (!(raw > 0)) return 1;
-  const magnitude = 10 ** Math.floor(Math.log10(raw));
-  const scaled = raw / magnitude;
-  const step = scaled > 5 ? 10 : scaled > 2 ? 5 : scaled > 1 ? 2 : 1;
-  return step * magnitude;
+// Read once: the face never changes under a theme switch, and this runs on every frame the candles draw in.
+let labelFont: string | null = null;
+function font(): string {
+  labelFont ??= `${String(FONT_PX)}px ${getComputedStyle(document.body).getPropertyValue("--mono")}`;
+  return labelFont;
 }
 
 export class PriceOverlay implements ISeriesPrimitive {
@@ -55,18 +54,33 @@ export class PriceOverlay implements ISeriesPrimitive {
   private series: ISeriesApi<SeriesType> | null = null;
   private levels: Level[] = [];
   private last: Chip | null = null;
+  private pointed: Chip | null = null;
+  private requestUpdate: (() => void) | null = null;
   private readonly views: readonly IPrimitivePaneView[] = [new OverlayView(this)];
+  // The hidden scale took the crosshair's price label with it, so the finger on the candles gets it back here.
+  private readonly follow = (param: MouseEventParams): void => {
+    const series = this.series;
+    const y = param.point?.y ?? null;
+    const price = series === null || y === null ? null : series.coordinateToPrice(y);
+    this.pointed = price === null || y === null ? null : { y, text: formatPrice(price) };
+    this.requestUpdate?.();
+  };
 
   attached(param: SeriesAttachedParameter): void {
     this.chart = param.chart;
     this.series = param.series;
+    this.requestUpdate = param.requestUpdate;
+    param.chart.subscribeCrosshairMove(this.follow);
   }
 
   detached(): void {
+    this.chart?.unsubscribeCrosshairMove(this.follow);
     this.chart = null;
     this.series = null;
+    this.requestUpdate = null;
     this.levels = [];
     this.last = null;
+    this.pointed = null;
   }
 
   updateAllViews(): void {
@@ -87,6 +101,10 @@ export class PriceOverlay implements ISeriesPrimitive {
 
   currentLast(): Chip | null {
     return this.last;
+  }
+
+  currentPointed(): Chip | null {
+    return this.pointed;
   }
 
   private measure(): Level[] {
@@ -127,12 +145,13 @@ class OverlayView implements IPrimitivePaneView {
   renderer(): IPrimitivePaneRenderer | null {
     const levels = this.overlay.currentLevels();
     const last = this.overlay.currentLast();
+    const pointed = this.overlay.currentPointed();
     if (levels.length === 0) return null;
     return {
       draw(target: RenderTarget) {
         const p = palette();
         target.useMediaCoordinateSpace(({ context: ctx, mediaSize }) => {
-          ctx.font = `${String(FONT_PX)}px ${getComputedStyle(document.body).getPropertyValue("--mono")}`;
+          ctx.font = font();
           ctx.textBaseline = "middle";
           ctx.textAlign = "right";
           const right = mediaSize.width - PAD_X;
@@ -151,17 +170,15 @@ class OverlayView implements IPrimitivePaneView {
             ctx.fillStyle = p.text;
             ctx.fillText(level.text, right, level.y);
           }
-          if (last === null) return;
-          const width = ctx.measureText(last.text).width;
-          ctx.fillStyle = p.line;
-          ctx.fillRect(
-            right - width - PAD_X,
-            last.y - FONT_PX / 2 - CHIP_PAD_Y,
-            width + PAD_X * 2,
-            FONT_PX + CHIP_PAD_Y * 2,
-          );
-          ctx.fillStyle = p.text;
-          ctx.fillText(last.text, right, last.y);
+          const chip = (at: Chip, back: string): void => {
+            const width = ctx.measureText(at.text).width;
+            ctx.fillStyle = back;
+            ctx.fillRect(right - width - PAD_X, at.y - CHIP_HEIGHT / 2, width + PAD_X * 2, CHIP_HEIGHT);
+            ctx.fillStyle = p.text;
+            ctx.fillText(at.text, right, at.y);
+          };
+          if (last !== null) chip(last, p.line);
+          if (pointed !== null) chip(pointed, p.crosshair);
         });
       },
     };
