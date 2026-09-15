@@ -17,7 +17,7 @@ import {
   type StepResult,
 } from "../engine/index";
 import { cardById } from "../engine/deck";
-import { fetchAfter, HOUR_MS } from "../exchange/closed-candles";
+import { fetchAfter, fetchBefore, HOUR_MS } from "../exchange/closed-candles";
 import type { ReaderId } from "../engine/readers";
 import { ApiError, fetchReading, postEvent, type ReadingRecord } from "./api";
 import { cardImageUrl } from "./card-image";
@@ -292,6 +292,8 @@ class ScrollPage {
     });
     const chart = createCandleChart(required(this.root, "#scroll-chart", HTMLElement));
     this.chart = chart;
+    const { asset, source } = sheet.record;
+    chart.setHistorySource((beforeMs, limit) => fetchBefore(asset, beforeMs, limit, source));
     void chart.showSnapshot(sheet.snapshot, false).then(() => {
       if (this.gone()) return;
       chart.setSteps(sheet.results.length);

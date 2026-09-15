@@ -68,6 +68,15 @@ export async function fetchAfter(
   return candles.filter((candle) => candle.t >= startTs && candle.t + HOUR_MS <= nowMs);
 }
 
+/** Closed candles just before `beforeTs`, at most `limit`, from the snapshot's own provider: the chart's own past,
+ *  never the engine's input. An empty list means the instrument has no history that far back. */
+export async function fetchBefore(asset: string, beforeTs: number, limit: number, source: Source): Promise<Candle[]> {
+  const candles = await providerFor(source).klines({ asset, endTs: beforeTs - 1, limit });
+  // A provider that reads its end bound as inclusive would hand back a candle the chart already draws, and a repeated
+  // time breaks the series.
+  return candles.filter((candle) => candle.t < beforeTs);
+}
+
 function providerFor(source: Source): Provider {
   const provider = PROVIDERS.find((candidate) => candidate.source === source);
   if (provider === undefined) throw new RangeError(`unknown exchange source: ${source}`);
