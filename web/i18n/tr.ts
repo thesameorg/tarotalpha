@@ -240,6 +240,8 @@ export const tr: Dictionary = {
     instrument: "Enstrüman",
     anchor: "Çıpa",
     reader: "Falcı",
+    readers: "Falcılar",
+    horizon: "Ufuk",
     accuracy: "İsabet",
     print: "Yazdır",
     reading: "Açılıma dön",

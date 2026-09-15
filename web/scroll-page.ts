@@ -1,9 +1,9 @@
 /**
- * The scroll at /s/:id: one sheet that certifies what a ripened reading foretold — the certifying line, the chart
- * with the forecast over the real candles, the cards of every day, the reader, the accuracy and a QR back to the
- * reading. A permanent link, so it is a page and not a file: print makes the PDF, and text stays text in all eleven
- * languages. Nothing is stored for it — the reading in D1 and the exchange's own candles are the whole document,
- * and the sheet is only drawn when every forecast candle has a real one to compare against.
+ * The scroll at /s/:id: one sheet that certifies what a ripened reading foretold — the certifying line, the table
+ * that read it with each reader's gap, the facts of the reading, the cards of every day, the chart under them and a
+ * QR back. A permanent link, so it is a page and not a file: print makes the PDF on one A4 leaf, and text stays text
+ * in all eleven languages. Nothing is stored for it — the reading in D1 and the exchange's own candles are the whole
+ * document, and the sheet is only drawn when every forecast candle has a real one to compare against.
  * Why a scroll is a link and what the list does with it: docs/reading-lifecycle.md
  */
 import {
@@ -17,6 +17,7 @@ import {
 } from "../engine/index";
 import { cardById } from "../engine/deck";
 import { fetchAfter } from "../exchange/closed-candles";
+import type { ReaderId } from "../engine/readers";
 import { ApiError, fetchReading, postEvent, type ReadingRecord } from "./api";
 import { cardImageUrl } from "./card-image";
 import { createCandleChart, type CandleChart } from "./chart";
@@ -24,15 +25,26 @@ import { required } from "./dom-lookup";
 import { lang, onLangChange, t } from "./i18n/index";
 import { localDateTime } from "./local-time-format";
 import { markScrolled } from "./my-readings";
+import { readerAvatarUrl } from "./reader-choice";
 import type { Navigate, View } from "./router";
+import { candlesByReader, opinionLines } from "./second-opinion";
 
 interface Sheet {
   record: ReadingRecord;
   snapshot: Candle[];
   results: StepResult[];
+  opinions: Map<ReaderId, StepResult[]>;
   real: Candle[];
   /** Share of forecast candles whose direction the market repeated, already in percent. */
   accuracyPct: number;
+  /** Everyone who read this reading, the author first, each with her gap to the market. */
+  seats: Seat[];
+  /** Whose gap is the smallest; null when nobody could be measured. */
+  closest: ReaderId | null;
+}
+
+interface Seat {
+  id: ReaderId;
   /** The gap to the market in ATR of the snapshot; null when no pair could be measured. */
   deviation: number | null;
 }
@@ -56,26 +68,56 @@ function cardsMarkup(results: readonly StepResult[]): string {
     .join("");
 }
 
+const candlesOf = (steps: readonly StepResult[]): Candle[] => steps.flatMap((step) => step.candles);
+
+function closestOf(seats: readonly Seat[]): ReaderId | null {
+  const best = seats.reduce<Seat | null>(
+    (won, seat) => (seat.deviation !== null && (won?.deviation ?? Infinity) > seat.deviation ? seat : won),
+    null,
+  );
+  return best?.id ?? null;
+}
+
+// The table of the reading in the colours of the chart below: the author drew the candles, everyone bought after
+// her drew a line of her own hue. The gap is the one the scoring counts, so the sheet ranks them like the verdict.
+function seatMarkup(seat: Seat, author: boolean, closest: boolean): string {
+  const gap = seat.deviation === null ? "—" : `${seat.deviation.toFixed(2)} ATR`;
+  const mark = closest ? ` <b>${t().reader.closest}</b>` : "";
+  const hue = author ? "" : ` style="--hue: var(--reader-${seat.id})"`;
+  const name = t().readerName(seat.id);
+  return `<div class="scroll-seat${author ? " author" : ""}"${hue}><img src="${readerAvatarUrl(seat.id)}" alt=""><div class="scroll-seat-text"><b>${name}</b><span>${gap}${mark}</span></div></div>`;
+}
+
+function seatsMarkup(sheet: Sheet): string {
+  const many = sheet.seats.length > 1;
+  const label = many ? t().scroll.readers : t().scroll.reader;
+  const seats = sheet.seats
+    .map((seat, index) => seatMarkup(seat, index === 0, many && seat.id === sheet.closest))
+    .join("");
+  return `<div class="scroll-seats"><div class="scroll-seats-label">${label}</div>${seats}</div>`;
+}
+
 function sheetMarkup(sheet: Sheet, url: string): string {
   const { record, accuracyPct } = sheet;
-  const gap = sheet.deviation === null ? "" : ` · ${sheet.deviation.toFixed(2)} ATR`;
+  const horizon = `${String(sheet.results.length * CANDLES_PER_STEP)} h`;
   return `
 <article class="scroll">
   <header class="scroll-head">
     <span class="scroll-mark">TAROTALPHA</span>
     <h1 class="scroll-title">${t().scroll.title}</h1>
+    <p class="scroll-certify">${t().scroll.certify(record.id, record.asset, accuracyPct)}</p>
   </header>
-  <p class="scroll-certify">${t().scroll.certify(record.id, record.asset, accuracyPct)}</p>
-  <div class="scroll-body">
-    <div class="scroll-chart" id="scroll-chart"></div>
+  <div class="scroll-top">
+    ${seatsMarkup(sheet)}
     <dl class="scroll-facts">
       ${factMarkup(t().scroll.instrument, record.asset)}
       ${factMarkup(t().scroll.anchor, localDateTime(record.anchor_ts))}
-      ${factMarkup(t().scroll.reader, t().readerName(record.reader))}
-      ${factMarkup(t().scroll.accuracy, `${String(accuracyPct)} %${gap}`)}
+      ${factMarkup(t().scroll.horizon, horizon)}
+      ${factMarkup(t().scroll.accuracy, `${String(accuracyPct)} %`)}
     </dl>
   </div>
   <div class="scroll-cards">${cardsMarkup(sheet.results)}</div>
+  <div class="scroll-chart" id="scroll-chart"></div>
   <footer class="scroll-foot">
     <div class="scroll-qr"><img id="scroll-qr" alt="" hidden><span class="scroll-url">${url}</span></div>
     <p class="disclaimer">${t().disclaimer}</p>
@@ -147,6 +189,7 @@ class ScrollPage {
       nonce: record.seed_nonce,
       cards: record.steps,
     });
+    const opinions = opinionLines(record, snapshot);
     const forecast = results.flatMap((step) => step.candles);
     let real: Candle[];
     try {
@@ -162,13 +205,23 @@ class ScrollPage {
       this.say(() => t().scroll.notRipe);
       return;
     }
+    const unit = atr(snapshot);
+    const seats: Seat[] = [
+      { id: record.reader, deviation: deviation(forecast, real, unit).deviation },
+      ...[...opinions].map(([id, steps]) => ({
+        id,
+        deviation: deviation(candlesOf(steps), real, unit).deviation,
+      })),
+    ];
     this.sheet = {
       record,
       snapshot,
       results,
+      opinions,
       real,
       accuracyPct: Math.round((overall.accuracy ?? 0) * 100),
-      deviation: deviation(forecast, real, atr(snapshot)).deviation,
+      seats,
+      closest: closestOf(seats),
     };
     this.message = null;
     this.paint();
@@ -210,7 +263,8 @@ class ScrollPage {
     void chart.showSnapshot(sheet.snapshot, false).then(() => {
       if (this.gone()) return;
       chart.setSteps(sheet.results.length);
-      chart.setForecast(sheet.results.flatMap((step) => step.candles));
+      chart.setForecast(candlesOf(sheet.results));
+      chart.setOpinions(candlesByReader(sheet.opinions));
       chart.setActual(sheet.real);
     });
     void this.paintQr();

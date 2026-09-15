@@ -249,6 +249,8 @@ export const ru = {
     instrument: "Инструмент",
     anchor: "Якорь",
     reader: "Гадалка",
+    readers: "Гадалки",
+    horizon: "Горизонт",
     accuracy: "Точность",
     print: "Печать",
     reading: "К раскладу",

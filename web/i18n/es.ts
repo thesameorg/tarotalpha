@@ -253,6 +253,8 @@ export const es: Dictionary = {
     instrument: "Instrumento",
     anchor: "Ancla",
     reader: "Tarotista",
+    readers: "Tarotistas",
+    horizon: "Horizonte",
     accuracy: "Precisión",
     print: "Imprimir",
     reading: "A la tirada",

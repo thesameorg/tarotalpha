@@ -32,6 +32,7 @@ import { formatChange, formatPrice } from "./price-format";
 import { createLineup, type Lineup } from "./reader-lineup";
 import { cancelReveal, playReveal } from "./reveal-overlay";
 import type { Navigate, View } from "./router";
+import { candlesByReader, opinionLines } from "./second-opinion";
 import { shareLink } from "./share-modal";
 import { cardsOf, createSpreadPanel, type SpreadPanel } from "./spread-panel";
 import { sleep } from "./stage-effects";
@@ -133,31 +134,7 @@ function lookup(root: HTMLElement, toolbar: HTMLElement): Elements {
   };
 }
 
-/** Every reader the row says was asked, read over the same cards; a reader the engine no longer knows is skipped. */
-function opinionsOf(record: ReadingRecord, snapshot: readonly Candle[]): Map<ReaderId, StepResult[]> {
-  const steps = new Map<ReaderId, StepResult[]>();
-  for (const id of record.opinions) {
-    if (id === record.reader) continue;
-    steps.set(
-      id,
-      forecastFromCards({
-        asset: record.asset,
-        anchorTs: record.anchor_ts,
-        snapshot,
-        reader: id,
-        nonce: record.seed_nonce,
-        cards: record.steps,
-      }),
-    );
-  }
-  return steps;
-}
-
 const candlesOf = (steps: readonly StepResult[]): Candle[] => steps.flatMap((step) => step.candles);
-
-function candlesByReader(steps: ReadonlyMap<ReaderId, StepResult[]>): Map<ReaderId, Candle[]> {
-  return new Map([...steps].map(([id, days]) => [id, candlesOf(days)]));
-}
 
 function percent(value: number | null): number | null {
   return value === null ? null : Math.round(value * 100);
@@ -287,7 +264,7 @@ class ReadingPage {
       nonce: record.seed_nonce,
       cards: record.steps,
     });
-    this.opinionSteps = opinionsOf(record, snapshot);
+    this.opinionSteps = opinionLines(record, snapshot);
     this.record = record;
     this.root.innerHTML = readingMarkup();
     this.toolbar.innerHTML = toolbarMarkup();
@@ -420,7 +397,7 @@ class ReadingPage {
       nonce: record.seed_nonce,
       cards: record.steps,
     });
-    this.opinionSteps = opinionsOf(record, snapshot);
+    this.opinionSteps = opinionLines(record, snapshot);
     await this.checkProphecy(el, chart, results, record, atr(snapshot));
   }
 

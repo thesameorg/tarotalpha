@@ -222,6 +222,8 @@ export const zh: Dictionary = {
     instrument: "品种",
     anchor: "锚点",
     reader: "占卜师",
+    readers: "占卜师",
+    horizon: "预测周期",
     accuracy: "准确率",
     print: "打印",
     reading: "返回牌阵",

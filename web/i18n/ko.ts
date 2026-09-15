@@ -230,6 +230,8 @@ export const ko: Dictionary = {
     instrument: "종목",
     anchor: "기준점",
     reader: "점술가",
+    readers: "점술가들",
+    horizon: "예측 기간",
     accuracy: "정확도",
     print: "인쇄",
     reading: "리딩으로",

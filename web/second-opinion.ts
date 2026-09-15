@@ -1,10 +1,12 @@
 /**
- * Second opinions on the reading open right now: which readers have been asked besides its author, and what asking
- * one more costs. The cards never change — every reader reads the same three (docs/engine.md) — only the formula
- * that turns them into candles does, so a second opinion is a second line on the same chart.
- * The flow that owns the reading registers how to consult; this module holds the list and the price.
+ * Second opinions: which readers have been asked on a reading besides its author, what asking one more costs, and
+ * how a stored one is read back. The cards never change — every reader reads the same three (docs/engine.md) — only
+ * the formula that turns them into candles does, so a second opinion is a second line on the same chart.
+ * The flow that owns the open reading registers how to consult; this module holds the list, the price and the replay.
  */
-import type { ReaderId } from "../engine/readers";
+import { forecastFromCards, type Candle, type StepResult } from "../engine/index";
+import { isReaderId, type ReaderId } from "../engine/readers";
+import type { ReadingRecord } from "./api";
 import { payMana } from "./mana-purse";
 
 /** What one more reader costs on one reading, asked once and good for every day of it, opened or still to come. */
@@ -53,4 +55,30 @@ export function onOpinionsChange(listener: () => void): () => void {
 
 function announce(): void {
   for (const listener of listeners) listener();
+}
+
+/** Every reader a stored reading says was asked, read over its own cards; one the engine no longer knows is skipped,
+ *  because a reader is a formula and a formula can leave while the row that names her stays. */
+export function opinionLines(record: ReadingRecord, snapshot: readonly Candle[]): Map<ReaderId, StepResult[]> {
+  const steps = new Map<ReaderId, StepResult[]>();
+  for (const id of record.opinions) {
+    if (id === record.reader || !isReaderId(id)) continue;
+    steps.set(
+      id,
+      forecastFromCards({
+        asset: record.asset,
+        anchorTs: record.anchor_ts,
+        snapshot,
+        reader: id,
+        nonce: record.seed_nonce,
+        cards: record.steps,
+      }),
+    );
+  }
+  return steps;
+}
+
+/** The days of each reader flattened into one line of candles: what the chart and the row of readers take. */
+export function candlesByReader(steps: ReadonlyMap<ReaderId, readonly StepResult[]>): Map<ReaderId, Candle[]> {
+  return new Map([...steps].map(([id, days]) => [id, days.flatMap((day) => day.candles)]));
 }
