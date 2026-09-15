@@ -207,6 +207,7 @@ export const ko: Dictionary = {
     askMore: "한 명 더 묻기",
     askNote: (cost: number): string =>
       `마나 ${String(cost)}, 한 번만: 이 리딩의 열린 날과 앞으로의 날을 모두 그녀가 읽습니다.`,
+    askShort: (cost: number): string => `마나가 부족합니다: ${String(cost)} 필요`,
     candles: "예측 캔들은 그녀의 것",
     line: "그녀의 것은 같은 색 선",
     move: (change: string, day: number): string => `${String(day)}일째 끝에 ${change}`,
@@ -220,6 +221,7 @@ export const ko: Dictionary = {
     meta: (createdAt: string): string => `생성 ${createdAt}`,
     replaying: "매일 카드 세 장을 뽑으세요",
     replay: "리딩 다시 보기",
+    horizonEnd: (days: number): string => `${String(days)}일이 리딩의 전체 지평입니다. 카드는 그 너머를 보지 않습니다`,
     own: "이 종목으로 나만의 리딩",
   },
   scroll: {

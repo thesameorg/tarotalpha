@@ -199,6 +199,7 @@ export const zh: Dictionary = {
     askMore: "再问一位",
     askNote: (cost: number): string =>
       `${String(cost)} 点法力，只付一次：本次牌阵所有日子都由她解读，已开的和未开的都算。`,
+    askShort: (cost: number): string => `法力不足：需要 ${String(cost)}`,
     candles: "预测的蜡烛是她的",
     line: "她的是同色的那条线",
     move: (change: string, day: number): string => `第 ${String(day)} 天结束时 ${change}`,
@@ -212,6 +213,7 @@ export const zh: Dictionary = {
     meta: (createdAt: string): string => `创建于 ${createdAt}`,
     replaying: "为每一天抽三张牌",
     replay: "重演牌阵",
+    horizonEnd: (days: number): string => `${String(days)} 天就是一次牌阵的全部视野，牌不会看得更远`,
     own: "为这个标的开启自己的牌阵",
   },
   scroll: {

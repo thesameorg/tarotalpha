@@ -231,6 +231,7 @@ export const de: Dictionary = {
     askMore: "Noch eine fragen",
     askNote: (cost: number): string =>
       `${String(cost)} Mana einmalig: Sie liest jeden Tag dieser Legung, die offenen und die kommenden.`,
+    askShort: (cost: number): string => `Mana reicht nicht: ${String(cost)} nötig`,
     candles: "Die Kerzen der Prognose sind ihre",
     line: "Ihre ist die Linie in ihrer Farbe",
     move: (change: string, day: number): string => `${change} am Ende von Tag ${String(day)}`,
@@ -244,6 +245,8 @@ export const de: Dictionary = {
     meta: (createdAt: string): string => `erstellt am ${createdAt}`,
     replaying: "Zieh für jeden Tag drei Karten",
     replay: "Legung wiederholen",
+    horizonEnd: (days: number): string =>
+      `${String(days)} Tage sind der ganze Horizont einer Legung, weiter schauen die Karten nicht`,
     own: "Eigene Legung für dieses Instrument",
   },
   scroll: {
