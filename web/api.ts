@@ -84,13 +84,21 @@ export type EventType =
   | "replayed"
   | "shared"
   | "rechecked"
-  | "scroll_opened";
+  | "scroll_opened"
+  | "mana_panel_opened"
+  | "paywall_shown"
+  | "buy_clicked"
+  | "paid";
 
 export interface FunnelEvent {
   type: EventType;
   asset?: string;
   reading_id?: string;
   step?: number;
+  /** Which flavour: the pool whose panel opened, the pack that was clicked. */
+  detail?: string;
+  /** Mana the action drew down. */
+  cost?: number;
 }
 
 interface Call {

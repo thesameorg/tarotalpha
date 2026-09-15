@@ -27,6 +27,7 @@ import { showExchangeLogo } from "./exchange-logo";
 import { lang, onLangChange, t } from "./i18n/index";
 import { icons } from "./icons";
 import { localDateTime, localTime, zoneLabel } from "./local-time-format";
+import { myReadingsNow } from "./my-readings";
 import { formatChange, formatPrice } from "./price-format";
 import { createLineup, type Lineup } from "./reader-lineup";
 import { cancelReveal, playReveal } from "./reveal-overlay";
@@ -397,6 +398,10 @@ class ReadingPage {
   ): Promise<void> {
     await chart.showSnapshot(snapshot, false);
     if (this.gone()) return;
+    // Where the spread of one reading is counted. The author reopens their own from "my readings" to watch it ripen,
+    // and those opens are marked so virality counts links that travelled, not an author refreshing.
+    const mine = myReadingsNow().some((entry) => entry.id === record.id);
+    postEvent({ type: "chart_loaded", asset: record.asset, reading_id: record.id, detail: mine ? "own" : "link" });
     chart.setSteps(results.length);
     chart.setForecast(results.flatMap((step) => step.candles));
     chart.setOpinions(candlesByReader(this.opinionSteps));

@@ -10,6 +10,7 @@ import { localTime } from "./local-time-format";
 import { fullAt, MANA_CAPACITY, manaLeft, onManaChange } from "./mana";
 import { ENDLESS_SIGN, onPaidChange, paidLeft, paidUnlimited } from "./paid-mana";
 import { myInviteLink } from "./invite";
+import { postEvent } from "./api";
 import { openPaywall } from "./paywall-modal";
 import { shareLink } from "./share-modal";
 import { telegram } from "./telegram";
@@ -99,6 +100,7 @@ function showInvite(on: boolean): void {
 }
 
 function openFreePanel(): void {
+  postEvent({ type: "mana_panel_opened", detail: "free" });
   showInvite(false);
   const left = manaLeft();
   const full = left >= MANA_CAPACITY;
@@ -112,6 +114,7 @@ function openFreePanel(): void {
 }
 
 function openPaidPanel(): void {
+  postEvent({ type: "mana_panel_opened", detail: "paid" });
   const count = paidUnlimited() ? ENDLESS_SIGN : String(paidLeft());
   panel(t().paid.title, count, t().paid.order, t().paid.what, t().paywall.buy);
   showInvite(true);

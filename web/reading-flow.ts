@@ -525,7 +525,7 @@ class LandingPage {
     if (this.loaded !== loaded) return;
     this.el.share.disabled = false;
     this.enableDraw(true);
-    postEvent({ type: "step_opened", asset: loaded.asset, step });
+    postEvent({ type: "step_opened", asset: loaded.asset, step, cost });
     // A day is open, and the row it wrote is what the Worker is shown: a write that failed pays nobody yet, and
     // the invite waits in this browser for the next day.
     void loaded.saved.then((id) => (id === null ? undefined : settleInvite(id)));
@@ -578,7 +578,7 @@ class LandingPage {
     // Bought. Another instrument may have taken the screen while the purse answered, and she still belongs to this
     // reading: the row keeps her, and the chart is only redrawn if this reading is still the one on it.
     loaded.opinions.set(id, steps);
-    postEvent({ type: "opinion_asked", asset: loaded.asset, step: loaded.steps.length });
+    postEvent({ type: "opinion_asked", asset: loaded.asset, step: loaded.steps.length, cost: OPINION_COST });
     if (this.loaded === loaded) {
       this.takeOpinions(loaded);
       // Drawn in, not switched on: three mana are worth watching arrive. A day still flowing in draws the lines

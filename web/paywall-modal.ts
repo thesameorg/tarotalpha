@@ -4,6 +4,7 @@
  * coin picker would be a detour. Stars exist nowhere else: they are a Telegram product and cannot be bought from a
  * browser at all. Prices come from the Worker and are never computed here. Rails end to end: docs/wallet.md
  */
+import { postEvent } from "./api";
 import { applyStatic, onLangChange, t } from "./i18n/index";
 import { icons, setIcon } from "./icons";
 import { ENDLESS_SIGN, refreshPaid } from "./paid-mana";
@@ -34,8 +35,11 @@ let loaded: Shelf | null = null;
 let chosen: string | null = null;
 let offered: ChainOffer | null = null;
 let polling: number | null = null;
+let settled = false;
 
 export function openPaywall(): void {
+  settled = false;
+  postEvent({ type: "paywall_shown" });
   modal().classList.add("on");
   show("packs");
   void fill();
@@ -120,6 +124,7 @@ function paintPacks(shelfNow: Shelf): void {
       const pack = button.dataset.pack;
       if (pack === undefined) return;
       chosen = pack;
+      postEvent({ type: "buy_clicked", detail: pack });
       if (stars) void payWithStars(pack);
       else paintCoins(shelfNow);
     });
@@ -269,6 +274,13 @@ function boughtEndless(): boolean {
 
 function done(balance: number, gained: number, endless: boolean): void {
   stopPolling();
+  // A claim in flight can answer after the poll that closed the screen, and an offer already paid answers with a
+  // balance rather than a refusal — without this the same purchase would land in the journal twice.
+  if (settled) return;
+  settled = true;
+  // Where both rails meet: the Worker learns a star payment from Telegram's own request, which carries neither this
+  // visit nor this buyer's country, so the purchase is reported from here. What was actually paid lives in D1.
+  postEvent({ type: "paid", detail: chosen ?? undefined, cost: endless ? undefined : gained });
   // The gold flask in the header reads the server, not this screen, so it is told the moment the money lands.
   void refreshPaid();
   text("pay-gain", endless ? ENDLESS_SIGN : `+${String(gained)}`);

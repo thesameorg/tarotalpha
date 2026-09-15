@@ -47,9 +47,36 @@ describe("POST /api/omen", () => {
       "ru",
       "dark",
     ]);
-    expect(point?.blobs?.slice(13)).toEqual(["t.me", "BTCUSDT", "bcdfghjk"]);
+    expect(point?.blobs?.slice(13)).toEqual(["t.me", "BTCUSDT", "bcdfghjk", ""]);
     expect(point?.doubles?.[0]).toBe(3);
     expect(point?.doubles?.[1]).toBe(14);
+  });
+
+  it("carries what the action cost and which flavour of it happened", async () => {
+    const funnel = journal();
+    const posted = await callApi("/api/omen", omen({ type: "buy_clicked", detail: "pack-50", cost: 3 }), {
+      ANALYTICS: funnel.dataset,
+    });
+
+    expect(posted.status).toBe(204);
+    const [point] = funnel.points;
+    expect(point?.blobs?.[0]).toBe("buy_clicked");
+    expect(point?.blobs?.[16]).toBe("pack-50");
+    expect(point?.doubles?.[4]).toBe(3);
+    // Money is never a browser's claim: only the Worker writes an amount.
+    expect(point?.doubles?.[5]).toBe(-1);
+  });
+
+  it("refuses a flavour that is free text and a cost that is not mana", async () => {
+    const funnel = journal();
+    const slug = await callApi("/api/omen", omen({ type: "buy_clicked", detail: "pack 50; DROP" }), {
+      ANALYTICS: funnel.dataset,
+    });
+    const cost = await callApi("/api/omen", omen({ type: "step_opened", cost: 1.5 }), { ANALYTICS: funnel.dataset });
+
+    expect(slug.status).toBe(400);
+    expect(cost.status).toBe(400);
+    expect(funnel.points).toHaveLength(0);
   });
 
   it("counts a browser that names no visit, without pretending it is somebody", async () => {
@@ -82,8 +109,35 @@ describe("POST /api/omen", () => {
     expect(point?.blobs?.[7]).toBe("x".repeat(64));
   });
 
-  it("rejects the event type only the server may write", async () => {
+  it("prices a reported purchase off the shelf, so nobody reports revenue they did not pay", async () => {
     const funnel = journal();
+    const posted = await callApi("/api/omen", omen({ type: "paid", detail: "micro", cost: 999 }), {
+      ANALYTICS: funnel.dataset,
+    });
+
+    expect(posted.status).toBe(204);
+    const [point] = funnel.points;
+    expect(point?.blobs?.[16]).toBe("micro");
+    expect(point?.doubles?.[5]).toBe(199);
+    // The mana a purchase credits is not the shelf's number — the first-buy bonus multiplies it — so the Worker
+    // cannot check what the browser claims and drops it rather than mixing it with real spending.
+    expect(point?.doubles?.[4]).toBe(-1);
+  });
+
+  it("writes nothing and keeps quiet when a lot has left the shelf", async () => {
+    const funnel = journal();
+    const posted = await callApi("/api/omen", omen({ type: "paid", detail: "gone-last-year" }), {
+      ANALYTICS: funnel.dataset,
+    });
+
+    expect(posted.status).toBe(204);
+    expect(funnel.points[0]?.doubles?.[5]).toBe(-1);
+  });
+
+  it("rejects the event types only the server may write", async () => {
+    const funnel = journal();
+    const invoice = await callApi("/api/omen", omen({ type: "invoice_created" }), { ANALYTICS: funnel.dataset });
+    expect(invoice.status).toBe(400);
     const response = await callApi("/api/omen", omen({ type: "share_failed" }), { ANALYTICS: funnel.dataset });
 
     expect(response.status).toBe(400);

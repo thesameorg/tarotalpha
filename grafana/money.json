@@ -1,0 +1,582 @@
+{
+  "uid": "tarotalpha-money",
+  "title": "TarotAlpha — деньги и мана",
+  "description": "Выручка, конверсия в покупку и на что уходит мана. Раскладка точки в docs/analytics.md.",
+  "tags": ["tarotalpha"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 0,
+  "refresh": "5m",
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "type": "datasource",
+        "name": "ds",
+        "label": "Датасорс",
+        "query": "vertamedia-clickhouse-datasource",
+        "current": {
+          "text": "TarotAlpha Analytics Engine",
+          "value": "afyaxcbazh5a8e"
+        },
+        "refresh": 1,
+        "hide": 0,
+        "options": [],
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Выручка за период",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "table",
+          "query": "SELECT SUM(double6) / 100 AS revenue FROM tarotalpha WHERE $timeFilter AND blob1 = 'paid' AND double6 > 0"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "description": "Сумму ставит воркер по прайсу полки, а не браузер."
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Конверсия пейвол → покупка",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "table",
+          "query": "SELECT countIf(wall > 0 AND paid > 0) / countIf(wall > 0) AS conversion FROM ( SELECT blob3 AS visit, countIf(blob1 = 'paywall_hit') AS wall, countIf(blob1 = 'paid') AS paid FROM tarotalpha WHERE $timeFilter GROUP BY visit)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "description": "Цель из idea.md — 1–2 процента."
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Доля платящих посетителей",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "table",
+          "query": "SELECT countIf(paid > 0) / count() AS payers FROM ( SELECT blob2 AS visitor, countIf(blob1 = 'paid') AS paid FROM tarotalpha WHERE $timeFilter GROUP BY visitor)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Погашенные приглашения",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "table",
+          "query": "SELECT SUM(_sample_interval) AS invites FROM tarotalpha WHERE $timeFilter AND blob1 = 'invite_redeemed'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Выручка по дням",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "time_series",
+          "query": "SELECT toUnixTimestamp(toStartOfDay(timestamp)) * 1000 AS t, SUM(double6) / 100 AS revenue FROM tarotalpha WHERE $timeFilter AND blob1 = 'paid' AND double6 > 0 GROUP BY t ORDER BY t"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Путь к деньгам по дням",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "time_series",
+          "query": "SELECT toUnixTimestamp(day) * 1000 AS t, countIf(shown > 0) AS paywall_shown, countIf(clicked > 0) AS buy_clicked, countIf(offered > 0) AS invoice_created, countIf(paid > 0) AS paid FROM ( SELECT blob3 AS visit, toStartOfDay(timestamp) AS day, countIf(blob1 = 'paywall_shown') AS shown, countIf(blob1 = 'buy_clicked') AS clicked, countIf(blob1 = 'invoice_created') AS offered, countIf(blob1 = 'paid') AS paid FROM tarotalpha WHERE $timeFilter GROUP BY visit, day) GROUP BY t ORDER BY t"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Показали пейвол → выбрали пачку → выписали предложение → деньги дошли."
+    },
+    {
+      "id": 7,
+      "type": "barchart",
+      "title": "Что покупают",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "table",
+          "query": "SELECT blob17 AS pack, SUM(_sample_interval) AS bought, SUM(double6) / 100 AS revenue FROM tarotalpha WHERE $timeFilter AND blob1 = 'paid' AND blob17 != '' GROUP BY pack ORDER BY revenue DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "auto",
+        "xTickLabelRotation": 0,
+        "showValue": "auto",
+        "legend": {
+          "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "piechart",
+      "title": "Чем платят",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "table",
+          "query": "SELECT blob17 AS rail, SUM(_sample_interval) AS offers FROM tarotalpha WHERE $timeFilter AND blob1 = 'invoice_created' AND blob17 != '' GROUP BY rail"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": true
+        },
+        "pieType": "donut",
+        "displayLabels": ["name", "percent"],
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "list"
+        }
+      },
+      "description": "Рельса выписанного предложения: звёзды или TON."
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Расход маны по дням",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "time_series",
+          "query": "SELECT toUnixTimestamp(toStartOfDay(timestamp)) * 1000 AS t, SUM(double5) AS mana FROM tarotalpha WHERE $timeFilter AND double5 > 0 AND blob1 IN ('step_opened', 'opinion_asked') GROUP BY t ORDER BY t"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Цена едет на самом событии: день прогноза и второе мнение."
+    },
+    {
+      "id": 10,
+      "type": "piechart",
+      "title": "На что тратят ману",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "table",
+          "query": "SELECT blob1 AS event, SUM(double5) AS mana, SUM(_sample_interval) AS times FROM tarotalpha WHERE $timeFilter AND double5 > 0 AND blob1 IN ('step_opened', 'opinion_asked') GROUP BY event ORDER BY mana DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": true
+        },
+        "pieType": "donut",
+        "displayLabels": ["name", "percent"],
+        "legend": {
+          "showLegend": true,
+          "placement": "bottom",
+          "displayMode": "list"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Открывали кошелёк",
+      "datasource": {
+        "type": "vertamedia-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "vertamedia-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "database": "default",
+          "table": "tarotalpha",
+          "dateTimeType": "DATETIME",
+          "dateColDataType": "",
+          "dateTimeColDataType": "timestamp",
+          "editorMode": "sql",
+          "extrapolate": false,
+          "skip_comments": true,
+          "intervalFactor": 1,
+          "format": "time_series",
+          "query": "SELECT toUnixTimestamp(toStartOfDay(timestamp)) * 1000 AS t, count(DISTINCT blob3) AS visits FROM tarotalpha WHERE $timeFilter AND blob1 = 'mana_panel_opened' GROUP BY t ORDER BY t"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "Клик по колбе в шапке: интерес к запасу до того, как он кончился."
+    }
+  ]
+}
