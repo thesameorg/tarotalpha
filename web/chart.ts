@@ -385,8 +385,12 @@ export function createCandleChart(container: HTMLElement, anchorWord?: () => str
       } else {
         real.setData(bars.map(toHidden));
         frame();
+        // The draw-in owns the series while it runs: a chunk landing between its frames would show every bar it
+        // has not reached yet, and the next frame would hide them again.
+        framed = false;
         await drawIn(bars, mine);
         if (mine !== generation) return;
+        framed = true;
       }
       pulse.setPoint({ time: anchor, price: last.c });
     },
